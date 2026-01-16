@@ -30,9 +30,6 @@ const nextConfig: NextConfig = {
       'lucide-react',
       '@radix-ui/react-icons',
     ],
-    turbopack: {
-      fsCache: true,
-    },
   },
 };
 

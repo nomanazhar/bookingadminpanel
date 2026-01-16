@@ -233,24 +233,28 @@ export async function getOrdersByDoctor(doctorId: string) {
   return data as OrderWithDetails[]
 }
 
-export const getRecentOrders = unstable_cache(async (limit: number = 10) => {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      service:services(
+export const getRecentOrders = unstable_cache(
+  async (limit: number = 10) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
         *,
-        category:categories(*)
-      ),
-      customer:profiles(*),
-      doctor:doctors(*)
-    `)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-  if (error) throw error
-  return data as OrderWithDetails[]
-}, (limit: number = 10) => ['getRecentOrders', limit], { revalidate: 60 })
+        service:services(
+          *,
+          category:categories(*)
+        ),
+        customer:profiles(*),
+        doctor:doctors(*)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data as OrderWithDetails[]
+  },
+  ['getRecentOrders'],
+  { revalidate: 60 }
+)
 
 export async function getOrderById(id: string) {
   const supabase = await createClient()
@@ -271,15 +275,23 @@ export async function getOrderById(id: string) {
 }
 
 // Users (profiles) - paginated
-export const getUsersPaginated = unstable_cache(async (page: number = 1, pageSize: number = 20, _useCache: boolean = true, q: string | null = null) => {
+export async function getUsersPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true, q: string | null = null) {
   const supabase = await createClient()
   const start = (page - 1) * pageSize
   const end = start + pageSize - 1
+
+  const cacheKey = `users:page=${page}:size=${pageSize}:q=${q ?? ''}`
+  if (useCache) {
+    const cached = cacheGet(cacheKey)
+    if (cached) return cached
+  }
+
   // Build base query
   let query = supabase
     .from('profiles')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
+
   // If a search term is provided, let the DB filter rows (case-insensitive)
   if (q && q.trim().length > 0) {
     const term = q.trim()
@@ -287,11 +299,15 @@ export const getUsersPaginated = unstable_cache(async (page: number = 1, pageSiz
     // Supabase .or expects comma-separated conditions
     query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
   }
+
   const { data, error, count } = await query.range(start, end)
+
   if (error) throw error
+
   const result = { data, count: count ?? 0 }
+  if (useCache) cacheSet(cacheKey, result, 30 * 1000)
   return result
-}, (page: number = 1, pageSize: number = 20, _useCache: boolean = true, q: string | null = null) => ['getUsersPaginated', page, pageSize, q ?? ''], { revalidate: 60 })
+}
 
 // Services - paginated
 export async function getServicesPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
