@@ -7,7 +7,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!customerId) {
       return NextResponse.json({ error: 'Missing customer id' }, { status: 400 });
     }
-    const orders = await getOrdersByCustomer(customerId);
+    // Use public client for static/cached API route
+    const { createPublicClient } = await import('@/lib/supabase/publicClient');
+    const supabase = createPublicClient();
+    const orders = await getOrdersByCustomer(supabase, customerId);
     return NextResponse.json(orders);
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });

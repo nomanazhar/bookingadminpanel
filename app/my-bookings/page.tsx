@@ -15,17 +15,17 @@ export default async function MyBookingsPage() {
   let user: Profile | null = null
   let orders: any[] = []
   if (authUser) {
-    const profilePromise = supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .single()
-    const ordersPromise = getOrdersByCustomer(authUser.id)
+  const profilePromise = supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .single()
+  const ordersPromise = getOrdersByCustomer(supabase, authUser.id)
 
-    const [profileRes, fetched] = await Promise.all([profilePromise, ordersPromise])
-    user = (profileRes.data as Profile) || null
-    orders = fetched || []
-  }
+  const [profileRes, fetched] = await Promise.all([profilePromise, ordersPromise])
+  user = (profileRes.data as Profile) || null
+  orders = fetched || []
+}
 
   function toDate(o: any) {
     return parseBookingDateTime(o.booking_date, o.booking_time || '00:00:00')

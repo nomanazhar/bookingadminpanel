@@ -21,7 +21,7 @@ export default async function BookConsultationPage() {
       .select('*')
       .eq('id', authUser.id)
       .single()
-    const ordersPromise = getOrdersByCustomer(authUser.id)
+    const ordersPromise = getOrdersByCustomer(supabase, authUser.id)
 
     const [profileRes, orders] = await Promise.all([profilePromise, ordersPromise])
     // use local `orders` variable returned from the query

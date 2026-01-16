@@ -1,5 +1,6 @@
 import { createClient } from './server'
 import { unstable_cache } from 'next/cache'
+import { createPublicClient } from './publicClient'
 import type { 
   Category, 
   ServiceWithCategory,
@@ -30,8 +31,8 @@ export function clearCachePrefix(prefix: string) {
 }
 
 // Category Queries
-export const getCategories = unstable_cache(async () => {
-  const supabase = await createClient()
+export  const getCategories = unstable_cache(async () => {
+  const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -43,7 +44,7 @@ export const getCategories = unstable_cache(async () => {
 
 // Return categories that have at least one active service.
 export const getCategoriesWithActiveServices = unstable_cache(async () => {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   // Query active services and include their category object
   const { data, error } = await supabase
     .from('services')
@@ -64,7 +65,7 @@ export const getCategoriesWithActiveServices = unstable_cache(async () => {
 }, ['getCategoriesWithActiveServices'], { revalidate: 60 })
 
 export async function getCategoryById(id: string) {
-  const supabase = await createClient()
+  const supabase =  createPublicClient()
   
   const { data, error } = await supabase
     .from('categories')
@@ -78,7 +79,7 @@ export async function getCategoryById(id: string) {
 
 // Service Queries
 export const getServices = unstable_cache(async () => {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('services')
     .select(`
@@ -92,7 +93,7 @@ export const getServices = unstable_cache(async () => {
 }, ['getServices'], { revalidate: 60 })
 
 export async function getServicesByCategory(categoryId: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   
   const { data, error } = await supabase
     .from('services')
@@ -109,7 +110,7 @@ export async function getServicesByCategory(categoryId: string) {
 }
 
 export const getPopularServices = unstable_cache(async () => {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('services')
     .select(`
@@ -124,7 +125,7 @@ export const getPopularServices = unstable_cache(async () => {
 }, ['getPopularServices'], { revalidate: 60 })
 
 export async function getServiceById(id: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   
   const { data, error } = await supabase
     .from('services')
@@ -141,7 +142,7 @@ export async function getServiceById(id: string) {
 
 // Order Queries
 export const getOrders = unstable_cache(async () => {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -160,7 +161,7 @@ export const getOrders = unstable_cache(async () => {
 
 // Paginated orders with optional short-term cache. Returns { data, count }
 export async function getOrdersPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const start = (page - 1) * pageSize
   const end = start + pageSize - 1
 
@@ -191,9 +192,7 @@ export async function getOrdersPaginated(page: number = 1, pageSize: number = 20
   return result
 }
 
-export async function getOrdersByCustomer(customerId: string) {
-  const supabase = await createClient()
-  
+export async function getOrdersByCustomer(supabase: any, customerId: string) {
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -207,13 +206,12 @@ export async function getOrdersByCustomer(customerId: string) {
     `)
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
-  
   if (error) throw error
   return data as OrderWithDetails[]
 }
 
 export async function getOrdersByDoctor(doctorId: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   
   const { data, error } = await supabase
     .from('orders')
@@ -232,10 +230,9 @@ export async function getOrdersByDoctor(doctorId: string) {
   if (error) throw error
   return data as OrderWithDetails[]
 }
-
 export const getRecentOrders = unstable_cache(
   async (limit: number = 10) => {
-    const supabase = await createClient()
+    const supabase = createPublicClient()
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -257,7 +254,7 @@ export const getRecentOrders = unstable_cache(
 )
 
 export async function getOrderById(id: string) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
 
   const { data, error } = await supabase
     .from('orders')
@@ -276,7 +273,7 @@ export async function getOrderById(id: string) {
 
 // Users (profiles) - paginated
 export async function getUsersPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true, q: string | null = null) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const start = (page - 1) * pageSize
   const end = start + pageSize - 1
 
@@ -311,7 +308,7 @@ export async function getUsersPaginated(page: number = 1, pageSize: number = 20,
 
 // Services - paginated
 export async function getServicesPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   const start = (page - 1) * pageSize
   const end = start + pageSize - 1
 
@@ -340,7 +337,7 @@ export async function getServicesPaginated(page: number = 1, pageSize: number = 
 
 // Review Queries
 export async function getFeaturedReviews() {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   
   const { data, error } = await supabase
     .from('reviews')
@@ -358,7 +355,7 @@ export async function getFeaturedReviews() {
 
 // Stats Queries (for admin dashboard)
 export const getStats = unstable_cache(async () => {
-  const supabase = await createClient()
+  const supabase = createPublicClient()
   // Run count queries in parallel to reduce total latency.
   const [profilesRes, ordersRes, categoriesRes, servicesRes] = await Promise.all([
     supabase
