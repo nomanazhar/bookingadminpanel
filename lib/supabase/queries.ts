@@ -1,4 +1,5 @@
 import { createClient } from './server'
+import { unstable_cache } from 'next/cache'
 import type { 
   Category, 
   ServiceWithCategory,
@@ -29,45 +30,38 @@ export function clearCachePrefix(prefix: string) {
 }
 
 // Category Queries
-export async function getCategories() {
+export const getCategories = unstable_cache(async () => {
   const supabase = await createClient()
-  
   const { data, error } = await supabase
     .from('categories')
     .select('*')
     .eq('is_active', true)
     .order('display_order', { ascending: true })
-  
   if (error) throw error
   return data as Category[]
-}
+}, ['getCategories'], { revalidate: 60 })
 
 // Return categories that have at least one active service.
-export async function getCategoriesWithActiveServices() {
+export const getCategoriesWithActiveServices = unstable_cache(async () => {
   const supabase = await createClient()
-
   // Query active services and include their category object
   const { data, error } = await supabase
     .from('services')
     .select('category:categories(*)')
     .eq('is_active', true)
-
   if (error) throw error
-
   const cats = (data || [])
     .map((s: any) => s.category)
     .filter(Boolean)
-
   // Deduplicate by id while preserving display_order sort
   const map = new Map<string, Category>()
   for (const c of cats) {
     if (!map.has(c.id)) map.set(c.id, c)
   }
-
   const unique = Array.from(map.values())
   unique.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   return unique as Category[]
-}
+}, ['getCategoriesWithActiveServices'], { revalidate: 60 })
 
 export async function getCategoryById(id: string) {
   const supabase = await createClient()
@@ -83,9 +77,8 @@ export async function getCategoryById(id: string) {
 }
 
 // Service Queries
-export async function getServices() {
+export const getServices = unstable_cache(async () => {
   const supabase = await createClient()
-  
   const { data, error } = await supabase
     .from('services')
     .select(`
@@ -94,10 +87,9 @@ export async function getServices() {
     `)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-  
   if (error) throw error
   return data as ServiceWithCategory[]
-}
+}, ['getServices'], { revalidate: 60 })
 
 export async function getServicesByCategory(categoryId: string) {
   const supabase = await createClient()
@@ -116,9 +108,8 @@ export async function getServicesByCategory(categoryId: string) {
   return data as ServiceWithCategory[]
 }
 
-export async function getPopularServices() {
+export const getPopularServices = unstable_cache(async () => {
   const supabase = await createClient()
-  
   const { data, error } = await supabase
     .from('services')
     .select(`
@@ -128,10 +119,9 @@ export async function getPopularServices() {
     .eq('is_popular', true)
     .eq('is_active', true)
     .limit(3)
-  
   if (error) throw error
   return data as ServiceWithCategory[]
-}
+}, ['getPopularServices'], { revalidate: 60 })
 
 export async function getServiceById(id: string) {
   const supabase = await createClient()
@@ -150,9 +140,8 @@ export async function getServiceById(id: string) {
 }
 
 // Order Queries
-export async function getOrders() {
+export const getOrders = unstable_cache(async () => {
   const supabase = await createClient()
-  
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -165,10 +154,9 @@ export async function getOrders() {
       doctor:doctors(*)
     `)
     .order('created_at', { ascending: false })
-  
   if (error) throw error
   return data as OrderWithDetails[]
-}
+}, ['getOrders'], { revalidate: 60 })
 
 // Paginated orders with optional short-term cache. Returns { data, count }
 export async function getOrdersPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
@@ -245,9 +233,8 @@ export async function getOrdersByDoctor(doctorId: string) {
   return data as OrderWithDetails[]
 }
 
-export async function getRecentOrders(limit: number = 10) {
+export const getRecentOrders = unstable_cache(async (limit: number = 10) => {
   const supabase = await createClient()
-  
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -261,10 +248,9 @@ export async function getRecentOrders(limit: number = 10) {
     `)
     .order('created_at', { ascending: false })
     .limit(limit)
-  
   if (error) throw error
   return data as OrderWithDetails[]
-}
+}, (limit: number = 10) => ['getRecentOrders', limit], { revalidate: 60 })
 
 export async function getOrderById(id: string) {
   const supabase = await createClient()
@@ -285,23 +271,15 @@ export async function getOrderById(id: string) {
 }
 
 // Users (profiles) - paginated
-export async function getUsersPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true, q: string | null = null) {
+export const getUsersPaginated = unstable_cache(async (page: number = 1, pageSize: number = 20, _useCache: boolean = true, q: string | null = null) => {
   const supabase = await createClient()
   const start = (page - 1) * pageSize
   const end = start + pageSize - 1
-
-  const cacheKey = `users:page=${page}:size=${pageSize}:q=${q ?? ''}`
-  if (useCache) {
-    const cached = cacheGet(cacheKey)
-    if (cached) return cached
-  }
-
   // Build base query
   let query = supabase
     .from('profiles')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
-
   // If a search term is provided, let the DB filter rows (case-insensitive)
   if (q && q.trim().length > 0) {
     const term = q.trim()
@@ -309,15 +287,11 @@ export async function getUsersPaginated(page: number = 1, pageSize: number = 20,
     // Supabase .or expects comma-separated conditions
     query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
   }
-
   const { data, error, count } = await query.range(start, end)
-
   if (error) throw error
-
   const result = { data, count: count ?? 0 }
-  if (useCache) cacheSet(cacheKey, result, 30 * 1000)
   return result
-}
+}, (page: number = 1, pageSize: number = 20, _useCache: boolean = true, q: string | null = null) => ['getUsersPaginated', page, pageSize, q ?? ''], { revalidate: 60 })
 
 // Services - paginated
 export async function getServicesPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
@@ -367,9 +341,8 @@ export async function getFeaturedReviews() {
 }
 
 // Stats Queries (for admin dashboard)
-export async function getStats() {
+export const getStats = unstable_cache(async () => {
   const supabase = await createClient()
-  
   // Run count queries in parallel to reduce total latency.
   const [profilesRes, ordersRes, categoriesRes, servicesRes] = await Promise.all([
     supabase
@@ -388,17 +361,15 @@ export async function getStats() {
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true),
   ])
-
   if (profilesRes.error) throw profilesRes.error
   if (ordersRes.error) throw ordersRes.error
   if (categoriesRes.error) throw categoriesRes.error
   if (servicesRes.error) throw servicesRes.error
-
   return {
     totalCustomers: profilesRes.count || 0,
     totalOrders: ordersRes.count || 0,
     totalCategories: categoriesRes.count || 0,
     totalServices: servicesRes.count || 0,
   }
-}
+}, ['getStats'], { revalidate: 60 })
 

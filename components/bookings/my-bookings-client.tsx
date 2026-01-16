@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { Button } from "@/components/ui/button"
 import { RefreshCcw } from "lucide-react"
 import { parseBookingDateTime } from '@/lib/utils'
+import type { OrderWithDetails } from '@/types'
 
 function tabReducer(state: { activeTab: "Upcoming" | "Previous" }, action: { type: "SET_TAB"; tab: "Upcoming" | "Previous" }) {
   switch (action.type) {
@@ -22,7 +23,7 @@ interface Props {
 export default function MyBookingsClient({ customerId }: Props) {
   const [state, dispatch] = useReducer(tabReducer, { activeTab: "Upcoming" })
   const fetcher = (url: string) => fetch(url).then(res => res.json())
-  const { data, error, isLoading } = useSWR(`/api/orders/customer/${encodeURIComponent(customerId)}`, fetcher, { refreshInterval: 5000 })
+  const { data, error, isLoading } = useSWR<OrderWithDetails[]>(`/api/orders/customer/${encodeURIComponent(customerId)}`, fetcher, { refreshInterval: 5000 })
 
   function formatDate(dateStr: string) {
     try {
@@ -35,13 +36,13 @@ export default function MyBookingsClient({ customerId }: Props) {
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading bookings.</div>;
-  const orders = data || [];
-  function toDate(o: any) {
+  const orders: OrderWithDetails[] = data || [];
+  function toDate(o: OrderWithDetails) {
     return parseBookingDateTime(o.booking_date, o.booking_time)
   }
   const now = new Date()
-  const upcoming = orders.filter((o: any) => (o.status === 'pending' || o.status === 'confirmed') && toDate(o) >= now).sort((a: any, b: any) => toDate(a).getTime() - toDate(b).getTime())
-  const previous = orders.filter((o: any) => !(o.status === 'pending' || o.status === 'confirmed') || toDate(o) < now).sort((a: any, b: any) => toDate(b).getTime() - toDate(a).getTime())
+  const upcoming = orders.filter((o) => (o.status === 'pending' || o.status === 'confirmed') && toDate(o) >= now).sort((a, b) => toDate(a).getTime() - toDate(b).getTime())
+  const previous = orders.filter((o) => !(o.status === 'pending' || o.status === 'confirmed') || toDate(o) < now).sort((a, b) => toDate(b).getTime() - toDate(a).getTime())
 
   return (
     <>
@@ -77,7 +78,7 @@ export default function MyBookingsClient({ customerId }: Props) {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Upcoming ({upcoming.length})</h2>
               </div>
-              {upcoming.map((upcomingOrder: any, idx: number) => (
+              {upcoming.map((upcomingOrder, idx) => (
                 <section key={idx} className="bg-muted rounded-xl shadow p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between mb-6">
                   <div className="flex-1 min-w-0">
                     <div className="mb-2">
@@ -117,7 +118,7 @@ export default function MyBookingsClient({ customerId }: Props) {
               <span className="text-lg text-muted-foreground">You have no previous bookings.</span>
             </div>
           ) : (
-            previous.map((booking: any, idx: number) => (
+            previous.map((booking, idx) => (
               <div key={idx} className="bg-white rounded-xl shadow p-6 flex items-center gap-6 mb-4">
                 <div className="flex-1">
                   <h3 className="font-semibold">{formatDate(booking.booking_date)}</h3>

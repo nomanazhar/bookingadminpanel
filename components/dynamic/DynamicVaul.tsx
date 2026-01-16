@@ -5,11 +5,13 @@ import React from "react";
 // Load `vaul` only on the client and return a small wrapper component.
 // `vaul` may export hooks/utilities rather than a React component, so we
 // wrap it to avoid the dynamic loader type mismatch.
-const Vaul = dynamic(
+type VaulWrapperProps = React.PropsWithChildren<Record<string, unknown>>;
+
+const Vaul = dynamic<VaulWrapperProps>(
   async () => {
     const mod = await import('vaul');
 
-    const VaulWrapper: React.FC<any> = ({ children, ...rest }) => {
+    const VaulWrapper: React.FC<VaulWrapperProps> = ({ children, ...rest }) => {
       // Keep a reference to the loaded module if callers need it later.
       // We don't attempt to render any specific Vaul component here because
       // the library surface varies; this wrapper lets you mount client-only
@@ -25,9 +27,9 @@ const Vaul = dynamic(
     return VaulWrapper;
   },
   { ssr: false }
-) as any;
+);
 
-export default function DynamicVaul(props: any) {
+export default function DynamicVaul(props: VaulWrapperProps) {
   const Comp = Vaul;
   return <Comp {...props} />;
 }

@@ -1,4 +1,5 @@
 
+export const dynamic = "force-static";
 import { getCategories } from "@/lib/supabase/queries"
 import ClientCategoriesSection from "./_client-categories-section"
 

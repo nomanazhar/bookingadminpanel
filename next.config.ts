@@ -15,6 +15,7 @@ if (enableAnalyzer) {
   }
 }
 
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -23,6 +24,15 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+  },
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+    ],
+    turbopack: {
+      fsCache: true,
+    },
   },
 };
 

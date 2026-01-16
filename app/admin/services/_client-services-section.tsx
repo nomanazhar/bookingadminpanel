@@ -1,6 +1,6 @@
 
 
-"use client"
+"use client";
 
 import { useState, useSyncExternalStore } from "react"
 import Image from 'next/image'

@@ -1,4 +1,5 @@
-"use client";
+export const dynamic = "force-static";
+// Converted to React Server Component for performance
 import Link from "next/link";
  
 type Order = {

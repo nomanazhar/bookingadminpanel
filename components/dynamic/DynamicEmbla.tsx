@@ -2,14 +2,18 @@
 import dynamic from "next/dynamic";
 import React from "react";
 
-const Embla = dynamic(
-  // Return a small React wrapper component that uses the embla hook
-  async () => {
-    const mod = await import('embla-carousel-react');
-    const useEmbla = (mod as any).useEmblaCarousel as any;
+type EmblaWrapperProps = React.PropsWithChildren<{
+  className?: string;
+  style?: React.CSSProperties;
+  [key: string]: unknown;
+}>;
 
-    const EmblaWrapper: React.FC<any> = ({ children, className, style, ...rest }) => {
-      const [viewportRef] = useEmbla();
+const Embla = dynamic<EmblaWrapperProps>(
+  async () => {
+    const useEmblaCarousel = (await import('embla-carousel-react')).default;
+
+    const EmblaWrapper: React.FC<EmblaWrapperProps> = ({ children, className, style, ...rest }) => {
+      const [viewportRef] = useEmblaCarousel();
       return (
         <div className={className} style={style} {...rest} ref={viewportRef}>
           {children}
@@ -20,9 +24,9 @@ const Embla = dynamic(
     return EmblaWrapper;
   },
   { ssr: false }
-) as any;
+);
 
-export default function DynamicEmbla(props: any) {
+export default function DynamicEmbla(props: EmblaWrapperProps) {
   const Comp = Embla;
   return <Comp {...props} />;
 }
