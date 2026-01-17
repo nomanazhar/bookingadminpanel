@@ -1,5 +1,5 @@
 "use client"
-
+import axios from 'axios'
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -81,12 +81,9 @@ export function NewBookingDialog({
   const loadDoctors = async () => {
     setLoadingDoctors(true)
     try {
-      const res = await fetch("/api/doctors")
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          setDoctors(data.filter((d: Doctor) => d.is_active))
-        }
+      const { data } = await axios.get("/api/doctors")
+      if (Array.isArray(data)) {
+        setDoctors(data.filter((d: Doctor) => d.is_active))
       }
     } catch (error) {
       console.error("Failed to load doctors:", error)
@@ -147,11 +144,10 @@ export function NewBookingDialog({
   const loadServices = async () => {
     setLoadingServices(true)
     try {
-      const res = await fetch("/api/services")
-      if (res.ok) {
-        const data = await res.json()
+      try {
+        const { data } = await axios.get("/api/services")
         setServices(data)
-      } else {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to load services",
@@ -229,15 +225,8 @@ export function NewBookingDialog({
         notes: notes || null,
       }
 
-      const res = await fetch("/api/admin/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
+      const { data } = await axios.post("/api/admin/orders", payload)
+      if (!data || data.success === false) {
         throw new Error(data.error || "Failed to create booking")
       }
 

@@ -1,5 +1,5 @@
 "use client"
-
+import axios from 'axios'
 import { memo } from "react"
 import { useRouter } from "next/navigation"
 import type { OrderWithDetails } from "@/types"
@@ -34,18 +34,14 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
   const router = useRouter()
   
   const handleConfirm = async (orderId: string) => {
-    const res = await fetch(`/api/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'confirmed' })
-    })
-    if (res.ok) {
+    try {
+      await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' })
       // Clear cache and refresh the page to reload server component data
       try {
-        await fetch('/api/admin/clear-orders-cache', { method: 'POST' })
+        await axios.post('/api/admin/clear-orders-cache')
       } catch {}
       router.refresh() // Refresh server component to get updated data
-    } else {
+    } catch {
       alert('Failed to confirm order.')
     }
   }

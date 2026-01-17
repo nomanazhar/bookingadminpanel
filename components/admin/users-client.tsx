@@ -1,18 +1,21 @@
 "use client"
 
+
 import { useEffect, useMemo, useState, startTransition } from 'react'
 import { UsersTable } from './users-table'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import axios from 'axios'
 
 const clientCache = new Map<string, any>()
 
 async function fetchUsers(page: number, size: number, q: string) {
   const key = `p=${page}&s=${size}&q=${encodeURIComponent(q)}`
   if (clientCache.has(key)) return clientCache.get(key)
-  const res = await fetch(`/api/admin/users?page=${page}&size=${size}&q=${encodeURIComponent(q)}`)
-  const json = await res.json()
-  clientCache.set(key, json)
-  return json
+  const { data } = await axios.get(`/api/admin/users`, {
+    params: { page, size, q }
+  })
+  clientCache.set(key, data)
+  return data
 }
 
 export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: number; pageSize?: number }) {

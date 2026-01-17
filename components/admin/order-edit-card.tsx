@@ -1,5 +1,5 @@
 "use client"
-
+import axios from 'axios'
 import React, { useState, useEffect } from 'react'
 import { parseBookingDateTime } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,9 +45,8 @@ export default function OrderEditCard({ order, onSaved }: Props) {
 
   // Fetch doctors list
   useEffect(() => {
-    fetch('/api/doctors')
-      .then(res => res.json())
-      .then(data => {
+    axios.get('/api/doctors')
+      .then(({ data }) => {
         if (Array.isArray(data)) {
           setDoctors(data)
         }
@@ -91,13 +90,8 @@ export default function OrderEditCard({ order, onSaved }: Props) {
         notes: notes || null,
         doctor_id: doctorId || null,
       }
-      const res = await fetch(`/api/orders/${order.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const data = await res.json()
-      if (!res.ok || data?.success === false) {
+      const { data } = await axios.put(`/api/orders/${order.id}`, payload)
+      if (!data || data?.success === false) {
         setError(data?.error || 'Failed to update')
       } else {
         try {
@@ -328,16 +322,12 @@ export default function OrderEditCard({ order, onSaved }: Props) {
               setSaving(true)
               setError(null)
               try {
-                const res = await fetch(`/api/orders/${order.id}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'cancelled' })
-                })
-                const data = await res.json()
-                if (!res.ok || data?.error) {
+                const { data } = await axios.patch(`/api/orders/${order.id}`, { status: 'cancelled' })
+                if (data?.error) {
                   setError(data?.error || 'Failed to cancel')
                 } else {
                   const updated = data?.data ?? data
+                 
                   onSaved?.(updated)
                 }
               } catch (err: any) {

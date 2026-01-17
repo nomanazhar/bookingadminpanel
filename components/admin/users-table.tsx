@@ -1,5 +1,5 @@
 "use client"
-
+import axios from 'axios'
 import { memo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { Profile } from "@/types"
@@ -35,12 +35,13 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
     }
     if (!window.confirm("Are you sure you want to delete this user?")) return
     // Call API to delete user in Supabase
-    const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" })
-    if (res.ok) {
+    try {
+      await axios.delete(`/api/admin/users/${userId}`)
       setUsers(users.filter(u => u.id !== userId))
-    } else {
+    } catch {
       alert("Failed to delete user.")
     }
+
   }
   if (!users || users.length === 0) {
     return (
