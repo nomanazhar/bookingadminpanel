@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import Image from 'next/image'
 import { ServiceForm } from "@/components/admin/service-form"
 import type { Category, ServiceWithCategory } from "@/types"
@@ -23,7 +24,7 @@ export default function ClientServicesSection({ categories }: { categories: Cate
   
   // useSyncExternalStore expects synchronous getSnapshot, so we use a workaround
   const [services, setServices] = useState<ServiceWithCategory[]>([])
-  const [showActions, setShowActions] = useState<string | null>(null)
+  // Remove showActions, handled by DropdownMenu
   useSyncExternalStore(
     subscribe,
     () => services,
@@ -78,7 +79,7 @@ export default function ClientServicesSection({ categories }: { categories: Cate
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
-            <tr>
+            <tr className="bg-[#333333] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Name</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Category</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Image</th>
@@ -87,8 +88,9 @@ export default function ClientServicesSection({ categories }: { categories: Cate
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Duration</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Sessions</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Available Times</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">Subtreatments</th>
               <th className="px-4 py-3 text-center text-sm font-semibold text-foreground border-b border-border">Active</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-foreground border-b border-border">Popular</th>
+              {/* <th className="px-4 py-3 text-center text-sm font-semibold text-foreground border-b border-border">Popular</th> */}
               <th className="px-4 py-3 text-center text-sm font-semibold text-foreground border-b border-border">Manage</th>
             </tr>
           </thead>
@@ -107,46 +109,44 @@ export default function ClientServicesSection({ categories }: { categories: Cate
                   }
                 } catch {}
               }
+              // Render subtreatments (subservices) as name with price in small text (React, not HTML string)
+              const subtreatments = Array.isArray(service.subservices) && service.subservices.length > 0
+                ? service.subservices.map((s: any, i: number) => (
+                    <span key={i} className="block">
+                      {s.name}
+                      <span className="text-xs text-muted-foreground ml-1">£{typeof s.base_price === 'number' ? s.base_price : 0}</span>
+                    </span>
+                  ))
+                : "-";
               return (
                 <tr key={service.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-semibold text-foreground">{service.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{categories.find((c) => c.id === service.category_id)?.name || '-'}</td>
                   <td className="px-4 py-3 text-foreground">{service.thumbnail ? <Image src={service.thumbnail} alt="thumb" width={48} height={48} className="rounded object-cover" /> : "-"}</td>
                   <td className="px-4 py-3 text-foreground">£{service.base_price}</td>
-                  <td className="px-4 py-3 text-foreground">{service.description || "-"}</td>
-                  <td className="px-4 py-3 text-foreground">{service.duration_minutes || "-"}</td>
-                  <td className="px-4 py-3 text-foreground">{sessions}</td>
-                  <td className="px-4 py-3 text-foreground">{times}</td>
+                  <td className="px-4 py-3 text-foreground text-sm">{service.description || "-"}</td>
+                  <td className="px-4 py-3 text-foreground">{service.duration_minutes || "-"} min</td>
+                  <td className="px-4 py-3 text-foreground text-sm">{sessions}</td>
+                  <td className="px-4 py-3 text-foreground text-sm">{times}</td>
+                  <td className="px-4 py-3 text-foreground text-sm">{subtreatments}</td>
                   <td className="px-4 py-3 text-center text-foreground">{service.is_active ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-center text-foreground hidden">{service.is_popular ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-center relative">
-                    <span
-                      className="cursor-pointer text-gray-500 hover:text-white"
-                      title="Manage"
-                      onClick={() => setShowActions(showActions === service.id ? null : service.id)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <circle cx="12" cy="12" r="1.5" />
-                        <circle cx="19.5" cy="12" r="1.5" />
-                        <circle cx="4.5" cy="12" r="1.5" />
-                      </svg>
-                    </span>
-                    {showActions === service.id && (
-                      <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded shadow-lg z-10 flex flex-col">
-                        <button
-                          className="px-4 py-2 text-left hover:bg-primary text-blue-600"
-                          onClick={() => { setShowActions(null); handleEdit(service); }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="px-4 py-2 text-left hover:bg-primary text-red-600"
-                          onClick={() => { setShowActions(null); handleDelete(service); }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <span className="cursor-pointer text-gray-500 hover:text-black" title="Manage">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="19.5" cy="12" r="1.5" />
+                            <circle cx="4.5" cy="12" r="1.5" />
+                          </svg>
+                        </span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(service)} className="text-blue-600">Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(service)} className="text-red-600">Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               )

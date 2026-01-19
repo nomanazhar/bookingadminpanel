@@ -112,7 +112,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 p-4 ">
         {sidebarLinks.map((link) => {
           const isActive = pathname === link.href
           const Icon = link.icon
@@ -126,10 +126,11 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-[#42E0CF] text-white shadow-md"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 isCollapsed && "justify-center"
               )}
+              style={isActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
               {!isCollapsed && <span>{link.title}</span>}
@@ -145,9 +146,10 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
                 className={cn(
                   "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isBookingsActive
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-[#42E0CF] text-white shadow-md"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
+                style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
                 title="Bookings"
               >
                 <ShoppingCart className="h-5 w-5 flex-shrink-0" />
@@ -197,9 +199,10 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
             className={cn(
               "flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isBookingsActive
-                ? "bg-primary text-primary-foreground"
+                ? "bg-[#42E0CF] text-white shadow-md"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
+            style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
           >
             <ShoppingCart className="h-5 w-5 flex-shrink-0" />
           </Link>
@@ -215,7 +218,7 @@ export function AdminSidebar() {
   return (
     <aside className={cn(
       "hidden md:flex flex-col border-r bg-background transition-all duration-300 relative",
-      desktopCollapsed ? "w-16" : "w-64"
+      desktopCollapsed ? "w-16" : "w-48"
     )}>
       <SidebarContent isCollapsed={desktopCollapsed} />
 

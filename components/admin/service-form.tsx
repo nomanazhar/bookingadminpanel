@@ -1,7 +1,7 @@
 "use client";
 
-import axios from "axios";
 import { useState, useEffect } from "react";
+import axios from "axios";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,19 +24,18 @@ export function ServiceForm({
   categories,
   onCancel,
 }: ServiceFormProps) {
+  // ── Form States ───────────────────────────────────────
   const [name, setName] = useState(initialValues?.name || "");
   const [slug, setSlug] = useState(initialValues?.slug?.trim() || "");
-  const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initialValues?.slug));
+  const [slugEdited, setSlugEdited] = useState(!!initialValues?.slug);
   const [description, setDescription] = useState(initialValues?.description || "");
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || "");
   const [basePrice, setBasePrice] = useState(initialValues?.base_price?.toString() || "");
   const [duration, setDuration] = useState(initialValues?.duration_minutes?.toString() || "");
-  const [isPopular, setIsPopular] = useState(initialValues?.is_popular || false);
+  const [isPopular, setIsPopular] = useState(!!initialValues?.is_popular);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
   const [thumbnail, setThumbnail] = useState(initialValues?.thumbnail || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const [sessionOptions, setSessionOptions] = useState<string[]>(
     Array.isArray(initialValues?.session_options)
@@ -45,8 +44,58 @@ export function ServiceForm({
   );
   const [timeOptions, setTimeOptions] = useState<string[]>([]);
 
-  // Parse session_options on mount / when initialValues change
+  // ── Subservices ───────────────────────────────────────
+  interface SubserviceRow {
+    id?: string;
+    name: string;
+    price: string;
+    slug?: string;
+  }
+
+  const [subservices, setSubservices] = useState<SubserviceRow[]>([]);
+  const [subserviceTouched, setSubserviceTouched] = useState(false);
+  const [subserviceError, setSubserviceError] = useState<string | null>(null);
+
+  // ── Helpers ───────────────────────────────────────────
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageFile(e.target.files?.[0] || null);
+  };
+
+  // ── Effects ───────────────────────────────────────────────
   useEffect(() => {
+    // Always fetch latest subservices when editing a service
+    if (initialValues?.id) {
+      axios
+        .get(`/api/subservices?serviceId=${initialValues.id}`)
+        .then((res) => {
+          setSubservices(
+            Array.isArray(res.data)
+              ? res.data.map((s: any) => ({
+                  id: s.id,
+                  name: s.name,
+                  price: s.price?.toString() || "",
+                  slug: s.slug,
+                }))
+              : []
+          );
+        })
+        .catch(() => setSubservices([]));
+    } else {
+      setSubservices([]);
+    }
+  }, [initialValues?.id]);
+
+  useEffect(() => {
+    // Parse complex session_options format
     if (initialValues?.session_options) {
       try {
         const parsed = JSON.parse(String(initialValues.session_options));
@@ -57,159 +106,134 @@ export function ServiceForm({
           setSessionOptions(parsed);
         }
       } catch {
-        // fallback to empty
+        // silent fail → keep empty
       }
     }
 
+    // Reset form values when initialValues change
     setName(initialValues?.name || "");
     setSlug(initialValues?.slug?.trim() || "");
-    setSlugEdited(Boolean(initialValues?.slug));
+    setSlugEdited(!!initialValues?.slug);
     setDescription(initialValues?.description || "");
     setCategoryId(initialValues?.category_id || "");
     setBasePrice(initialValues?.base_price?.toString() || "");
     setDuration(initialValues?.duration_minutes?.toString() || "");
-    setIsPopular(initialValues?.is_popular || false);
+    setIsPopular(!!initialValues?.is_popular);
     setIsActive(initialValues?.is_active ?? true);
     setThumbnail(initialValues?.thumbnail || "");
     setImageFile(null);
   }, [initialValues]);
 
-  const slugify = (value: string) =>
-    value
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
+  useEffect(() => {
+    if (!subserviceTouched) return;
 
+    const hasError = subservices.some((row) => row.name.trim() && !row.price.trim());
+    setSubserviceError(
+      hasError ? "If subservice name is filled, price is required." : null
+    );
+  }, [subservices, subserviceTouched]);
+
+  // ── Submit Handler ────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !slug.trim() || !categoryId || !basePrice) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
+      toast({ title: "Required fields missing", variant: "destructive" });
       return;
     }
 
-    const safeSlugBase = slugify(slug);
-    let finalSlug = safeSlugBase;
+    setSubserviceTouched(true);
+    if (subserviceError) {
+      toast({ title: "Subservice error", description: subserviceError, variant: "destructive" });
+      return;
+    }
 
     setLoading(true);
 
-    // Check slug uniqueness
-    try {
-      const { data: allServices } = await axios.get<Service[]>("/api/services");
-      const existingSlugs = new Set(
-        allServices
-          .filter((s) => s.id !== initialValues?.id)
-          .map((s) => s.slug.toLowerCase())
-      );
-
-      if (existingSlugs.has(safeSlugBase)) {
-        let counter = 1;
-        while (existingSlugs.has(`${safeSlugBase}-${counter}`)) {
-          counter++;
-        }
-        finalSlug = `${safeSlugBase}-${counter}`;
-        setSlug(finalSlug);
-        toast({
-          title: "Slug already exists",
-          description: `Changed to: ${finalSlug}`,
-        });
-      }
-    } catch (err) {
-      console.warn("Could not check slug uniqueness:", err);
-      // proceed anyway
-    }
-
+    let finalSlug = slugify(slug);
     let finalThumbnail = thumbnail;
 
-    // Upload new image if selected
-    if (imageFile) {
-      setUploading(true);
-      try {
+    try {
+      // 1. Check slug uniqueness & append number if needed
+      // Use absolute URL if running on server (SSR or API), else relative for browser
+      let services;
+      if (typeof window === 'undefined') {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+        services = (await axios.get<Service[]>(`${baseUrl}/api/services`)).data;
+      } else {
+        services = (await axios.get<Service[]>("/api/services")).data;
+      }
+      const usedSlugs = new Set(
+        services.filter((s) => s.id !== initialValues?.id).map((s) => s.slug.toLowerCase())
+      );
+
+      if (usedSlugs.has(finalSlug)) {
+        let counter = 1;
+        while (usedSlugs.has(`${finalSlug}-${counter}`)) counter++;
+        finalSlug = `${finalSlug}-${counter}`;
+        setSlug(finalSlug);
+        toast({ title: "Slug adjusted", description: `Changed to: ${finalSlug}` });
+      }
+
+      // 2. Upload new thumbnail if selected
+      if (imageFile) {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
 
-        const fileExt = imageFile.name.split(".").pop();
-        const fileName = `${finalSlug}-${Date.now()}.${fileExt}`;
+        const ext = imageFile.name.split(".").pop();
+        const fileName = `${finalSlug}-${Date.now()}.${ext}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("service-images")
-          .upload(fileName, imageFile);
+        const { error } = await supabase.storage.from("service-images").upload(fileName, imageFile);
+        if (error) throw error;
 
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage.from("service-images").getPublicUrl(fileName);
-        finalThumbnail = urlData.publicUrl;
+        const { data } = supabase.storage.from("service-images").getPublicUrl(fileName);
+        finalThumbnail = data.publicUrl;
         setThumbnail(finalThumbnail);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Upload failed";
-        toast({ title: "Image upload failed", description: msg, variant: "destructive" });
-        setUploading(false);
-        setLoading(false);
-        return;
       }
-      setUploading(false);
-    }
 
-    // Prepare session options payload
-    const sessionPayload =
-      timeOptions.length > 0
-        ? JSON.stringify({ options: sessionOptions, times_of_day: timeOptions })
-        : sessionOptions;
+      // 3. Prepare payload
+      const sessionPayload =
+        timeOptions.length > 0
+          ? JSON.stringify({ options: sessionOptions, times_of_day: timeOptions })
+          : sessionOptions;
 
-    try {
+      const payload = {
+        name,
+        slug: finalSlug,
+        description,
+        category_id: categoryId,
+        base_price: Number(basePrice),
+        duration_minutes: duration ? Number(duration) : null,
+        is_popular: isPopular,
+        is_active: isActive,
+        session_options: sessionPayload,
+        thumbnail: finalThumbnail,
+      };
+
+      // 4. Create or Update service
       if (initialValues?.id) {
-        await axios.put(`/api/services/${initialValues.id}`, {
-          name,
-          slug: finalSlug,
-          description,
-          category_id: categoryId,
-          base_price: Number(basePrice),
-          duration_minutes: duration ? Number(duration) : null,
-          is_popular: isPopular,
-          is_active: isActive,
-          session_options: sessionPayload,
-          thumbnail: finalThumbnail,
-        });
-        toast({ title: "Treatment updated successfully!" });
+        await axios.put(`/api/services/${initialValues.id}`, payload);
+        toast({ title: "Treatment updated!" });
+
+        // Sync subservices
+        await syncSubservices(initialValues.id);
       } else {
-        await axios.post("/api/services", {
-          name,
-          slug: finalSlug,
-          description,
-          category_id: categoryId,
-          base_price: Number(basePrice),
-          duration_minutes: duration ? Number(duration) : null,
-          is_popular: isPopular,
-          is_active: isActive,
-          session_options: sessionPayload,
-          thumbnail: finalThumbnail,
-        });
-        toast({ title: "Treatment created successfully!" });
+        await axios.post("/api/services", payload);
+        toast({ title: "Treatment created!" });
+
+        // Get newly created service id
+        const { data: all } = await axios.get<Service[]>("/api/services");
+        const newService = all.find((s) => s.slug === finalSlug);
+
+        if (newService) await syncSubservices(newService.id, true);
       }
 
-      // Reset form
-      setName("");
-      setSlug("");
-      setDescription("");
-      setCategoryId("");
-      setBasePrice("");
-      setDuration("");
-      setIsPopular(false);
-      setIsActive(true);
-      setThumbnail("");
-      setImageFile(null);
-      setSessionOptions([]);
-      setTimeOptions([]);
-
+      resetForm();
       onServiceSaved?.();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Operation failed";
+    } catch (err: any) {
       toast({
-        title: initialValues?.id ? "Failed to update treatment" : "Failed to create treatment",
-        description: msg,
+        title: initialValues?.id ? "Update failed" : "Create failed",
+        description: err.message || "Something went wrong",
         variant: "destructive",
       });
     } finally {
@@ -217,26 +241,76 @@ export function ServiceForm({
     }
   };
 
+  // ── Subservices Sync Logic ────────────────────────────────
+  const syncSubservices = async (serviceId: string, isNew = false) => {
+    // Always fetch existing subservices for this service
+    const { data: existing } = await axios.get(`/api/subservices?serviceId=${serviceId}`);
+    const existingMap = new Map((existing || []).map((s: any) => [s.id, s]));
+
+    // Upsert or create subservices from form
+    for (const row of subservices) {
+      if (!row.name.trim() || !row.price.trim()) continue;
+      const data = {
+        name: row.name.trim(),
+        price: Number(row.price),
+        slug: row.slug || slugify(row.name),
+        service_id: serviceId,
+      };
+      if (row.id) {
+        await axios.put(`/api/subservices/${row.id}`, data);
+        existingMap.delete(row.id);
+      } else {
+        await axios.post("/api/subservices", data);
+      }
+    }
+
+    // Delete subservices that were removed in the UI
+    for (const id of existingMap.keys()) {
+      await axios.delete(`/api/subservices/${id}`);
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setSlug("");
+    setSlugEdited(false);
+    setDescription("");
+    setCategoryId("");
+    setBasePrice("");
+    setDuration("");
+    setIsPopular(false);
+    setIsActive(true);
+    setThumbnail("");
+    setImageFile(null);
+    setSessionOptions([]);
+    setTimeOptions([]);
+    setSubservices([]);
+    setSubserviceTouched(false);
+    setSubserviceError(null);
+  };
+
+  const [loading, setLoading] = useState(false);
+
+  // ── Render ─────────────────────────────────────────────
   return (
     <div
       className={`rounded-lg border p-6 ${
         initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
       }`}
     >
-      <h3 className="text-lg font-semibold mb-4 text-foreground">
+      <h3 className="text-lg font-semibold mb-5 text-foreground">
         {initialValues?.id ? "✏️ Edit Treatment" : "➕ Add New Treatment"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Name */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Name *</label>
+          <label className="block mb-1.5 text-sm font-medium">Name *</label>
           <Input
             value={name}
             onChange={(e) => {
-              const v = e.target.value;
-              setName(v);
-              if (!slugEdited) setSlug(slugify(v));
+              setName(e.target.value);
+              if (!slugEdited) setSlug(slugify(e.target.value));
             }}
             placeholder="Treatment name"
             required
@@ -246,11 +320,11 @@ export function ServiceForm({
 
         {/* Category */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Category *</label>
+          <label className="block mb-1.5 text-sm font-medium">Category *</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-input bg-background text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             required
           >
             <option value="">Select category</option>
@@ -264,33 +338,22 @@ export function ServiceForm({
 
         {/* Base Price */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Base Price *</label>
-          <Input
-            type="number"
-            value={basePrice}
-            onChange={(e) => setBasePrice(e.target.value)}
-            min={0}
-            required
-          />
+          <label className="block mb-1.5 text-sm font-medium">Base Price *</label>
+          <Input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} min={0} required />
         </div>
 
         {/* Duration */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Duration (minutes)</label>
-          <Input
-            type="number"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            min={0}
-          />
+          <label className="block mb-1.5 text-sm font-medium">Duration (min)</label>
+          <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
         </div>
 
         {/* Session Options */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Session options</label>
+          <label className="block mb-1.5 text-sm font-medium">Session options</label>
           <div className="flex flex-wrap gap-3">
             {defaultSessionOptions.map((opt) => (
-              <label key={opt} className="inline-flex items-center gap-2">
+              <label key={opt} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={sessionOptions.includes(opt)}
@@ -299,20 +362,20 @@ export function ServiceForm({
                       e.target.checked ? [...prev, opt] : prev.filter((x) => x !== opt)
                     )
                   }
-                  className="h-4 w-4 rounded border-input"
+                  className="h-4 w-4 rounded"
                 />
-                <span>{opt}</span>
+                {opt}
               </label>
             ))}
           </div>
         </div>
 
-        {/* Time of Day */}
+        {/* Time Options */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Available times of day</label>
+          <label className="block mb-1.5 text-sm font-medium">Available times</label>
           <div className="flex flex-wrap gap-3">
             {defaultTimeOptions.map((t) => (
-              <label key={t} className="inline-flex items-center gap-2">
+              <label key={t} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={timeOptions.includes(t)}
@@ -321,88 +384,134 @@ export function ServiceForm({
                       e.target.checked ? [...prev, t] : prev.filter((x) => x !== t)
                     )
                   }
-                  className="h-4 w-4 rounded border-input"
+                  className="h-4 w-4 rounded"
                 />
-                <span>{t.charAt(0).toUpperCase() + t.slice(1)}</span>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
               </label>
             ))}
           </div>
         </div>
 
-        {/* Description */}
-        <div>
-          <label className="block mb-1 font-medium text-foreground">Description</label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description (optional)"
-          />
+       
+
+        {/* Subservices */}
+        <div className="col-span-full">
+          <label className="block mb-1.5 text-sm font-medium">Subservices (optional)</label>
+          <div className="overflow-x-auto border rounded">
+            <table className="min-w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-left">Price</th>
+                  <th className="w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {subservices.map((row, idx) => (
+                  <tr key={row.id || idx}>
+                    <td className="px-3 py-2">
+                      <Input
+                        value={row.name}
+                        onChange={(e) =>
+                          setSubservices((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
+                            )
+                          )
+                        }
+                        placeholder="Subservice name"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        type="number"
+                        value={row.price}
+                        onChange={(e) =>
+                          setSubservices((prev) =>
+                            prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                          )
+                        }
+                        placeholder="Price"
+                        min={0}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-destructive h-8 w-8 p-0"
+                      >
+                        ×
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={3} className="px-3 py-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSubservices((prev) => [...prev, { name: "", price: "" }])}
+                    >
+                      + Add Subservice
+                    </Button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
         </div>
 
         {/* Thumbnail */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Thumbnail</label>
+          <label className="block mb-1.5 text-sm font-medium">Thumbnail</label>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            onChange={handleImageChange}
+            className="block w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
           />
-          {uploading && <span className="text-xs text-muted-foreground">Uploading...</span>}
           {thumbnail && !imageFile && (
-            <div className="mt-2">
-              <Image
-                src={thumbnail}
-                alt="Current thumbnail"
-                width={80}
-                height={80}
-                className="object-cover rounded"
-              />
+            <div className="mt-3">
+              <Image src={thumbnail} alt="Thumbnail preview" width={100} height={100} className="rounded object-cover" />
             </div>
           )}
         </div>
 
-        {/* Checkboxes */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              id="isActive"
-              className="h-4 w-4 rounded border-input"
-            />
-            <label htmlFor="isActive" className="font-medium text-foreground">
-              Active
-            </label>
-          </div>
+         {/* Description */}
+        <div >
+          <label className="block mb-1.5 text-sm font-medium">Description</label>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isPopular}
-              onChange={(e) => setIsPopular(e.target.checked)}
-              id="isPopular"
-              className="h-4 w-4 rounded border-input"
-            />
-            <label htmlFor="isPopular" className="font-medium text-foreground">
-              Popular
-            </label>
-          </div>
+{/* Toggles */}
+        <div className="flex items-center gap-8 col-span-full">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
+            <span className="text-sm font-medium">Active</span>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
+            <span className="text-sm font-medium">Popular</span>
+          </label>
         </div>
 
-        {/* Submit */}
-        <div className="col-span-full flex gap-3 mt-4">
-          <Button type="submit" disabled={loading || uploading} size="lg" className="flex-1">
-            {loading
-              ? "Saving..."
-              : initialValues?.id
-              ? "Update Treatment"
-              : "Add Treatment"}
+        </div>
+
+        
+
+        {/* Actions */}
+        <div className="col-span-full flex gap-4 mt-6">
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? "Saving..." : initialValues?.id ? "Update Treatment" : "Add Treatment"}
           </Button>
 
           {initialValues?.id && onCancel && (
-            <Button type="button" variant="outline" size="lg" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
           )}

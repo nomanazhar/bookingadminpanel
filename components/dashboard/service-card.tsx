@@ -15,7 +15,7 @@ function ServiceCardComponent({ service, featured = false }: ServiceCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       {service.thumbnail && (
-        <div className="relative h-48 w-full bg-muted">
+        <div className="relative h-48 w-[90%] bg-muted">
           <Image
             src={service.thumbnail}
             alt={service.name}

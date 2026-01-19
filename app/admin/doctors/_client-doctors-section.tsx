@@ -123,7 +123,7 @@ export default function ClientDoctorsSection({ initialDoctors }: { initialDoctor
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="min-w-full bg-card">
             <thead className="bg-muted/50">
-              <tr>
+              <tr className="bg-[#333333] text-white">
                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground border-b border-border">
                   Avatar
                 </th>
@@ -191,23 +191,20 @@ export default function ClientDoctorsSection({ initialDoctors }: { initialDoctor
                   <td className="px-4 py-3 text-center text-foreground">
                     {doctor.is_active ? "Yes" : "No"}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="flex items-center justify-center mt-2 px-4 py-3 text-center relative">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-                          Manage
-                        </button>
+                        <span className="cursor-pointer text-gray-500 hover:text-black" title="Manage">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="19.5" cy="12" r="1.5" />
+                            <circle cx="4.5" cy="12" r="1.5" />
+                          </svg>
+                        </span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(doctor)}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(doctor)} 
-                          className="text-red-600"
-                        >
-                          Delete
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(doctor)} className="text-blue-600">Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(doctor)} className="text-red-600">Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>

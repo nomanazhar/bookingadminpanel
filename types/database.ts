@@ -106,6 +106,12 @@ export interface Doctor {
 // Extended types with relations
 export interface ServiceWithCategory extends Service {
   category: Category
+  subservices?: {
+    id: string
+    name: string
+    price: number
+    slug: string
+  }[]
 }
 
 export interface OrderWithDetails extends Order {

@@ -30,6 +30,14 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
       </div>
     )
   }
+  // Helper to render subtreatments (subservices) as comma-separated names
+  const renderSubtreatments = (service: any) => {
+    if (Array.isArray(service.subservices) && service.subservices.length > 0) {
+      return service.subservices.map((s: any) => s.name).join(", ");
+    }
+    return "-";
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -43,6 +51,7 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
             <TableHead>Duration</TableHead>
             <TableHead>Sessions</TableHead>
             <TableHead>Available Times</TableHead>
+            <TableHead>Subtreatments</TableHead>
             <TableHead>Active</TableHead>
             <TableHead>Popular</TableHead>
             <TableHead className="text-right">Manage</TableHead>
@@ -50,16 +59,16 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
         </TableHeader>
         <TableBody>
           {services.map((service) => {
-            let sessions = "-"
-            let times = "-"
+            let sessions = "-";
+            let times = "-";
             if (service.session_options) {
               try {
-                const parsed = typeof service.session_options === "string" ? JSON.parse(service.session_options) : service.session_options
+                const parsed = typeof service.session_options === "string" ? JSON.parse(service.session_options) : service.session_options;
                 if (Array.isArray(parsed)) {
-                  sessions = parsed.join(", ")
+                  sessions = parsed.join(", ");
                 } else if (parsed && typeof parsed === "object") {
-                  sessions = Array.isArray(parsed.options) ? parsed.options.join(", ") : "-"
-                  times = Array.isArray(parsed.times_of_day) ? parsed.times_of_day.join(", ") : "-"
+                  sessions = Array.isArray(parsed.options) ? parsed.options.join(", ") : "-";
+                  times = Array.isArray(parsed.times_of_day) ? parsed.times_of_day.join(", ") : "-";
                 }
               } catch {}
             }
@@ -71,8 +80,9 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
                 <TableCell>£{service.base_price?.toFixed ? service.base_price.toFixed(2) : service.base_price}</TableCell>
                 <TableCell>{service.description || "-"}</TableCell>
                 <TableCell>{service.duration_minutes || "-"}</TableCell>
-                <TableCell>{sessions}</TableCell>
-                <TableCell>{times}</TableCell>
+                <TableCell className="font-sm">{sessions}</TableCell>
+                <TableCell className="font-sm">{times}</TableCell>
+                <TableCell className="font-sm">{renderSubtreatments(service)}</TableCell>
                 <TableCell>
                   <Badge variant={service.is_active ? "default" : "secondary"}>
                     {service.is_active ? "Active" : "Inactive"}
@@ -95,12 +105,12 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
                   </div>
                 </TableCell>
               </TableRow>
-            )
+            );
           })}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
 
 export const ServicesTable = memo(ServicesTableComponent)

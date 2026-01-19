@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { clearCachePrefix } from "@/lib/supabase/queries"
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -57,6 +58,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       console.error('Error deleting category', delCategoryError)
       return NextResponse.json({ error: delCategoryError.message, details: { code: delCategoryError.code, details: delCategoryError.details, hint: delCategoryError.hint } }, { status: 500 })
     }
+    // Invalidate server cache for categories
+    clearCachePrefix('getCategories')
 
     return NextResponse.json({ success: true })
   } catch (err) {

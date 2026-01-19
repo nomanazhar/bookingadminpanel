@@ -84,7 +84,8 @@ export const getServices = unstable_cache(async () => {
     .from('services')
     .select(`
       *,
-      category:categories(*)
+      category:categories(*),
+      subservices:subservices(*)
     `)
     .eq('is_active', true)
     .order('created_at', { ascending: false })

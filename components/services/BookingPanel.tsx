@@ -16,44 +16,53 @@ import { useRouter } from "next/navigation"
 import type { Service, Order, Doctor } from "@/types"
 
 export default function BookingPanel({ service, rescheduleOrder }: { service: Service, rescheduleOrder?: Order | null }) {
+  // Subservices state
+  const [subservices, setSubservices] = useState<{ id: string, name: string, price: number, slug: string }[]>([]);
+  const [selectedSubserviceId, setSelectedSubserviceId] = useState<string>("");
+  const [subservicePrice, setSubservicePrice] = useState<number | null>(null);
+
+  // Fetch subservices for this service
+  useEffect(() => {
+    if (!service?.id) return setSubservices([]);
+    fetch(`/api/subservices?serviceId=${service.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setSubservices(data);
+          setSelectedSubserviceId(data[0].id);
+          setSubservicePrice(Number(data[0].price));
+        } else {
+          setSubservices([]);
+          setSelectedSubserviceId("");
+          setSubservicePrice(null);
+        }
+      })
+      .catch(() => setSubservices([]));
+  }, [service?.id]);
   const router = useRouter()
   const { toast } = useToast();
   
-  // Parse session_options from service to determine max sessions
+  // Parse session_options from service to determine allowed session packages
   const parseSessionOptions = (raw: any): string[] => {
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
     try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-      if (Array.isArray(parsed)) return parsed
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (Array.isArray(parsed)) return parsed;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        if (Array.isArray(parsed.options)) return parsed.options
+        if (Array.isArray(parsed.options)) return parsed.options;
       }
     } catch {}
-    return []
-  }
-  
-  // Extract maximum session count from session_options
-  const getMaxSessions = (): number => {
-    const sessionOptions = parseSessionOptions(service?.session_options)
-    if (sessionOptions.length === 0) return 10 // Default to 10 if no options
-    
-    let maxSession = 1
-    sessionOptions.forEach((opt: string) => {
-      const match = String(opt).match(/(\d+)/)
-      if (match) {
-        const num = parseInt(match[1], 10)
-        if (num > maxSession) maxSession = num
-      }
-    })
-    return Math.max(1, Math.min(10, maxSession)) // Clamp between 1 and 10
-  }
-  
-  const maxSessions = getMaxSessions()
-  // Generate sessions 1 to maxSessions
-  const servicePackages: string[] = Array.from({ length: maxSessions }, (_, i) => {
-    const count = i + 1;
-    return `${count} ${count === 1 ? 'session' : 'sessions'}`;
+    return [];
+  };
+
+  // Only show session options that were selected during service creation
+  const servicePackages: string[] = parseSessionOptions(service?.session_options).map(opt => {
+    // Normalize to "N session(s)" format for display/logic
+    const n = typeof opt === 'number' ? opt : parseInt(String(opt), 10);
+    if (!isNaN(n)) return `${n} ${n === 1 ? 'session' : 'sessions'}`;
+    // fallback: use as-is
+    return String(opt);
   });
   const [selectedPackage, setSelectedPackage] = useState<string>(rescheduleOrder?.session_count ? `${rescheduleOrder.session_count} session${rescheduleOrder.session_count > 1 ? 's' : ''}` : "1 session")
   const [selectedDate, setSelectedDate] = useState<string | null>(rescheduleOrder?.booking_date || null)
@@ -120,6 +129,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   }, [service?.id, servicePackages, userInteracted, rescheduleOrder])
 
   const basePrice = Number(service?.base_price ?? 0)
+    // Use subservice price if selected, else basePrice
+    const effectivePrice = subservicePrice ?? basePrice
   const getSessionCount = (label: string) => {
     const m = String(label).match(/(\d+)/)
     return m ? parseInt(m[0], 10) : 1
@@ -140,7 +151,15 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   const formatPrice = (v: number) => `£${v.toFixed(2)}`
 
   const handleBook = async () => {
-    if (!selectedDoctorId) {
+      if (subservices.length > 0 && !selectedSubserviceId) {
+        toast({
+          title: "Subservice Required",
+          description: "Please select a subservice before booking",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!selectedDoctorId) {
       toast({
         title: "Doctor Selection Required",
         description: "Please select a doctor before booking",
@@ -161,6 +180,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     const booking = {
       service_id: service.id,
       service_name: service.name,
+        subservice_id: selectedSubserviceId || null,
+        subservice_name: subservices.find(s => s.id === selectedSubserviceId)?.name || null,
       package: selectedPackage,
       date: selectedDate,
       time: selectedTime,
@@ -267,6 +288,29 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     <div>
       <section className="max-w-3xl mx-auto mb-8">
         <div className="bg-muted rounded-xl shadow p-4">
+            {subservices.length > 0 && (
+              <div className="mb-4">
+                <div className="text-lg font-semibold mb-2">Select Treatment Type</div>
+                <div className="flex flex-col gap-2">
+                  {subservices.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="subservice"
+                        value={s.id}
+                        checked={selectedSubserviceId === s.id}
+                        onChange={() => {
+                          setSelectedSubserviceId(s.id);
+                          setSubservicePrice(Number(s.price));
+                        }}
+                      />
+                      <span className="font-medium">{s.name}</span>
+                      <span className="ml-2 text-sm text-muted-foreground">DKK {Number(s.price).toLocaleString()}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           <div className="flex items-center justify-between mb-2">
             <div className="text-xl font-semibold">Select package</div>
           </div>
@@ -277,11 +321,11 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
           )}
           <div className="flex flex-col gap-4">
             {servicePackages.map((p) => {
-              const count = getSessionCount(p)
-              const discount = getDiscount(p)
-              const perSession = basePrice * (1 - discount)
-              const total = perSession * count
-              const totalSave = basePrice * count - total
+                const count = getSessionCount(p)
+                const discount = getDiscount(p)
+                const perSession = effectivePrice * (1 - discount)
+                const total = perSession * count
+                const totalSave = effectivePrice * count - total
               return (
                 <div
                   key={p}

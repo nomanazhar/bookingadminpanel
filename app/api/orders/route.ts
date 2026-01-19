@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
     const insertObj = {
       customer_id: user.id,
       service_id: serviceId,
+      subservice_id: body.subservice_id || null,
       doctor_id: body.doctor_id || null,
       service_title: serviceTitle,
       customer_name: profile ? `${profile.first_name} ${profile.last_name}` : '',

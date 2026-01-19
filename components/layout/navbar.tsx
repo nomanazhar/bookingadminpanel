@@ -97,7 +97,7 @@ export function Navbar({ user, action }: NavbarProps) {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-64">
+              <SheetContent side="left" className="w-52">
                 <SheetHeader>
                   <SheetTitle>
                     <div 

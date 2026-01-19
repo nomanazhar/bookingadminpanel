@@ -133,9 +133,18 @@ export default function ProfileSettingsPage() {
       <main className="container mx-auto py-8">
         <section className="max-w-3xl mx-auto mb-10">
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/book-consultation" className="text-muted-foreground text-base font-normal cursor-pointer flex items-center gap-1">
-              <span className="text-xl font-bold">←</span> Go back
-            </Link>
+            {(() => {
+              // If admin, go to /admin; else, go to /dashboard
+              let backHref = "/dashboard";
+              if (profile && (profile.role === "admin" || (user && user.email && user.email.endsWith("@admin.com")))) {
+                backHref = "/admin";
+              }
+              return (
+                <Link href={backHref} className="text-muted-foreground text-base font-normal cursor-pointer flex items-center gap-1">
+                  <span className="text-xl font-bold">←</span> Go back
+                </Link>
+              );
+            })()}
           </div>
           <h1 className="text-4xl font-bold tracking-tight">Profile</h1>
         </section>
