@@ -13,6 +13,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ data, count })
   } catch (err: any) {
+    console.error('/api/admin/users GET error:', {
+      message: err?.message,
+      stack: err?.stack,
+    })
     return NextResponse.json({ error: err.message || 'Unknown' }, { status: 500 })
   }
 }

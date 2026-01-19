@@ -300,7 +300,10 @@ export async function getUsersPaginated(page: number = 1, pageSize: number = 20,
 
   const { data, error, count } = await query.range(start, end)
 
-  if (error) throw error
+  if (error) {
+    console.error('getUsersPaginated supabase error', { page, pageSize, q, error })
+    throw error
+  }
 
   const result = { data, count: count ?? 0 }
   if (useCache) cacheSet(cacheKey, result, 30 * 1000)

@@ -111,12 +111,16 @@ export default function ClientServicesSection({ categories }: { categories: Cate
               }
               // Render subtreatments (subservices) as name with price in small text (React, not HTML string)
               const subtreatments = Array.isArray(service.subservices) && service.subservices.length > 0
-                ? service.subservices.map((s: any, i: number) => (
-                    <span key={i} className="block">
-                      {s.name}
-                      <span className="text-xs text-muted-foreground ml-1">£{typeof s.base_price === 'number' ? s.base_price : 0}</span>
-                    </span>
-                  ))
+                ? service.subservices.map((s: any, i: number) => {
+                    const raw = typeof s.price === 'number' ? s.price : (s.price ? parseFloat(s.price) : 0)
+                    const price = Number.isFinite(raw) ? raw : 0
+                    return (
+                      <span key={i} className="block">
+                        {s.name}
+                        <span className="text-xs text-muted-foreground ml-1">£{price.toFixed(2)}</span>
+                      </span>
+                    )
+                  })
                 : "-";
               return (
                 <tr key={service.id} className="border-b border-border hover:bg-muted/30 transition-colors">

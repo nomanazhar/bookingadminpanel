@@ -102,7 +102,7 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
                   </div>
                 </div>
               </TableCell>
-              <TableCell>{order.service.name}</TableCell>
+              <TableCell>{order.service ? order.service.name : <span className="text-muted-foreground">(no service)</span>}</TableCell>
               <TableCell className="font-medium">{order.session_count} {order.session_count === 1 ? 'session' : 'sessions'}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{order.address || '-'}</TableCell>
               <TableCell>

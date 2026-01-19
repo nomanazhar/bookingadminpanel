@@ -13,9 +13,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     .maybeSingle()
 
   if (error) {
+    console.error(`/api/admin/users/${id} GET supabase error:`, error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   if (!data) {
+    console.warn(`/api/admin/users/${id} GET: user not found`)
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
@@ -58,6 +60,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .maybeSingle()
 
   if (error) {
+    console.error(`/api/admin/users/${id} PUT supabase error:`, error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -70,6 +73,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const supabase = await createClient()
   const { error } = await supabase.from('profiles').delete().eq('id', id)
   if (error) {
+    console.error(`/api/admin/users/${id} DELETE supabase error:`, error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   return NextResponse.json({ success: true })

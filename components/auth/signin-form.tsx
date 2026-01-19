@@ -21,36 +21,42 @@ export function SignInForm() {
     password: "",
     rememberMe: false,
   })
+  
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email')
+  const [phone, setPhone] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState("")
+  const [otpRateLimit, setOtpRateLimit] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
       const pre = localStorage.getItem('prefillEmail')
       if (pre) {
-        // intentionally do not auto-fill; leave for manual entry
         localStorage.removeItem('prefillEmail')
       }
     } catch {}
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validatePhone = (phone: string): boolean => {
+    const e164Regex = /^\+[1-9]\d{9,14}$/
+    return e164Regex.test(phone)
+  }
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate form inputs
-    if (!formData.email || !formData.email.trim()) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Please enter your email address" })
-      return
-    }
-    
-    if (!formData.password || !formData.password.trim()) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Please enter your password" })
-      return
-    }
+    const email = formData.email.trim()
+    const password = formData.password.trim()
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email.trim())) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Please enter a valid email address" })
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Missing Credentials",
+        description: "Please enter both email and password",
+      })
       return
     }
 
@@ -58,229 +64,332 @@ export function SignInForm() {
 
     try {
       const supabase = createClient()
-      
-      // Log the request for debugging (only in development)
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('Attempting sign in for:', formData.email.trim())
-      }
-      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email.trim(),
-        password: formData.password,
+        email,
+        password,
       })
-      
-      // Log response for debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('Sign in response:', { 
-          success: !error, 
-          hasUser: !!data?.user, 
-          error: error ? {
-            message: error.message,
-            status: (error as any).status,
-            name: error.name,
-          } : null 
-        })
-      }
 
       if (error) {
-        console.error('Sign in error:', error)
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: error.message,
+        })
+        return
+      }
+
+      if (data.user) {
+        toast({
+          title: "Success",
+          description: "Signed in successfully!",
+        })
         
-        // Extract error message and status
-        const errorMessage = error.message || String(error)
-        const errorStatus = (error as any).status || (error as any).statusCode
-        
-        // Handle specific error cases
-        if (errorStatus === 400 || errorMessage.toLowerCase().includes('invalid_grant')) {
-          // Invalid credentials or email not confirmed
-          if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('confirm')) {
-            toast({ 
-              variant: 'destructive', 
-              title: 'Email Not Confirmed', 
-              description: 'Please check your inbox and confirm your email address before signing in.' 
-            })
-          } else if (errorMessage.toLowerCase().includes('invalid login')) {
-            toast({ 
-              variant: 'destructive', 
-              title: 'Invalid Credentials', 
-              description: 'The email or password you entered is incorrect. Please try again.' 
-            })
-          } else {
-            toast({ 
-              variant: 'destructive', 
-              title: 'Sign In Failed', 
-              description: errorMessage || 'Invalid email or password. If you just signed up, please confirm your email first.' 
-            })
-          }
-        } else if (errorStatus === 429) {
-          // Rate limiting
-          toast({ 
-            variant: 'destructive', 
-            title: 'Too Many Attempts', 
-            description: 'Please wait a moment before trying again.' 
-          })
+        // Check for pending booking
+        let hasPending = false
+        try {
+          hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
+        } catch {}
+
+        if (hasPending) {
+          router.push('/confirm-booking')
         } else {
-          // Generic error
-          toast({ 
-            variant: "destructive", 
-            title: "Sign In Error", 
-            description: errorMessage || 'An unexpected error occurred. Please try again.' 
-          })
+          router.push('/dashboard')
         }
-        return
-      }
-
-      if (!data?.user) {
-        toast({ variant: "destructive", title: "Error", description: "Sign in failed. Please try again." })
-        return
-      }
-
-      // Wait a moment for session to be fully established and cookies to be set
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Get user role from profile
-      // Default to 'customer' role if profile fetch fails or doesn't exist
-      let userRole: string = 'customer'
-      
-      try {
-        // Refresh the session to ensure cookies are properly set
-        const { data: sessionData } = await supabase.auth.getSession()
-        
-        if (sessionData?.session) {
-          const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-            .maybeSingle()
-
-          if (!profileError && profileData) {
-            userRole = profileData.role || 'customer'
-          } else {
-            // Profile doesn't exist - this can happen for users created before the trigger
-            // The trigger should create profiles, but if it failed, use default role
-            console.warn('Profile not found for user:', data.user.id, profileError)
-            // Note: Profile creation should be handled by the database trigger or admin
-            // Client-side profile creation will fail due to RLS policies
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching profile:', err)
-        // Continue with default customer role
-      }
-
-      toast({
-        title: "Success",
-        description: "Signed in successfully!",
-      })
-
-      // Resume pending booking if the booking flow saved a `pendingBooking` item.
-      // Do not send admins to the booking flow.
-      const hasPending = typeof window !== 'undefined' && localStorage.getItem('pendingBooking')
-      if (hasPending && userRole !== 'admin') {
-        try { localStorage.removeItem('prefillEmail') } catch {}
-        router.push('/confirm-booking')
         router.refresh()
-        return
       }
-
-      // Redirect based on role
-      if (userRole === 'admin') {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
-      }
-      router.refresh()
-    } catch {
+    } catch (err) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Unexpected Error",
+        description: "Something went wrong during sign in",
       })
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">
-            Email <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="info@gmail.com"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-            required
-            disabled={loading}
-          />
-        </div>
+  const handleSendOtp = async () => {
+    setOtpError("")
+    
+    if (otpRateLimit) {
+      setOtpError("Too many attempts. Please wait before retrying.")
+      return
+    }
 
-        <div className="space-y-2">
-          <Label htmlFor="password">
-            Password <span className="text-destructive">*</span>
-          </Label>
-          <div className="relative">
+    const phoneNumber = phone.trim()
+    
+    if (!validatePhone(phoneNumber)) {
+      setOtpError("Please enter a valid phone number in E.164 format (e.g. +923001234567)")
+      return
+    }
+
+    setOtpLoading(true)
+    const supabase = createClient()
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber })
+      
+      if (error) {
+        if (error.status === 429) {
+          setOtpRateLimit(true)
+          setTimeout(() => setOtpRateLimit(false), 60000)
+          setOtpError("Too many attempts. Please wait a minute before retrying.")
+        } else {
+          setOtpError(error.message || "Failed to send OTP. Please try again.")
+        }
+        setOtpSent(false)
+      } else {
+        setOtpSent(true)
+        setOtpError("")
+        toast({ 
+          title: "OTP Sent", 
+          description: "Check your phone for the verification code." 
+        })
+      }
+    } catch (err) {
+      setOtpError("Unexpected error. Please try again.")
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    setOtpError("")
+    const phoneNumber = phone.trim()
+
+    if (!otp || otp.length !== 6) {
+      setOtpError("Please enter the 6-digit OTP.")
+      return
+    }
+
+    setOtpLoading(true)
+    const supabase = createClient()
+    
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ 
+        phone: phoneNumber, 
+        token: otp, 
+        type: "sms" 
+      })
+      
+      if (error) {
+        setOtpError(error.message || "Invalid OTP. Please try again.")
+        return
+      }
+      
+      if (!data?.user) {
+        setOtpError("Verification failed. Please try again.")
+        return
+      }
+
+      toast({ 
+        title: "Success", 
+        description: "Signed in successfully!" 
+      })
+      
+      // Check for pending booking
+      let hasPending = false
+      try {
+        hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
+      } catch {}
+
+      if (hasPending) {
+        router.push('/confirm-booking')
+      } else {
+        router.push('/dashboard')
+      }
+      router.refresh()
+    } catch (err) {
+      setOtpError("Unexpected error. Please try again.")
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Login method selector */}
+      <div className="flex space-x-2 mb-4">
+        <Button 
+          type="button" 
+          variant={loginMethod === 'email' ? 'default' : 'outline'} 
+          onClick={() => {
+            setLoginMethod('email')
+            setOtpSent(false)
+            setOtp("")
+            setOtpError("")
+          }} 
+          disabled={loading || otpLoading}
+          className="flex-1"
+        >
+          Email
+        </Button>
+        <Button 
+          type="button" 
+          variant={loginMethod === 'phone' ? 'default' : 'outline'} 
+          onClick={() => {
+            setLoginMethod('phone')
+            setOtpSent(false)
+            setOtp("")
+            setOtpError("")
+          }} 
+          disabled={loading || otpLoading}
+          className="flex-1"
+        >
+          Phone
+        </Button>
+      </div>
+
+      {/* Email/Password Login */}
+      {loginMethod === 'email' && (
+        <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">
+              Email <span className="text-destructive">*</span>
+            </Label>
             <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              id="email"
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               disabled={loading}
-              className="pr-10"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
           </div>
-        </div>
-      </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="remember"
-            checked={formData.rememberMe}
-            onCheckedChange={(checked) =>
-              setFormData({ ...formData, rememberMe: checked as boolean })
-            }
-          />
-          <label
-            htmlFor="remember"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Keep me logged in
-          </label>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">
+              Password <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                disabled={loading}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
 
-        <Link
-          href="/forgot-password"
-          className="text-sm text-primary hover:underline"
-        >
-          Forgot password?
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={formData.rememberMe}
+                onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: checked as boolean })}
+              />
+              <label
+                htmlFor="remember"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Keep me logged in
+              </label>
+            </div>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading} size="lg">
+            {loading ? "Signing in..." : "Sign In"}
+          </Button>
+        </form>
+      )}
+
+      {/* Phone OTP Login */}
+      {loginMethod === 'phone' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone (E.164 format) *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+923001234567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={otpLoading || otpRateLimit || otpSent}
+            />
+            <p className="text-xs text-muted-foreground">
+              Include country code (e.g., +92 for Pakistan)
+            </p>
+          </div>
+
+          {!otpSent ? (
+            <Button 
+              type="button" 
+              className="w-full" 
+              onClick={handleSendOtp} 
+              disabled={otpLoading || otpRateLimit}
+              size="lg"
+            >
+              {otpLoading ? "Sending OTP..." : "Send OTP"}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="otp">Enter 6-Digit Code</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  disabled={otpLoading}
+                />
+              </div>
+              <Button 
+                type="button" 
+                className="w-full" 
+                onClick={handleVerifyOtp} 
+                disabled={otpLoading}
+                size="lg"
+              >
+                {otpLoading ? "Verifying..." : "Verify & Sign In"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline"
+                className="w-full" 
+                onClick={() => {
+                  setOtpSent(false)
+                  setOtp("")
+                  setOtpError("")
+                }}
+                disabled={otpLoading}
+              >
+                Resend OTP
+              </Button>
+            </div>
+          )}
+
+          {otpError && (
+            <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">
+              {otpError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sign up link */}
+      {/* <div className="text-center text-sm">
+        Don't have an account?{" "}
+        <Link href="/sign-up" className="text-primary font-medium hover:underline">
+          Sign Up
         </Link>
-      </div>
-
-      <Button type="submit" className="w-full" disabled={loading} size="lg">
-        {loading ? "Signing in..." : "Sign In"}
-      </Button>
-      </form>
+      </div> */}
+    </div>
   )
 }
-
