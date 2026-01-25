@@ -9,34 +9,42 @@ import type { Category } from "@/types"
 export default function ClientCategoriesSection({ initialCategories }: { initialCategories: Category[] }) {
   const [categories, setCategories] = useState(initialCategories)
   const [editCategory, setEditCategory] = useState<Category | undefined>(undefined)
-  // Remove showActions, handled by DropdownMenu
-  
+  const [error, setError] = useState<string | null>(null)
+
   const handleCategoryAdded = async () => {
     setEditCategory(undefined)
-    const res = await fetch("/api/categories-list/uncached")
-    if (res.ok) {
+    setError(null)
+    try {
+      const res = await fetch("/api/categories-list/uncached")
+      if (!res.ok) throw new Error("Failed to fetch categories")
       setCategories(await res.json())
+    } catch (err: any) {
+      setError(err?.message || "Unknown error fetching categories")
+      setCategories([])
     }
   }
-  
+
   const handleEdit = (cat: Category) => {
     setEditCategory(cat)
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  
+
   const handleDelete = async (cat: Category) => {
-    if (!window.confirm(`Delete category "${cat.name}"?`)) return
-    const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE" })
-    if (res.ok) {
+    if (!window.confirm(`Delete category \"${cat.name}\"?`)) return
+    setError(null)
+    try {
+      const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete category")
       // Always fetch latest from Supabase, not from cache
       const uncached = await fetch("/api/categories-list/uncached")
-      if (uncached.ok) {
-        setCategories(await uncached.json())
-      }
+      if (!uncached.ok) throw new Error("Failed to fetch categories after delete")
+      setCategories(await uncached.json())
+    } catch (err: any) {
+      setError(err?.message || "Unknown error deleting category")
     }
   }
-  
+
   const handleCancelEdit = () => {
     setEditCategory(undefined)
   }
@@ -50,6 +58,7 @@ export default function ClientCategoriesSection({ initialCategories }: { initial
           onCancel={handleCancelEdit}
         />
       </div>
+      {error && <div className="text-red-500 mb-4">Error: {error}</div>}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
@@ -64,6 +73,11 @@ export default function ClientCategoriesSection({ initialCategories }: { initial
             </tr>
           </thead>
           <tbody>
+            {categories.length === 0 && !error && (
+              <tr>
+                <td colSpan={7} className="text-center text-muted-foreground py-6">No categories found.</td>
+              </tr>
+            )}
             {categories.map((cat) => (
               <tr key={cat.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3 font-semibold text-foreground">{cat.name}</td>
