@@ -32,22 +32,22 @@ import type { Doctor } from "@/types"
 const sidebarLinks = [
   {
     title: "Dashboard",
-    href: "/admin",
+    href: "/admin-dashboard",
     icon: LayoutDashboard,
   },
   {
     title: "Categories",
-    href: "/admin/categories",
+    href: "/categories",
     icon: FolderTree,
   },
   {
     title: "Treatments",
-    href: "/admin/services",
+    href: "/admin-services",
     icon: Sparkles,
   },
   {
     title: "Doctors",
-    href: "/admin/doctors",
+    href: "/doctors",
     icon: Stethoscope,
   },
   // {
@@ -57,7 +57,7 @@ const sidebarLinks = [
   // },
   {
     title: "Users",
-    href: "/admin/users",
+    href: "/users",
     icon: Users,
   },
 ]
@@ -85,7 +85,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
   }, [])
 
   // Check if current path is a bookings-related path
-  const isBookingsActive = pathname?.startsWith("/admin/orders")
+  const isBookingsActive = pathname?.startsWith("/admin-dashboard/orders")
 
   return (
     <>
@@ -93,7 +93,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
         "flex h-16 items-center justify-center border-b transition-all",
         isCollapsed ? "px-2" : "px-6"
       )}>
-        <Link href="/admin" onClick={onLinkClick}>
+        <Link href="/admin-dashboard" onClick={onLinkClick}>
           <div
             className={cn(
               "rounded-lg transition-all",
@@ -162,7 +162,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 ml-2">
               <DropdownMenuItem asChild>
-                <Link href="/admin/orders" onClick={onLinkClick}>
+                <Link href="/orders" onClick={onLinkClick}>
                   All Bookings
                 </Link>
               </DropdownMenuItem>
@@ -172,11 +172,11 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
                     By Doctor:
                   </DropdownMenuItem>
                   {doctors.map((doctor) => {
-                    const isDoctorActive = pathname === `/admin/orders/doctors/${doctor.id}`
+                    const isDoctorActive = pathname === `/orders/doctors/${doctor.id}`
                     return (
                       <DropdownMenuItem key={doctor.id} asChild>
                         <Link
-                          href={`/admin/orders/doctors/${doctor.id}`}
+                          href={`/orders/doctors/${doctor.id}`}
                           onClick={onLinkClick}
                           className={isDoctorActive ? "bg-accent" : ""}
                         >
@@ -193,7 +193,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
           </DropdownMenu>
         ) : (
           <Link
-            href="/admin/orders"
+            href="/orders"
             onClick={onLinkClick}
             title="Bookings"
             className={cn(

@@ -225,7 +225,7 @@ export default function NewBookingPage() {
       })
 
       // Navigate back to orders page
-      router.push("/admin/orders")
+      router.push("/orders")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -267,7 +267,7 @@ export default function NewBookingPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders">
+        <Link href="/orders">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

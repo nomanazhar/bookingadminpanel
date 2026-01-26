@@ -134,8 +134,8 @@ export default function ProfileSettingsPage() {
         <section className="max-w-3xl mx-auto mb-10">
           <div className="flex items-center gap-2 mb-2">
             {(() => {
-              // If admin, go to /admin; else, go to /dashboard
-              let backHref = "/dashboard";
+              // If admin, go to /admin; else, go to /
+              let backHref = "/";
               if (profile && (profile.role === "admin" || (user && user.email && user.email.endsWith("@admin.com")))) {
                 backHref = "/admin";
               }

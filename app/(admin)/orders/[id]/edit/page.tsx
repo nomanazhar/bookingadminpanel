@@ -60,7 +60,7 @@ export default function EditOrderPage() {
             description: "Order not found",
             variant: "destructive",
           })
-          router.push("/admin/orders")
+          router.push("/orders")
           return
         }
 
@@ -85,7 +85,7 @@ export default function EditOrderPage() {
           description: error.message || "Failed to load order",
           variant: "destructive",
         })
-        router.push("/admin/orders")
+        router.push("/orders")
       } finally {
         setLoading(false)
       }
@@ -204,7 +204,7 @@ export default function EditOrderPage() {
       })
 
       // Navigate back to orders page
-      router.push("/admin/orders")
+      router.push("/orders")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -234,7 +234,7 @@ export default function EditOrderPage() {
     <div className="bg-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders">
+        <Link href="/orders">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

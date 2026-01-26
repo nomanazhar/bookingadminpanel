@@ -1,10 +1,10 @@
 import { Suspense } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "../../lib/supabase/server"
 import { redirect } from "next/navigation"
-import { HeroSection } from "@/components/dashboard/hero-section"
-import { CategoryServices } from "@/components/dashboard/category-services"
-import { Skeleton } from "@/components/ui/skeleton"
-import { getCategoriesWithActiveServices } from "@/lib/supabase/queries"
+import { HeroSection } from "../../components/dashboard/hero-section"
+import { CategoryServices } from "../../components/dashboard/category-services"
+import { Skeleton } from "../../components/ui/skeleton"
+import { getCategoriesWithActiveServices } from "../../lib/supabase/queries"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     const [profileRes, categories] = await Promise.all([profilePromise, categoriesPromise])
     profile = profileRes.data || null
     if (profile?.role === "admin") {
-      redirect("/admin")
+      redirect("/admin-dashboard")
     }
 
     return (

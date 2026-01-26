@@ -41,7 +41,7 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
       await fetch('/api/auth/signout', { method: 'POST', credentials: 'same-origin' })
     } catch {}
     toast({ title: "Signed out", description: "You have been signed out successfully" })
-    router.push('/dashboard')
+    router.push('/')
     router.refresh()
   }
 
@@ -168,7 +168,7 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/admin/profile-settings" className="flex items-center w-full">
+                  <Link href="/profile/settings" className="flex items-center w-full">
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </Link>

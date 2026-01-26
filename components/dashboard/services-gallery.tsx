@@ -52,7 +52,7 @@ export function ServicesGallery({ categoryId }: { categoryId?: string | null } =
 									{service.subtitle}
 								</div>
 							)}
-							<Link href={`/services/${service.slug}`}>
+							<Link href={`/customer-services/${service.slug}`}>
 								<Button className="bg-white text-black font-semibold rounded-full px-6 py-2 w-fit shadow-lg text-base cursor-pointer">
 									Book now
 								</Button>

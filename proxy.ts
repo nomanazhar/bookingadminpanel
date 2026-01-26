@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr' // Make sure @supabase/ssr is installed!
 
-// Protected paths (you can expand this list or use route groups)
+// Protected paths (update to match new structure and file names)
 const PROTECTED_PATHS = [
-  '/admin',
-  '/dashboard',
+  '/admin-dashboard',
+  '/', // main landing page now serves customer dashboard
   '/signin',
   '/signup',
-  '/profile-settings',
+  '/profile',
   '/my-bookings',
   '/order-history',
   '/book-consultation',
@@ -48,17 +48,17 @@ export async function proxy(request: NextRequest) {
   // 3. Handle redirects using role (if fast path)
   if (useFastPath && userRole) {
     if (path.startsWith('/signin') || path.startsWith('/signup')) {
-      const redirectUrl = userRole === 'admin' ? '/admin' : '/dashboard'
+      const redirectUrl = userRole === 'admin' ? '/admin-dashboard' : '/'
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
 
-    if (path.startsWith('/dashboard') && userRole === 'admin') {
-      return NextResponse.redirect(new URL('/admin', request.url))
+    if (path.startsWith('/') && userRole === 'admin') {
+      return NextResponse.redirect(new URL('/admin-dashboard', request.url))
     }
 
-    if (path.startsWith('/admin') && userRole !== 'admin') {
+    if (path.startsWith('/admin-dashboard') && userRole !== 'admin') {
       const signoutUrl = new URL('/api/auth/signout', request.url)
-      signoutUrl.searchParams.set('redirect', '/dashboard')
+      signoutUrl.searchParams.set('redirect', '/')
       return NextResponse.redirect(signoutUrl)
     }
 
@@ -111,10 +111,10 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/dashboard/:path*',
+    '/', // main landing page
     '/signin',
     '/signup',
-    '/profile-settings',
+    '/profile',
     '/my-bookings',
     '/order-history',
     '/book-consultation/:path*',

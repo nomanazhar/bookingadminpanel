@@ -35,7 +35,7 @@ export default async function ServiceDetailPage({ params, searchParams }: { para
         {/* Book Consultation Heading Section */}
         <section className="max-w-3xl mx-auto mb-6">
           <div className="mb-2">
-            <Link href="/dashboard">
+            <Link href="/">
               <Button variant="ghost">← Back to Dashboard</Button>
             </Link>
           </div>

@@ -85,7 +85,7 @@ export default async function DoctorOrdersPage({
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders">
+        <Link href="/orders">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

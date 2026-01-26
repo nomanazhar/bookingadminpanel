@@ -93,7 +93,7 @@ export function SignInForm() {
         if (hasPending) {
           router.push('/confirm-booking')
         } else {
-          router.push('/dashboard')
+          router.push('/')
         }
         router.refresh()
       }
@@ -196,7 +196,7 @@ export function SignInForm() {
       if (hasPending) {
         router.push('/confirm-booking')
       } else {
-        router.push('/dashboard')
+        router.push('/')
       }
       router.refresh()
     } catch (err) {

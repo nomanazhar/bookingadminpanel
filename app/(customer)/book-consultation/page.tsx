@@ -57,7 +57,7 @@ export default async function BookConsultationPage() {
         {/* Account Greeting Section */}
         <section className="max-w-3xl mx-auto mb-10 ">
           <div className="mb-2">
-          <Link href="/dashboard">
+          <Link href="/">
             <Button variant="ghost">← Back to Dashboard</Button>
           </Link>
         </div>
@@ -114,7 +114,7 @@ export default async function BookConsultationPage() {
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
-            <Link href="/profile-settings" className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer rounded-b-xl">
+            <Link href="/profile/settings" className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer rounded-b-xl">
               <span className="bg-muted p-2 rounded-full"><Settings className="w-6 h-6 text-primary" /></span>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-lg ">Profile Settings</div>
