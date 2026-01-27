@@ -145,7 +145,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
             : "No doctors yet"}
         </p>
 
-        <Link href="/admin/doctors/new">
+        <Link href="/doctors/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Add New Doctor
@@ -163,7 +163,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
-        
+
         <table className="min-w-full bg-card">
           <thead className="bg-[#333333] text-white">
             <tr>

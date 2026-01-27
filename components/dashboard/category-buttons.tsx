@@ -24,13 +24,13 @@ export function CategoryButtons({ categories, selectedId = null, onSelect }: Cat
     <section className="w-full py-2 overflow-hidden">
       <div className="container px-4">
         {/* Wrapped buttons for all screen sizes */}
-        <div className="flex flex-wrap gap-2 md:gap-3 justify-center max-w-full">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-center max-w-full bg-black">
           {categories.map((category) => (
             <Button
               key={category.id}
               variant={selectedId === category.id ? "default" : "outline"}
               size="sm"
-              className="font-semibold text-xs md:text-sm whitespace-nowrap"
+              className="font-semibold text-xs text-white md:text-sm whitespace-nowrap"
               onClick={() => handleClick(category.id)}
             >
               {category.name}

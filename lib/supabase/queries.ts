@@ -1,6 +1,7 @@
 import { createClient } from './server'
 import { unstable_cache } from 'next/cache'
 import { createPublicClient } from './publicClient'
+import { createServiceRoleClient } from './serviceRoleClient'
 import type { 
   Category, 
   ServiceWithCategory,
@@ -310,6 +311,51 @@ export async function getUsersPaginated(page: number = 1, pageSize: number = 20,
   return result
 }
 
+// Use service role for admin fetches
+export async function getUsersPaginatedAdmin(page: number = 1, pageSize: number = 20, q: string | null = null) {
+  const supabase = createServiceRoleClient()
+  const start = (page - 1) * pageSize
+  const end = start + pageSize - 1
+
+  let query = supabase
+    .from('profiles')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+
+  if (q && q.trim().length > 0) {
+    const term = q.trim()
+    query = query.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+  }
+
+  const { data, error, count } = await query.range(start, end)
+  if (error) throw error
+  return { data, count: count ?? 0 }
+}
+
+// All bookings tab
+export async function getOrdersPaginatedAdmin(page: number = 1, pageSize: number = 20) {
+  const supabase = createServiceRoleClient()
+  const start = (page - 1) * pageSize
+  const end = start + pageSize - 1
+
+  const { data, error, count } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      service:services(
+        *,
+        category:categories(*)
+      ),
+      customer:profiles(*),
+      doctor:doctors(*)
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(start, end)
+
+  if (error) throw error
+  return { data: data as OrderWithDetails[], count: count ?? 0 }
+}
+
 // Services - paginated
 export async function getServicesPaginated(page: number = 1, pageSize: number = 20, useCache: boolean = true) {
   const supabase = createPublicClient()
@@ -359,7 +405,7 @@ export async function getFeaturedReviews() {
 
 // Stats Queries (for admin dashboard)
 export const getStats = unstable_cache(async () => {
-  const supabase = createPublicClient()
+  const supabase = createServiceRoleClient()
   // Run count queries in parallel to reduce total latency.
   const [profilesRes, ordersRes, categoriesRes, servicesRes] = await Promise.all([
     supabase
@@ -389,4 +435,26 @@ export const getStats = unstable_cache(async () => {
     totalServices: servicesRes.count || 0,
   }
 }, ['getStats'], { revalidate: 60 })
+export const getRecentOrdersAdmin = unstable_cache(
+  async (limit: number = 5) => {
+    const supabase = createServiceRoleClient()
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        service:services(
+          *,
+          category:categories(*)
+        ),
+        customer:profiles(*),
+        doctor:doctors(*)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data as OrderWithDetails[]
+  },
+  ['getRecentOrdersAdmin'],
+  { revalidate: 60 }
+)
 

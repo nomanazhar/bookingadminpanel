@@ -131,7 +131,7 @@ export default function NewDoctorPage() {
       })
 
       // Navigate back to doctors page
-      router.push("/admin/doctors")
+      router.push("/doctors")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -147,7 +147,7 @@ export default function NewDoctorPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/doctors">
+        <Link href="/doctors">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

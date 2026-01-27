@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getStats, getRecentOrders } from "@/lib/supabase/queries"
+import { getStats, getRecentOrdersAdmin } from "@/lib/supabase/queries"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
 import { Users, ShoppingCart, FolderTree, Sparkles } from "lucide-react"
 
@@ -61,7 +61,7 @@ async function StatsCards() {
 }
 
 async function RecentOrders() {
-  const orders = await getRecentOrders(10)
+  const orders = await getRecentOrdersAdmin(5)
   return <RecentOrdersTable orders={orders} />
 }
 

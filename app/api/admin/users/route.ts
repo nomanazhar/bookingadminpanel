@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getUsersPaginated } from '@/lib/supabase/queries'
+import { getUsersPaginatedAdmin } from '@/lib/supabase/queries'
 
 export async function GET(req: Request) {
   try {
@@ -8,8 +8,8 @@ export async function GET(req: Request) {
     const size = parseInt(url.searchParams.get('size') || '20', 10) || 20
     const q = url.searchParams.get('q') || null
 
-    // Use server-side filtering inside getUsersPaginated so DB can handle search and counts
-    const { data, count } = await getUsersPaginated(page, size, true, q)
+    // Use service role for admin fetch
+    const { data, count } = await getUsersPaginatedAdmin(page, size, q)
 
     return NextResponse.json({ data, count })
   } catch (err: any) {

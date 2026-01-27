@@ -52,11 +52,11 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
 
   const menuItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/admin/services", icon: Package, label: "Services" },
-    { href: "/admin/categories", icon: FolderTree, label: "Categories" },
-    { href: "/admin/orders", icon: ShoppingCart, label: "Orders" },
-    { href: "/admin/doctors", icon: Stethoscope, label: "Doctors" },
-    { href: "/admin/reviews", icon: MessageSquare, label: "Reviews" },
+    { href: "/services", icon: Package, label: "Services" },
+    { href: "/categories", icon: FolderTree, label: "Categories" },
+    { href: "/orders", icon: ShoppingCart, label: "Orders" },
+    { href: "/doctors", icon: Stethoscope, label: "Doctors" },
+    { href: "/reviews", icon: MessageSquare, label: "Reviews" },
   ]
 
   return (

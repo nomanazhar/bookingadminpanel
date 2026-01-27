@@ -50,7 +50,7 @@ export default function EditUserPage() {
             description: "User not found",
             variant: "destructive",
           })
-          router.push("/admin/users")
+          router.push("/users")
           return
         }
 
@@ -68,7 +68,7 @@ export default function EditUserPage() {
           description: error.message || "Failed to load user",
           variant: "destructive",
         })
-        router.push("/admin/users")
+        router.push("/users")
       } finally {
         setLoading(false)
       }
@@ -126,7 +126,7 @@ export default function EditUserPage() {
         description: "User updated successfully!",
       })
 
-      router.push("/admin/users")
+      router.push("/users")
     } catch (error: any) {
       toast({
         title: "Error",
@@ -156,7 +156,7 @@ export default function EditUserPage() {
     <div className="bg-white p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/users">
+        <Link href="/users">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

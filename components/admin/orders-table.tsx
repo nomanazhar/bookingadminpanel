@@ -54,18 +54,32 @@ function OrdersTableComponent({
   const [search, setSearch] = useState("")
 
   const filteredOrders = useMemo(() => {
-    if (!search) return orders
-    const q = search.toLowerCase()
-
+    if (!search) return orders;
+    const q = search.toLowerCase();
     return orders.filter((order) => {
-      return (
-        order.customer?.first_name?.toLowerCase().includes(q) ||
-        order.customer?.last_name?.toLowerCase().includes(q) ||
-        order.customer?.email?.toLowerCase().includes(q) ||
-        order.customer_name?.toLowerCase().includes(q)
-      )
-    })
-  }, [orders, search])
+      // Combine all relevant fields for searching
+      const fields = [
+        order.customer?.first_name,
+        order.customer?.last_name,
+        order.customer?.email,
+        order.customer_name,
+        order.customer_email,
+        order.customer_phone,
+        order.service?.name,
+        order.service_title,
+        order.doctor?.first_name,
+        order.doctor?.last_name,
+        order.doctor?.email,
+        order.address,
+        order.status,
+        order.booking_date,
+        order.booking_time,
+        order.total_amount?.toString(),
+        order.id,
+      ].join(' ').toLowerCase();
+      return fields.includes(q);
+    });
+  }, [orders, search]);
 
   const handleConfirm = async (orderId: string) => {
     await axios.post(`/api/orders/${orderId}/confirm`)
@@ -81,7 +95,7 @@ function OrdersTableComponent({
        />
 
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-[#333333] text-white">
           <TableRow>
             <TableHead>Customer</TableHead>
             <TableHead>Service</TableHead>

@@ -208,7 +208,7 @@ export function AddCategoryForm({
         </div>
 
         {/* Slug */}
-        <div>
+        {/* <div>
           <label className="block mb-1 font-medium text-foreground">Slug *</label>
           <Input
             value={slug}
@@ -219,7 +219,7 @@ export function AddCategoryForm({
             placeholder="category-slug"
             required
           />
-        </div>
+        </div> */}
 
         {/* Description */}
         <div>

@@ -73,7 +73,7 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
       <TableSearchBar onSearch={setSearch} placeholder="Search users..." />
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-[#333333] text-white">
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
@@ -118,7 +118,7 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => router.push(`/admin/users/${user.id}/edit`)}
+                      onClick={() => router.push(`/users/${user.id}/edit`)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

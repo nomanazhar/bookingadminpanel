@@ -29,11 +29,19 @@ function RecentOrdersTableComponent({ orders }: RecentOrdersTableProps) {
         order.customer?.first_name,
         order.customer?.last_name,
         order.customer?.email,
+        order.customer_name,
+        order.customer_email,
+        order.customer_phone,
         order.service?.name,
+        order.service_title,
+        order.doctor?.first_name,
+        order.doctor?.last_name,
+        order.doctor?.email,
+        order.address,
+        order.status,
         order.booking_date,
         order.booking_time,
         order.total_amount?.toString(),
-        order.status,
         order.id,
       ].join(' ').toLowerCase();
       return fields.includes(q);
@@ -62,15 +70,15 @@ function RecentOrdersTableComponent({ orders }: RecentOrdersTableProps) {
       <div className="text-center py-12 text-muted-foreground">
         No Bookings yet
       </div>
-    )
+    );
   }
 
   return (
     <div>
-      <TableSearchBar onSearch={setSearch} placeholder="Search bookings..." />
+      <TableSearchBar value={search} onChange={setSearch} onSearch={() => {}} placeholder="Search bookings..." />
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-[#333333] text-white">
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead>Service</TableHead>

@@ -2,11 +2,12 @@ import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getOrdersPaginated } from "@/lib/supabase/queries"
+import { getOrdersPaginatedAdmin } from '@/lib/supabase/queries'
 import { OrdersTable } from "@/components/admin/orders-table"
 import { OrdersPageHeader } from "@/components/admin/orders-page-header"
 
 async function OrdersList({ page }: { page: number }) {
-  const { data: orders, count } = await getOrdersPaginated(page, 20)
+  const { data: orders, count } = await getOrdersPaginatedAdmin(page, 20)
   return (
     <OrdersTable orders={orders} currentPage={page} totalCount={count} pageSize={20} />
   )
