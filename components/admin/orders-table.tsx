@@ -1,6 +1,7 @@
 "use client"
-import axios from 'axios'
-import { memo } from "react"
+
+import axios from "axios"
+import { memo, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { OrderWithDetails } from "@/types"
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +22,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
 import { format } from "date-fns"
-import { parseBookingDateTime } from '@/lib/utils'
+import { parseBookingDateTime } from "@/lib/utils"
+import TableSearchBar from "./table-search-bar"
 
 interface OrdersTableProps {
   orders: OrderWithDetails[]
@@ -30,49 +32,54 @@ interface OrdersTableProps {
   pageSize?: number
 }
 
-function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: OrdersTableProps) {
-  const router = useRouter()
-  
-  const handleConfirm = async (orderId: string) => {
-    try {
-      await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' })
-      // Clear cache and refresh the page to reload server component data
-      try {
-        await axios.post('/api/admin/clear-orders-cache')
-      } catch {}
-      router.refresh() // Refresh server component to get updated data
-    } catch {
-      alert('Failed to confirm order.')
-    }
+function getStatusVariant(status: string) {
+  switch (status) {
+    case "confirmed":
+      return "default"
+    case "cancelled":
+      return "destructive"
+    case "pending":
+    default:
+      return "secondary"
   }
-  const getStatusVariant = (
-    status: string
-  ): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case "confirmed":
-        return "default"
-      case "pending":
-        return "secondary"
-      case "completed":
-        return "outline"
-      case "cancelled":
-        return "destructive"
-      default:
-        return "default"
-    }
-  }
+}
 
-  if (!orders) return <div>Loading...</div>;
-  if (orders.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        No Bookings yet
-      </div>
-    )
+function OrdersTableComponent({
+  orders,
+  currentPage,
+  totalCount,
+  pageSize = 20,
+}: OrdersTableProps) {
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+
+  const filteredOrders = useMemo(() => {
+    if (!search) return orders
+    const q = search.toLowerCase()
+
+    return orders.filter((order) => {
+      return (
+        order.customer?.first_name?.toLowerCase().includes(q) ||
+        order.customer?.last_name?.toLowerCase().includes(q) ||
+        order.customer?.email?.toLowerCase().includes(q) ||
+        order.customer_name?.toLowerCase().includes(q)
+      )
+    })
+  }, [orders, search])
+
+  const handleConfirm = async (orderId: string) => {
+    await axios.post(`/api/orders/${orderId}/confirm`)
+    router.refresh()
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-4">
+      <TableSearchBar 
+      value={search} 
+      onChange={setSearch}
+      onSearch={() => {}}
+       />
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -87,37 +94,68 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {orders.map((order: OrderWithDetails) => (
+          {filteredOrders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">
                 <div>
                   <div>
-                    {order.customer?.first_name || order.customer_name || 'Unknown'}{' '}
-                    {order.customer?.last_name || ''}
+                    {order.customer?.first_name || order.customer_name || "Unknown"}{" "}
+                    {order.customer?.last_name || ""}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {order.customer?.email || order.customer_email || ''}
-                    {order.customer_phone ? ` • ${order.customer_phone}` : ''}
+                    {order.customer?.email || order.customer_email || ""}
+                    {order.customer_phone ? ` • ${order.customer_phone}` : ""}
                   </div>
                 </div>
               </TableCell>
-              <TableCell>{order.service ? order.service.name : <span className="text-muted-foreground">(no service)</span>}</TableCell>
-              <TableCell className="font-medium">{order.session_count} {order.session_count === 1 ? 'session' : 'sessions'}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{order.address || '-'}</TableCell>
+
               <TableCell>
-                {format(parseBookingDateTime(order.booking_date, order.booking_time || '00:00:00'), "MMM dd, yyyy")}
+                {order.service ? (
+                  order.service.name
+                ) : (
+                  <span className="text-muted-foreground">(no service)</span>
+                )}
               </TableCell>
+
+              <TableCell className="font-medium">
+                {order.session_count}{" "}
+                {order.session_count === 1 ? "session" : "sessions"}
+              </TableCell>
+
+              <TableCell className="text-sm text-muted-foreground">
+                {order.address || "-"}
+              </TableCell>
+
               <TableCell>
-                {format(parseBookingDateTime(order.booking_date, order.booking_time || '00:00:00'), 'p')}
+                {format(
+                  parseBookingDateTime(
+                    order.booking_date,
+                    order.booking_time || "00:00:00"
+                  ),
+                  "MMM dd, yyyy"
+                )}
               </TableCell>
+
+              <TableCell>
+                {format(
+                  parseBookingDateTime(
+                    order.booking_date,
+                    order.booking_time || "00:00:00"
+                  ),
+                  "p"
+                )}
+              </TableCell>
+
               <TableCell>£{order.total_amount.toFixed(2)}</TableCell>
+
               <TableCell>
-                {order.status === 'pending' ? (
+                {order.status === "pending" ? (
                   <div className="flex items-center gap-2">
                     <button
-                      className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition"
                       disabled
+                      className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-300"
                     >
                       Pending
                     </button>
@@ -134,6 +172,7 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
                   </Badge>
                 )}
               </TableCell>
+
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -142,10 +181,13 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-white">
-                    <DropdownMenuItem 
-                      onSelect={() => router.push(`/admin/orders/${order.id}/edit`)}
-                      className="cursor-pointer">
-                     Edit
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        router.push(`/admin/orders/${order.id}/edit`)
+                      }
+                      className="cursor-pointer"
+                    >
+                      Edit
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -154,23 +196,29 @@ function OrdersTableComponent({ orders, currentPage, totalCount, pageSize }: Ord
           ))}
         </TableBody>
       </Table>
-      {/* Simple pagination controls (server rendered links) */}
-      {typeof currentPage !== 'undefined' && typeof totalCount !== 'undefined' && (
-        <div className="flex items-center justify-between p-4">
-          <div className="text-sm text-muted-foreground">Showing page {currentPage}</div>
-          <div className="flex items-center gap-2">
-            {currentPage > 1 && (
-              <a href={`?page=${currentPage - 1}`} className="btn">Previous</a>
-            )}
-            {currentPage * (pageSize || 20) < (totalCount || 0) && (
-              <a href={`?page=${currentPage + 1}`} className="btn">Next</a>
-            )}
+
+      {typeof currentPage !== "undefined" &&
+        typeof totalCount !== "undefined" && (
+          <div className="flex items-center justify-between p-4">
+            <div className="text-sm text-muted-foreground">
+              Showing page {currentPage}
+            </div>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 && (
+                <a href={`?page=${currentPage - 1}`} className="btn">
+                  Previous
+                </a>
+              )}
+              {currentPage * pageSize < totalCount && (
+                <a href={`?page=${currentPage + 1}`} className="btn">
+                  Next
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   )
 }
 
 export const OrdersTable = memo(OrdersTableComponent)
-

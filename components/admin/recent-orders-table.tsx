@@ -1,6 +1,7 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useState, useMemo } from "react"
+import TableSearchBar from './table-search-bar'
 import type { OrderWithDetails } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -19,6 +20,26 @@ interface RecentOrdersTableProps {
 }
 
 function RecentOrdersTableComponent({ orders }: RecentOrdersTableProps) {
+  const [search, setSearch] = useState('');
+  const filtered = useMemo(() => {
+    if (!search) return orders;
+    const q = search.toLowerCase();
+    return orders.filter(order => {
+      const fields = [
+        order.customer?.first_name,
+        order.customer?.last_name,
+        order.customer?.email,
+        order.service?.name,
+        order.booking_date,
+        order.booking_time,
+        order.total_amount?.toString(),
+        order.status,
+        order.id,
+      ].join(' ').toLowerCase();
+      return fields.includes(q);
+    });
+  }, [orders, search]);
+
   const getStatusVariant = (
     status: string
   ): "default" | "secondary" | "destructive" | "outline" => {
@@ -45,37 +66,40 @@ function RecentOrdersTableComponent({ orders }: RecentOrdersTableProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Customer</TableHead>
-            <TableHead>Service</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell className="font-medium">
-                {order.customer.first_name} {order.customer.last_name}
-              </TableCell>
-              <TableCell>{order.service.name}</TableCell>
-              <TableCell>
-                {format(parseBookingDateTime(order.booking_date, order.booking_time || '00:00:00'), "MMM dd, yyyy")}
-              </TableCell>
-              <TableCell>£{order.total_amount.toFixed(2)}</TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(order.status)}>
-                  {order.status}
-                </Badge>
-              </TableCell>
+    <div>
+      <TableSearchBar onSearch={setSearch} placeholder="Search bookings..." />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Service</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">
+                  {order.customer.first_name} {order.customer.last_name}
+                </TableCell>
+                <TableCell>{order.service.name}</TableCell>
+                <TableCell>
+                  {format(parseBookingDateTime(order.booking_date, order.booking_time || '00:00:00'), "MMM dd, yyyy")}
+                </TableCell>
+                <TableCell>£{order.total_amount.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(order.status)}>
+                    {order.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
