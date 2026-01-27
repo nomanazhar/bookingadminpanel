@@ -28,6 +28,7 @@ export default function NewDoctorPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imageUrl, setImageUrl] = useState("")
   const [isActive, setIsActive] = useState(true)
+  const [locations, setLocations] = useState<string[]>([])
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -101,6 +102,16 @@ export default function NewDoctorPage() {
       return
     }
 
+
+    if (!locations.length) {
+      toast({
+        title: "Validation Error",
+        description: "At least one location must be selected",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -116,6 +127,7 @@ export default function NewDoctorPage() {
           bio: bio.trim() || null,
           avatar_url: imageUrl || null,
           is_active: isActive,
+          locations,
         }),
       })
 
@@ -272,6 +284,32 @@ export default function NewDoctorPage() {
                     />
                   </div>
                 )}
+              </div>
+            </div>
+
+
+            {/* Locations Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Locations</h3>
+              <div className="flex flex-col gap-1">
+                {['newyork', 'newcastle'].map((loc) => (
+                  <label key={loc} className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      value={loc}
+                      checked={locations.includes(loc)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setLocations(prev => [...prev, loc]);
+                        } else {
+                          setLocations(prev => prev.filter(l => l !== loc));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <span className="capitalize">{loc}</span>
+                  </label>
+                ))}
               </div>
             </div>
 

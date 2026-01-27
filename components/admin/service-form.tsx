@@ -34,6 +34,7 @@ export function ServiceForm({
   const [duration, setDuration] = useState(initialValues?.duration_minutes?.toString() || "");
   const [isPopular, setIsPopular] = useState(!!initialValues?.is_popular);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
+  const [locations, setLocations] = useState<string[]>(initialValues?.locations || []);
   const [thumbnail, setThumbnail] = useState(initialValues?.thumbnail || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -122,6 +123,7 @@ export function ServiceForm({
     setIsActive(initialValues?.is_active ?? true);
     setThumbnail(initialValues?.thumbnail || "");
     setImageFile(null);
+    setLocations(initialValues?.locations || []);
   }, [initialValues]);
 
   useEffect(() => {
@@ -139,6 +141,10 @@ export function ServiceForm({
 
     if (!name.trim() || !slug.trim() || !categoryId || !basePrice) {
       toast({ title: "Required fields missing", variant: "destructive" });
+      return;
+    }
+    if (!locations.length) {
+      toast({ title: "At least one location must be selected", variant: "destructive" });
       return;
     }
 
@@ -208,6 +214,7 @@ export function ServiceForm({
         is_active: isActive,
         session_options: sessionPayload,
         thumbnail: finalThumbnail,
+        locations,
       };
 
       // 4. Create or Update service
@@ -287,6 +294,7 @@ export function ServiceForm({
     setSubservices([]);
     setSubserviceTouched(false);
     setSubserviceError(null);
+    setLocations([]);
   };
 
   const [loading, setLoading] = useState(false);
@@ -346,6 +354,31 @@ export function ServiceForm({
         <div>
           <label className="block mb-1.5 text-sm font-medium">Duration (min)</label>
           <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
+        </div>
+
+        {/* Locations Multi-select */}
+        <div>
+          <label className="block mb-1.5 text-sm font-medium">Locations *</label>
+          <div className="flex flex-col gap-1">
+            {['newyork', 'newcastle'].map((loc) => (
+              <label key={loc} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value={loc}
+                  checked={locations.includes(loc)}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLocations(prev => [...prev, loc]);
+                    } else {
+                      setLocations(prev => prev.filter(l => l !== loc));
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <span className="capitalize">{loc}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Session Options */}

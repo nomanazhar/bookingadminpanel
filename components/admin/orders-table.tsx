@@ -58,6 +58,7 @@ function OrdersTableComponent({
     const q = search.toLowerCase();
     return orders.filter((order) => {
       // Combine all relevant fields for searching
+      const locations = Array.isArray(order.service?.locations) ? order.service.locations.join(' ') : '';
       const fields = [
         order.customer?.first_name,
         order.customer?.last_name,
@@ -76,6 +77,7 @@ function OrdersTableComponent({
         order.booking_time,
         order.total_amount?.toString(),
         order.id,
+        locations,
       ].join(' ').toLowerCase();
       return fields.includes(q);
     });
@@ -99,6 +101,7 @@ function OrdersTableComponent({
           <TableRow>
             <TableHead>Customer</TableHead>
             <TableHead>Service</TableHead>
+            <TableHead>Locations</TableHead>
             <TableHead>Sessions</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Booking Date</TableHead>
@@ -125,12 +128,23 @@ function OrdersTableComponent({
                 </div>
               </TableCell>
 
+
               <TableCell>
                 {order.service ? (
                   order.service.name
                 ) : (
                   <span className="text-muted-foreground">(no service)</span>
                 )}
+              </TableCell>
+
+              <TableCell>
+                {Array.isArray(order.service?.locations) && order.service.locations.length > 0
+                  ? order.service.locations.map((loc) => (
+                      <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                        {loc}
+                      </span>
+                    ))
+                  : "-"}
               </TableCell>
 
               <TableCell className="font-medium">

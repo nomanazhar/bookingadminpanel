@@ -73,6 +73,7 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
               <TableHead>Price</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Duration</TableHead>
+              <TableHead>Locations</TableHead>
               <TableHead>Sessions</TableHead>
               <TableHead>Available Times</TableHead>
               <TableHead>Subtreatments</TableHead>
@@ -104,6 +105,15 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
                   <TableCell>£{service.base_price?.toFixed ? service.base_price.toFixed(2) : service.base_price}</TableCell>
                   <TableCell>{service.description || "-"}</TableCell>
                   <TableCell>{service.duration_minutes || "-"}</TableCell>
+                  <TableCell>
+                    {Array.isArray(service.locations) && service.locations.length > 0
+                      ? service.locations.map((loc) => (
+                          <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                            {loc}
+                          </span>
+                        ))
+                      : "-"}
+                  </TableCell>
                   <TableCell className="font-sm">{sessions}</TableCell>
                   <TableCell className="font-sm">{times}</TableCell>
                   <TableCell className="font-sm">{renderSubtreatments(service)}</TableCell>

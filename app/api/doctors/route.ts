@@ -33,13 +33,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { first_name, last_name, email, phone, specialization, bio, avatar_url, is_active } = body
+    const { first_name, last_name, email, phone, specialization, bio, avatar_url, is_active, locations } = body
     
     if (!first_name || !last_name || !email) {
       return NextResponse.json(
         { error: "First name, last name, and email are required" },
         { status: 400 }
       )
+    }
+    if (!Array.isArray(locations) || locations.length === 0) {
+      return NextResponse.json({ error: "At least one location is required" }, { status: 400 })
     }
     
     const supabase = await createClient()
@@ -72,6 +75,7 @@ export async function POST(req: NextRequest) {
           bio: bio || null,
           avatar_url: avatar_url || null,
           is_active: is_active !== undefined ? is_active : true,
+          locations,
         },
       ])
       .select()

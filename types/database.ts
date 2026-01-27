@@ -32,6 +32,7 @@ export interface Category {
   image_url?: string
   display_order: number
   is_active: boolean
+  locations: string[]
   created_at: string
   updated_at: string
 }
@@ -48,6 +49,7 @@ export interface Service {
   session_options?: Json // JSON array of session options
   duration_minutes?: number
   is_popular: boolean
+  locations: string[]
   is_active: boolean
   created_at: string
   updated_at: string
@@ -70,6 +72,7 @@ export interface Order {
   discount_percent?: number
   total_amount: number
   status: OrderStatus
+  location: string[]
   booking_date: string
   booking_time: string
   notes?: string
@@ -98,6 +101,7 @@ export interface Doctor {
   specialization?: string
   bio?: string
   avatar_url?: string
+  locations: string[]
   is_active: boolean
   created_at: string
   updated_at: string

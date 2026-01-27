@@ -31,6 +31,7 @@ export function DoctorForm({
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(initialValues?.avatar_url || "");
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
+  const [locations, setLocations] = useState<string[]>(initialValues?.locations || []);
   const [updating, setUpdating] = useState(false);
 
   // Sync form when initialValues change (edit mode)
@@ -44,6 +45,7 @@ export function DoctorForm({
     setImageFile(null);
     setImageUrl(initialValues?.avatar_url || "");
     setIsActive(initialValues?.is_active ?? true);
+    setLocations(initialValues?.locations || []);
   }, [initialValues]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +54,11 @@ export function DoctorForm({
     // Basic validation
     if (!firstName.trim()) {
       toast({ title: "First name is required", variant: "destructive" });
+      return;
+    }
+    if (!locations.length) {
+      toast({ title: "At least one location must be selected", variant: "destructive" });
+      setUpdating(false);
       return;
     }
     if (!lastName.trim()) {
@@ -115,6 +122,7 @@ export function DoctorForm({
           bio: bio.trim() || null,
           avatar_url: finalImageUrl || null,
           is_active: isActive,
+          locations,
         });
         toast({ title: "Doctor updated successfully!" });
       } else {
@@ -128,6 +136,7 @@ export function DoctorForm({
           bio: bio.trim() || null,
           avatar_url: finalImageUrl || null,
           is_active: isActive,
+          locations,
         });
         toast({ title: "Doctor created successfully!" });
 
@@ -141,6 +150,7 @@ export function DoctorForm({
         setImageFile(null);
         setImageUrl("");
         setIsActive(true);
+        setLocations([]);
       }
 
       onDoctorSaved?.();
@@ -271,6 +281,32 @@ export function DoctorForm({
               />
             </div>
           )}
+        </div>
+
+
+        {/* Locations Multi-select */}
+        <div className="md:col-span-2">
+          <Label className="block mb-1 font-medium text-foreground">Locations *</Label>
+          <div className="flex flex-col gap-1">
+            {['newyork', 'newcastle'].map((loc) => (
+              <label key={loc} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value={loc}
+                  checked={locations.includes(loc)}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLocations(prev => [...prev, loc]);
+                    } else {
+                      setLocations(prev => prev.filter(l => l !== loc));
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <span className="capitalize">{loc}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="md:col-span-2 flex items-center gap-2">

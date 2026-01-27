@@ -173,6 +173,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
               <th className="px-4 py-3 text-left">Phone</th>
               <th className="px-4 py-3 text-left">Specialization</th>
               <th className="px-4 py-3 text-left">Bio</th>
+              <th className="px-4 py-3 text-left">Locations</th>
               <th className="px-4 py-3 text-center">Active</th>
               <th className="px-4 py-3 text-center">Manage</th>
             </tr>
@@ -229,6 +230,16 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
 
                 <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
                   {doctor.bio || "-"}
+                </td>
+
+                <td className="px-4 py-3">
+                  {Array.isArray(doctor.locations) && doctor.locations.length > 0
+                    ? doctor.locations.map((loc) => (
+                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                          {loc}
+                        </span>
+                      ))
+                    : "-"}
                 </td>
 
                 <td className="px-4 py-3 text-center">

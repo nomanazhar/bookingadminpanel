@@ -129,6 +129,7 @@ export default function CategoriesTable({
               <th className="px-4 py-3 text-left">Slug</th>
               <th className="px-4 py-3 text-left">Description</th>
               <th className="px-4 py-3 text-left">Image</th>
+              <th className="px-4 py-3 text-left">Locations</th>
               <th className="px-4 py-3 text-center">Order</th>
               <th className="px-4 py-3 text-center">Active</th>
               <th className="px-4 py-3 text-center">Manage</th>
@@ -173,6 +174,15 @@ export default function CategoriesTable({
                   ) : (
                     "-"
                   )}
+                </td>
+                <td className="px-4 py-3">
+                  {Array.isArray(cat.locations) && cat.locations.length > 0
+                    ? cat.locations.map((loc) => (
+                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                          {loc}
+                        </span>
+                      ))
+                    : "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {cat.display_order}

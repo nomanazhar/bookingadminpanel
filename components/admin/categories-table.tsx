@@ -56,6 +56,7 @@ function CategoriesTableComponent({ categories }: CategoriesTableProps) {
               <TableHead>Description</TableHead>
               <TableHead>Display Order</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Locations</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -71,6 +72,15 @@ function CategoriesTableComponent({ categories }: CategoriesTableProps) {
                   <Badge variant={category.is_active ? "default" : "secondary"}>
                     {category.is_active ? "Active" : "Inactive"}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {Array.isArray(category.locations) && category.locations.length > 0
+                    ? category.locations.map((loc) => (
+                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                          {loc}
+                        </span>
+                      ))
+                    : '—'}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex gap-2 bg-white p-2 rounded shadow-md absolute z-10">

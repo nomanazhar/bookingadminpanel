@@ -115,6 +115,7 @@ export default function ClientServicesSection({
               <th className="px-4 py-3 text-left">Price</th>
               <th className="px-4 py-3 text-left">Description</th>
               <th className="px-4 py-3 text-left">Duration</th>
+              <th className="px-4 py-3 text-left">Locations</th>
               <th className="px-4 py-3 text-center">Active</th>
               <th className="px-4 py-3 text-center">Manage</th>
             </tr>
@@ -160,6 +161,15 @@ export default function ClientServicesSection({
                 </td>
                 <td className="px-4 py-3">
                   {service.duration_minutes || "-"} min
+                </td>
+                <td className="px-4 py-3">
+                  {Array.isArray(service.locations) && service.locations.length > 0
+                    ? service.locations.map((loc) => (
+                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                          {loc}
+                        </span>
+                      ))
+                    : "-"}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {service.is_active ? "Yes" : "No"}

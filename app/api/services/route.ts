@@ -16,6 +16,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+  const { locations } = body
+  if (!Array.isArray(locations) || locations.length === 0) {
+    return NextResponse.json({ error: "At least one location is required" }, { status: 400 })
+  }
   const supabase = await createClient()
   const { data, error } = await supabase.from("services").insert([body]).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

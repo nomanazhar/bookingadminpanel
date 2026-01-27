@@ -32,7 +32,7 @@ export function clearCachePrefix(prefix: string) {
 }
 
 // Category Queries
-export  const getCategories = unstable_cache(async () => {
+export async function getCategories() {
   const supabase = createPublicClient()
   const { data, error } = await supabase
     .from('categories')
@@ -41,7 +41,7 @@ export  const getCategories = unstable_cache(async () => {
     .order('display_order', { ascending: true })
   if (error) throw error
   return data as Category[]
-}, ['getCategories'], { revalidate: 60 })
+}
 
 // Return categories that have at least one active service.
 export const getCategoriesWithActiveServices = unstable_cache(async () => {

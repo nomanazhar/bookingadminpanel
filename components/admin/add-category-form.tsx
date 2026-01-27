@@ -29,6 +29,7 @@ export function AddCategoryForm({
   const [imageUrl, setImageUrl] = useState(initialValues?.image_url || "");
   const [displayOrder, setDisplayOrder] = useState(initialValues?.display_order ?? 0);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
+  const [locations, setLocations] = useState<string[]>(initialValues?.locations || []);
   const [updating, setUpdating] = useState(false);
 
   // Sync form fields when editing (initialValues changes)
@@ -41,6 +42,7 @@ export function AddCategoryForm({
     setImageUrl(initialValues?.image_url || "");
     setDisplayOrder(initialValues?.display_order ?? 0);
     setIsActive(initialValues?.is_active ?? true);
+    setLocations(initialValues?.locations || []);
   }, [initialValues]);
 
   const slugify = (value: string) =>
@@ -55,12 +57,17 @@ export function AddCategoryForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+
     if (!name.trim()) {
       toast({ title: "Category name is required", variant: "destructive" });
       return;
     }
     if (!slug.trim()) {
       toast({ title: "Slug is required", variant: "destructive" });
+      return;
+    }
+    if (!locations.length) {
+      toast({ title: "At least one location must be selected", variant: "destructive" });
       return;
     }
 
@@ -128,6 +135,7 @@ export function AddCategoryForm({
     }
 
     try {
+
       if (initialValues?.id) {
         // Update existing category
         await axios.put(`/api/categories/${initialValues.id}`, {
@@ -137,6 +145,7 @@ export function AddCategoryForm({
           image_url: finalImageUrl || null,
           display_order: Number(displayOrder),
           is_active: isActive,
+          locations,
         });
         toast({ title: "Category updated successfully!" });
       } else {
@@ -148,6 +157,7 @@ export function AddCategoryForm({
           image_url: finalImageUrl || null,
           display_order: Number(displayOrder),
           is_active: isActive,
+          locations,
         });
         toast({ title: "Category created successfully!" });
 
@@ -160,6 +170,7 @@ export function AddCategoryForm({
         setImageUrl("");
         setDisplayOrder(0);
         setIsActive(true);
+        setLocations([]);
       }
 
       onCategoryAdded?.();
@@ -263,6 +274,32 @@ export function AddCategoryForm({
             onChange={(e) => setDisplayOrder(Number(e.target.value))}
             min={0}
           />
+        </div>
+
+
+        {/* Locations Multi-select */}
+        <div>
+          <label className="block mb-1 font-medium text-foreground">Locations *</label>
+          <div className="flex flex-col gap-1">
+            {['newyork', 'newcastle'].map((loc) => (
+              <label key={loc} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value={loc}
+                  checked={locations.includes(loc)}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLocations(prev => [...prev, loc]);
+                    } else {
+                      setLocations(prev => prev.filter(l => l !== loc));
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <span className="capitalize">{loc}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Active Checkbox */}
