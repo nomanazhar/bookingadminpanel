@@ -129,7 +129,7 @@ export function SignUpForm() {
           try { localStorage.removeItem('prefillEmail') } catch {}
           router.push('/confirm-booking')
         } else {
-          router.push('/dashboard')
+          router.push('/signin')
         }
         router.refresh()
       }
@@ -290,7 +290,7 @@ export function SignUpForm() {
       if (hasPending) {
         router.push('/confirm-booking')
       } else {
-        router.push('/dashboard')
+        router.push('/siginin')
       }
       router.refresh()
     } catch (err: any) {

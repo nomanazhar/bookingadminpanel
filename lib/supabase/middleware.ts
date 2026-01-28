@@ -131,22 +131,19 @@ export async function updateSession(request: NextRequest) {
   if (path.startsWith('/signin') || path.startsWith('/signup')) {
     if (user) {
       // Redirect to appropriate dashboard based on role
-      const redirectUrl = userRole === 'admin' ? '/admin' : '/dashboard'
+      const redirectUrl = userRole === 'admin' ? '/admin-dashboard' : '/'
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
   }
 
   // Protect dashboard routes
-  // Dashboard is publicly viewable. If an admin is logged in and hits
-  // the dashboard path, redirect them to the admin area.
-  if (path.startsWith('/dashboard')) {
-    if (userRole === 'admin') {
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
+  // If an admin is logged in and hits the main dashboard, redirect to admin-dashboard
+  if (path === '/' && userRole === 'admin') {
+    return NextResponse.redirect(new URL('/admin-dashboard', request.url))
   }
 
-  // Protect admin routes
-    if (path.startsWith('/admin')) {
+  // Protect admin-dashboard routes
+  if (path.startsWith('/admin-dashboard')) {
     if (!user) {
       return NextResponse.redirect(new URL('/signin', request.url))
     }

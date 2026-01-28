@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
 
-    if (path.startsWith('/') && userRole === 'admin') {
+      if (path === '/' && userRole === 'admin') {
       return NextResponse.redirect(new URL('/admin-dashboard', request.url))
     }
 

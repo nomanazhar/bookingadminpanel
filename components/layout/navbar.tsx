@@ -18,6 +18,23 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DropdownMenu as LocationDropdownMenu, DropdownMenuTrigger as LocationDropdownMenuTrigger, DropdownMenuContent as LocationDropdownMenuContent, DropdownMenuItem as LocationDropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { MapPin } from "lucide-react"
+// Helper to get all unique locations from categories in localStorage or fallback
+function getAllLocations() {
+  if (typeof window !== 'undefined') {
+    const cats = localStorage.getItem('categories')
+    if (cats) {
+      try {
+        const parsed = JSON.parse(cats)
+        const locs = parsed.flatMap((cat: any) => cat.locations || [])
+        return Array.from(new Set(locs)).filter(Boolean)
+      } catch {}
+    }
+  }
+  // Fallback demo locations
+  return ["New York", "New Castle", "Stay Here"]
+}
 import { createClient } from "@/lib/supabase/client"
 import { LogOut, User, Menu, LayoutDashboard, ShoppingBag } from "lucide-react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
@@ -26,6 +43,8 @@ import type { Profile } from "@/types"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { useLocation } from "../providers/location-provider"
+import { LOCATIONS } from "../providers/locations"
 
 interface NavbarProps {
   user: Profile | null
@@ -34,24 +53,25 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/", label: "Dashboard" },
   { href: "/book-consultation", label: "My Bookings" },
 
 ]
 
 export function Navbar({ user, action }: NavbarProps) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { location: selectedLocation, setLocation: setSelectedLocation } = useLocation();
+  const router = useRouter();
+  const { toast } = useToast();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // localUser mirrors the `user` prop so we can immediately hide user UI
   // on sign-out before the server component revalidates.
-  const [localUser, setLocalUser] = useState<Profile | null>(user)
+  const [localUser, setLocalUser] = useState<Profile | null>(user);
 
   useEffect(() => {
-    setLocalUser(user)
-  }, [user])
+    setLocalUser(user);
+  }, [user]);
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -160,6 +180,36 @@ export function Navbar({ user, action }: NavbarProps) {
 
           {/* Right Section - User Menu, Book Consultation & Theme */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Location Dropdown */}
+            <LocationDropdownMenu>
+              <LocationDropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="relative">
+                  <MapPin className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Select location</span>
+                </Button>
+              </LocationDropdownMenuTrigger>
+              <LocationDropdownMenuContent align="end">
+                {LOCATIONS.map((loc) => {
+                  const isSelected = selectedLocation && loc.toLowerCase() === selectedLocation.toLowerCase();
+                  return (
+                    <LocationDropdownMenuItem
+                      key={loc}
+                      onClick={() => setSelectedLocation(loc)}
+                      className={isSelected ? 'bg-[#42E0CF] text-white font-bold' : ''}
+                    >
+                      {loc}
+                    </LocationDropdownMenuItem>
+                  );
+                })}
+                <LocationDropdownMenuItem
+                  key="stay-here"
+                  onClick={() => setSelectedLocation(null)}
+                  className={!selectedLocation ? 'bg-[#42E0CF] text-white font-bold' : ''}
+                >
+                  Stay here
+                </LocationDropdownMenuItem>
+              </LocationDropdownMenuContent>
+            </LocationDropdownMenu>
             <ThemeToggle />
              
 

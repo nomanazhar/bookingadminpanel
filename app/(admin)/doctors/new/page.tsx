@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react"
+import { LOCATIONS } from "@/components/providers/locations"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -292,7 +293,7 @@ export default function NewDoctorPage() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Locations</h3>
               <div className="flex flex-col gap-1">
-                {['newyork', 'newcastle'].map((loc) => (
+                {LOCATIONS.map((loc) => (
                   <label key={loc} className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"

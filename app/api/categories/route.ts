@@ -1,3 +1,16 @@
+export async function GET() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*");
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Ensure locations is always an array
+  const safeData = (data || []).map((cat: any) => ({
+    ...cat,
+    locations: Array.isArray(cat.locations) ? cat.locations : [],
+  }));
+  return NextResponse.json(safeData);
+}
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 

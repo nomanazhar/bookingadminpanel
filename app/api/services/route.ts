@@ -11,7 +11,12 @@ export async function GET() {
       subservices:subservices(*)
     `)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  // Ensure locations is always an array
+  const safeData = (data || []).map((svc: any) => ({
+    ...svc,
+    locations: Array.isArray(svc.locations) ? svc.locations : [],
+  }));
+  return NextResponse.json(safeData)
 }
 
 export async function POST(req: NextRequest) {

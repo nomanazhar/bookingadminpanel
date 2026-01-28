@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LOCATIONS } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -288,7 +289,7 @@ export function DoctorForm({
         <div className="md:col-span-2">
           <Label className="block mb-1 font-medium text-foreground">Locations *</Label>
           <div className="flex flex-col gap-1">
-            {['newyork', 'newcastle'].map((loc) => (
+            {LOCATIONS.map((loc) => (
               <label key={loc} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import NavbarWrapper from "@/components/layout/navbar-wrapper";
+import { LocationProvider } from "@/components/providers/location-provider";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -40,18 +41,20 @@ export default function RootLayout({
         className={`${poppins.variable} ${inter.variable} font-sans antialiased overflow-x-hidden`}
       >
         <div className="min-h-screen w-full overflow-x-hidden">
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <React.Suspense fallback={null}>
-              <NavbarWrapper />
-            </React.Suspense>
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          <LocationProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <React.Suspense fallback={null}>
+                <NavbarWrapper />
+              </React.Suspense>
+              {children}
+              <Toaster />
+            </ThemeProvider>
+          </LocationProvider>
         </div>
       </body>
     </html>

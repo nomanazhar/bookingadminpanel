@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Service, Order, Doctor } from "@/types"
+import { useLocation } from "@/components/providers/location-provider"
 
 export default function BookingPanel({ service, rescheduleOrder }: { service: Service, rescheduleOrder?: Order | null }) {
   // Subservices state
@@ -69,6 +70,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   const [selectedTime, setSelectedTime] = useState<string | null>(rescheduleOrder?.booking_time || null)
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(rescheduleOrder?.doctor_id || "")
   const [doctors, setDoctors] = useState<Doctor[]>([])
+  const { location: selectedLocation } = useLocation();
   const [loadingDoctors, setLoadingDoctors] = useState(false)
   const [userInteracted, setUserInteracted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -104,6 +106,14 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     }
     loadDoctors()
   }, [])
+
+  // Filter doctors by selected location whenever doctors or location changes
+  const filteredDoctors = React.useMemo(() => {
+    if (!selectedLocation) return doctors;
+    return doctors.filter((doctor) =>
+      Array.isArray(doctor.locations) && doctor.locations.includes(selectedLocation)
+    );
+  }, [doctors, selectedLocation]);
 
   // restore selections from pendingBooking if user is returning from confirm page (only if not rescheduling)
   useEffect(() => {
@@ -370,12 +380,12 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
                   <SelectValue placeholder="Select a doctor (required)" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  {doctors.length === 0 ? (
+                  {filteredDoctors.length === 0 ? (
                     <SelectItem value="__no_doctors__" disabled>
-                      No doctors available
+                      No doctors available for this location
                     </SelectItem>
                   ) : (
-                    doctors.map((doctor) => (
+                    filteredDoctors.map((doctor) => (
                       <SelectItem key={doctor.id} value={doctor.id}>
                         Dr. {doctor.first_name} {doctor.last_name}
                         {doctor.specialization && ` - ${doctor.specialization}`}

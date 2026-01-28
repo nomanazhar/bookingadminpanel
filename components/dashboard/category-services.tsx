@@ -1,23 +1,43 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import type { Category, Service } from "@/types"
 import { CategoryButtons } from "./category-buttons"
+import { useLocation } from "../providers/location-provider"
 
-export function CategoryServices({ categories }: { categories: Category[] }) {
+export function CategoryServices() {
+  const [categories, setCategories] = useState<Category[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const { location } = useLocation();
 
+  // Fetch categories and services on mount
   useEffect(() => {
+    fetch(`/api/categories`).then((res) => res.json()).then((data) => {
+      setCategories(data || [])
+    })
     fetch(`/api/services`).then((res) => res.json()).then((data) => {
       setServices(data || [])
     })
   }, [])
 
-  // Filter categories to show only those with services
-  const filteredCategories = categories.filter((cat) =>
-    services.some((s) => s.category_id === cat.id)
-  )
+
+  // Treat 'Stay Here' as show all
+  const normalizedLocation = location ? location.trim().toLowerCase() : '';
+  const isShowAll = !normalizedLocation || normalizedLocation === 'stay here';
+
+  // Filter categories and services by selected location, or show all if 'Stay Here'
+  const filteredCategories = isShowAll
+    ? categories.filter((cat) => services.some((s) => s.category_id === cat.id))
+    : categories.filter((cat) => {
+        const catLocs = (cat.locations || []).map((l: string) => l.trim().toLowerCase());
+        return catLocs.includes(normalizedLocation) &&
+          services.some((s) => {
+            const svcLocs = (s.locations || []).map((l: string) => l.trim().toLowerCase());
+            return s.category_id === cat.id && svcLocs.includes(normalizedLocation);
+          });
+      });
 
   // If a category is selected, only show that one; otherwise show all
   const displayCategories = selected
@@ -29,13 +49,52 @@ export function CategoryServices({ categories }: { categories: Category[] }) {
     setSelected((prev) => (prev === id ? null : id))
   }
 
+  // Loading and error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      fetch(`/api/categories`).then((res) => res.json()),
+      fetch(`/api/services`).then((res) => res.json()),
+    ])
+      .then(([catData, svcData]) => {
+        setCategories(Array.isArray(catData) ? catData : []);
+        setServices(Array.isArray(svcData) ? svcData : []);
+      })
+      .catch((err) => setError("Failed to load data."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <div className="flex gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-10 w-40 bg-gray-200 animate-pulse rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return <div className="container py-8 text-red-500 text-center">{error}</div>;
+  }
+
   return (
     <>
-      <CategoryButtons categories={categories} selectedId={selected} onSelect={handleSelect} />
+      <CategoryButtons categories={filteredCategories} selectedId={selected} onSelect={handleSelect} />
       <div className="w-full">
         {displayCategories.map((category: Category) => {
-          const catServices = services.filter((s) => s.category_id === category.id)
-          if (!catServices.length) return null
+          const catServices = isShowAll
+            ? services.filter((s) => s.category_id === category.id)
+            : services.filter((s) => {
+                const svcLocs = (s.locations || []).map((l: string) => l.trim().toLowerCase());
+                return s.category_id === category.id && svcLocs.includes(normalizedLocation);
+              });
+          if (!catServices.length) return null;
           return (
             <section
               key={category.id}
@@ -63,11 +122,6 @@ export function CategoryServices({ categories }: { categories: Category[] }) {
                       <h3 className="text-xl md:text-2xl font-semibold text-white mb-1 drop-shadow-lg capitalize">
                         {service.name}
                       </h3>
-                      {/* {service.subtitle && (
-                        <div className="text-base text-white mb-4 drop-shadow-lg capitalize">
-                          {service.subtitle}
-                        </div>
-                      )} */}
                       <a href={`/customer-services/${service.slug}`}>
                         <button className="bg-white text-black font-semibold rounded-full px-6 py-2 w-fit shadow-lg text-base cursor-pointer">
                           Book now
@@ -78,9 +132,9 @@ export function CategoryServices({ categories }: { categories: Category[] }) {
                 ))}
               </div>
             </section>
-          )
+          );
         })}
       </div>
     </>
-  )
+  );
 }

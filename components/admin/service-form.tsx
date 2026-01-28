@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LOCATIONS } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
@@ -360,7 +361,7 @@ export function ServiceForm({
         <div>
           <label className="block mb-1.5 text-sm font-medium">Locations *</label>
           <div className="flex flex-col gap-1">
-            {['newyork', 'newcastle'].map((loc) => (
+            {LOCATIONS.map((loc) => (
               <label key={loc} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"

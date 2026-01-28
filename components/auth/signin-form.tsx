@@ -83,19 +83,32 @@ export function SignInForm() {
           title: "Success",
           description: "Signed in successfully!",
         })
-        
-        // Check for pending booking
-        let hasPending = false
+
+        // Fetch profile to check role
+        let userRole = 'customer';
         try {
-          hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
+          const supabaseProfile = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+          userRole = supabaseProfile?.data?.role || 'customer';
+        } catch {}
+
+        // Check for pending booking
+        let hasPending = false;
+        try {
+          hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking');
         } catch {}
 
         if (hasPending) {
-          router.push('/confirm-booking')
+          router.push('/confirm-booking');
+        } else if (userRole === 'admin') {
+          router.push('/admin-dashboard');
         } else {
-          router.push('/')
+          router.push('/');
         }
-        router.refresh()
+        router.refresh();
       }
     } catch (err) {
       toast({
@@ -194,11 +207,25 @@ export function SignInForm() {
       } catch {}
 
       if (hasPending) {
-        router.push('/confirm-booking')
+        router.push('/confirm-booking');
       } else {
-        router.push('/')
+        // Fetch profile to check role
+        let userRole = 'customer';
+        try {
+          const supabaseProfile = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+          userRole = supabaseProfile?.data?.role || 'customer';
+        } catch {}
+        if (userRole === 'admin') {
+          router.push('/admin-dashboard');
+        } else {
+          router.push('/');
+        }
       }
-      router.refresh()
+      router.refresh();
     } catch (err) {
       setOtpError("Unexpected error. Please try again.")
     } finally {

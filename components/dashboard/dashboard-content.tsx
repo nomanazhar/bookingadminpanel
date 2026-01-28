@@ -30,9 +30,7 @@ export default function DashboardContent({ categories }: DashboardContentProps) 
             </div>
           }
         >
-          {categories && (
-            <CategoryServices categories={categories} />
-          )}
+          <CategoryServices />
         </Suspense>
       </main>
     </div>
