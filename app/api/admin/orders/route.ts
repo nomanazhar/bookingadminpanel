@@ -93,17 +93,7 @@ export async function POST(req: NextRequest) {
 
       if (existingCustomer) {
         targetCustomerId = existingCustomer.id
-        // Update customer name if provided and different
-        if (customerName && customerName !== `${existingCustomer.first_name} ${existingCustomer.last_name}`.trim()) {
-          const nameParts = customerName.split(' ')
-          await supabase
-            .from('profiles')
-            .update({
-              first_name: nameParts[0] || customerName,
-              last_name: nameParts.slice(1).join(' ') || '',
-            })
-            .eq('id', targetCustomerId)
-        }
+        // DO NOT update the profile's name/email. Only use as snapshot for the order.
       } else {
         // Customer not found - return error asking admin to provide customer_id or ensure customer exists
         return NextResponse.json({ 

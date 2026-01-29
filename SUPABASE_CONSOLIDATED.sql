@@ -1,8 +1,6 @@
--- If you get an error about missing 'subservice_id' in 'orders', run this manually:
--- ALTER TABLE public.orders ADD COLUMN subservice_id UUID REFERENCES public.subservices(id) ON DELETE SET NULL;
 -- ============================================
--- SUPABASE SCHEMA - PHONE OTP FIX
--- January 2025 - Fixes "Database error saving new user"
+-- SUPABASE SCHEMA - PHONE OTP FIX + LOCATION SUPPORT
+-- Updated: January 2026 - Added locations TEXT[] to categories, services, doctors
 -- ============================================
 
 -- ============================================
@@ -27,7 +25,7 @@ BEGIN
     END LOOP;
 END $$;
 
--- Storage policies
+-- Storage policies cleanup
 DO $$
 BEGIN
     DROP POLICY IF EXISTS "Authenticated users can upload to image buckets" ON storage.objects;
@@ -52,7 +50,7 @@ BEGIN
 END $$;
 
 -- ============================================
--- STEP 4: TABLES
+-- STEP 4: TABLES (with locations column added)
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -62,6 +60,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
     description     TEXT,
     image_url       TEXT,
     display_order   INTEGER NOT NULL DEFAULT 0,
+    locations       TEXT[] NOT NULL DEFAULT '{}',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -78,6 +77,7 @@ CREATE TABLE IF NOT EXISTS public.services (
     base_price      NUMERIC(10,2) NOT NULL DEFAULT 0,
     session_options JSONB NOT NULL DEFAULT '[]'::jsonb,
     duration_minutes INTEGER,
+    locations       TEXT[] NOT NULL DEFAULT '{}',
     is_popular      BOOLEAN NOT NULL DEFAULT FALSE,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS public.doctors (
     specialization  TEXT,
     bio             TEXT,
     avatar_url      TEXT,
+    locations       TEXT[] NOT NULL DEFAULT '{}',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -159,7 +160,7 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 );
 
 -- ============================================
--- STEP 5: INDEXES
+-- STEP 5: INDEXES (including GIN for locations)
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS idx_profiles_email_lower ON public.profiles (lower(email));
@@ -172,6 +173,11 @@ CREATE INDEX IF NOT EXISTS idx_orders_doctor ON public.orders(doctor_id);
 
 CREATE INDEX IF NOT EXISTS idx_services_category_active ON public.services (category_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_subservices_service ON public.subservices(service_id);
+
+-- GIN indexes for fast location filtering
+CREATE INDEX IF NOT EXISTS idx_categories_locations ON public.categories USING GIN (locations);
+CREATE INDEX IF NOT EXISTS idx_services_locations   ON public.services   USING GIN (locations);
+CREATE INDEX IF NOT EXISTS idx_doctors_locations    ON public.doctors    USING GIN (locations);
 
 -- ============================================
 -- STEP 6: HELPER FUNCTIONS
@@ -199,16 +205,8 @@ DECLARE
     v_last_name TEXT;
     v_role public.user_role;
 BEGIN
-    -- Extract data with safe defaults
-    v_email := COALESCE(
-        NEW.email, 
-        NEW.raw_user_meta_data->>'email'
-    );
-    
-    v_phone := COALESCE(
-        NEW.phone, 
-        NEW.raw_user_meta_data->>'phone'
-    );
+    v_email := COALESCE(NEW.email, NEW.raw_user_meta_data->>'email');
+    v_phone := COALESCE(NEW.phone, NEW.raw_user_meta_data->>'phone');
     
     v_first_name := COALESCE(
         NULLIF(TRIM(NEW.raw_user_meta_data->>'first_name'), ''),
@@ -225,52 +223,37 @@ BEGIN
         'customer'
     );
 
-    -- Insert profile with UPSERT to avoid conflicts
     INSERT INTO public.profiles (
-        id, 
-        email, 
-        first_name, 
-        last_name, 
-        phone, 
-        role,
-        created_at,
-        updated_at
+        id, email, first_name, last_name, phone, role, created_at, updated_at
     )
     VALUES (
-        NEW.id,
-        v_email,
-        v_first_name,
-        v_last_name,
-        v_phone,
-        v_role,
-        NOW(),
-        NOW()
+        NEW.id, v_email, v_first_name, v_last_name, v_phone, v_role, NOW(), NOW()
     )
     ON CONFLICT (id) DO UPDATE SET
-        email = COALESCE(EXCLUDED.email, public.profiles.email),
-        first_name = COALESCE(NULLIF(EXCLUDED.first_name, ''), public.profiles.first_name),
-        last_name = COALESCE(NULLIF(EXCLUDED.last_name, ''), public.profiles.last_name),
-        phone = COALESCE(EXCLUDED.phone, public.profiles.phone),
-        role = COALESCE(EXCLUDED.role, public.profiles.role),
-        updated_at = NOW();
+        email       = COALESCE(EXCLUDED.email,       profiles.email),
+        first_name  = COALESCE(NULLIF(EXCLUDED.first_name, ''), profiles.first_name),
+        last_name   = COALESCE(NULLIF(EXCLUDED.last_name, ''),  profiles.last_name),
+        phone       = COALESCE(EXCLUDED.phone,       profiles.phone),
+        role        = COALESCE(EXCLUDED.role,        profiles.role),
+        updated_at  = NOW();
 
     RETURN NEW;
 EXCEPTION
     WHEN OTHERS THEN
-        -- Log error but don't fail the auth signup
         RAISE WARNING 'Error in handle_new_user trigger: %', SQLERRM;
         RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
--- STEP 7: RE-ENABLE TRIGGER
+-- STEP 7: TRIGGERS
 -- ============================================
+
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Updated_at trigger
+-- Updated_at trigger for all main tables
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS trigger AS $$
 BEGIN
@@ -297,104 +280,48 @@ END $$;
 -- STEP 8: RLS POLICIES
 -- ============================================
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subservices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subservices  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.doctors      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews      ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
-CREATE POLICY "Users can read own profile" 
-    ON public.profiles FOR SELECT 
-    USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" 
-    ON public.profiles FOR UPDATE 
-    USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile" 
-    ON public.profiles FOR INSERT 
-    WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Admins can read all profiles" 
-    ON public.profiles FOR SELECT 
-    USING (public.is_admin());
-
-CREATE POLICY "Admins can update all profiles"
-    ON public.profiles FOR UPDATE
-    USING (public.is_admin());
+-- Profiles
+CREATE POLICY "Users can read own profile"     ON public.profiles FOR SELECT  USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile"   ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile"   ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Admins can read all profiles"   ON public.profiles FOR SELECT  USING (public.is_admin());
+CREATE POLICY "Admins can update all profiles" ON public.profiles FOR UPDATE USING (public.is_admin());
 
 -- Categories
-CREATE POLICY "Public read active categories" 
-    ON public.categories FOR SELECT 
-    USING (is_active = true);
-
-CREATE POLICY "Admins full access categories" 
-    ON public.categories FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Public read active categories"  ON public.categories FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins full access categories"  ON public.categories FOR ALL    USING (public.is_admin());
 
 -- Services
-CREATE POLICY "Public read active services" 
-    ON public.services FOR SELECT 
-    USING (is_active = true);
-
-CREATE POLICY "Admins full access services" 
-    ON public.services FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Public read active services"    ON public.services FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins full access services"    ON public.services FOR ALL    USING (public.is_admin());
 
 -- Subservices
-CREATE POLICY "Public read all subservices" 
-    ON public.subservices FOR SELECT 
-    USING (true);
-
-CREATE POLICY "Admins full access subservices" 
-    ON public.subservices FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Public read all subservices"    ON public.subservices FOR SELECT USING (true);
+CREATE POLICY "Admins full access subservices" ON public.subservices FOR ALL    USING (public.is_admin());
 
 -- Doctors
-CREATE POLICY "Public read active doctors" 
-    ON public.doctors FOR SELECT 
-    USING (is_active = true);
-
-CREATE POLICY "Admins full access doctors" 
-    ON public.doctors FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Public read active doctors"     ON public.doctors FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins full access doctors"     ON public.doctors FOR ALL    USING (public.is_admin());
 
 -- Orders
-CREATE POLICY "Users can see own orders" 
-    ON public.orders FOR SELECT 
-    USING (auth.uid() = customer_id);
-
-CREATE POLICY "Users can create own orders" 
-    ON public.orders FOR INSERT 
-    WITH CHECK (auth.uid() = customer_id);
-
-CREATE POLICY "Users can update own pending orders" 
-    ON public.orders FOR UPDATE 
-    USING (auth.uid() = customer_id AND status = 'pending');
-
-CREATE POLICY "Admins full access orders" 
-    ON public.orders FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Users see own orders"           ON public.orders FOR SELECT  USING (auth.uid() = customer_id);
+CREATE POLICY "Users create own orders"        ON public.orders FOR INSERT WITH CHECK (auth.uid() = customer_id);
+CREATE POLICY "Users update own pending orders" ON public.orders FOR UPDATE USING (auth.uid() = customer_id AND status = 'pending');
+CREATE POLICY "Admins full access orders"      ON public.orders FOR ALL    USING (public.is_admin());
 
 -- Reviews
-CREATE POLICY "Public read all reviews" 
-    ON public.reviews FOR SELECT 
-    USING (true);
-
-CREATE POLICY "Users can create own review" 
-    ON public.reviews FOR INSERT 
-    WITH CHECK (auth.uid() = customer_id);
-
-CREATE POLICY "Users can update own review" 
-    ON public.reviews FOR UPDATE 
-    USING (auth.uid() = customer_id);
-
-CREATE POLICY "Admins full access reviews" 
-    ON public.reviews FOR ALL 
-    USING (public.is_admin());
+CREATE POLICY "Public read all reviews"        ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Users create own review"        ON public.reviews FOR INSERT WITH CHECK (auth.uid() = customer_id);
+CREATE POLICY "Users update own review"        ON public.reviews FOR UPDATE USING (auth.uid() = customer_id);
+CREATE POLICY "Admins full access reviews"     ON public.reviews FOR ALL    USING (public.is_admin());
 
 -- ============================================
 -- STEP 9: STORAGE POLICIES
@@ -416,17 +343,10 @@ CREATE POLICY "Users can delete their own uploads"
     );
 
 -- ============================================
--- VERIFICATION QUERIES (Run these to check)
+-- OPTIONAL: Fix orders subservice reference (if needed)
 -- ============================================
-
--- Check if trigger exists
--- SELECT * FROM pg_trigger WHERE tgname = 'on_auth_user_created';
-
--- Check profiles table
--- SELECT * FROM public.profiles LIMIT 5;
-
--- Test trigger manually (don't run in production!)
--- SELECT public.handle_new_user();
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS subservice_id UUID REFERENCES public.subservices(id) ON DELETE SET NULL;
 
 -- ============================================
 -- END OF SCHEMA

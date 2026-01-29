@@ -52,12 +52,6 @@ interface NavbarProps {
   action?: React.ReactNode
 }
 
-const navLinks = [
-  { href: "/", label: "Dashboard" },
-  { href: "/book-consultation", label: "My Bookings" },
-
-]
-
 export function Navbar({ user, action }: NavbarProps) {
   const { location: selectedLocation, setLocation: setSelectedLocation } = useLocation();
   const router = useRouter();
@@ -135,16 +129,13 @@ export function Navbar({ user, action }: NavbarProps) {
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-4 mt-8">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-base font-medium text-muted-foreground hover:text-primary transition-colors py-2"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  <Link
+                    href="/treatments"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-base font-medium text-muted-foreground hover:text-primary transition-colors py-2"
+                  >
+                    Treatments
+                  </Link>
                   {action && (
                     <div className="pt-4 border-t">
                       {action}
@@ -176,7 +167,15 @@ export function Navbar({ user, action }: NavbarProps) {
             </div>
           </div>
 
-          {/* Center Section removed — links moved to user dropdown */}
+          {/* Center Section - Dashboard and Treatments links */}
+          <div className="hidden md:flex flex-1 justify-center gap-2">
+            <Link href="/" className="text-md font-semibold text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full">
+              Dashboard
+            </Link>
+            <Link href="/treatments" className="text-md font-semibold text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full">
+              Treatments
+            </Link>
+          </div>
 
           {/* Right Section - User Menu, Book Consultation & Theme */}
           <div className="flex items-center gap-2 md:gap-3">
@@ -246,6 +245,10 @@ export function Navbar({ user, action }: NavbarProps) {
                   <DropdownMenuItem onClick={() => router.push('/book-consultation')}>
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">My Bookings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/treatments')}>
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <span className="cursor-pointer">My Treatmens</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push('/profile-settings')}>

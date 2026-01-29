@@ -138,9 +138,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     return
   }, [service?.id, servicePackages, userInteracted, rescheduleOrder])
 
-  const basePrice = Number(service?.base_price ?? 0)
-    // Use subservice price if selected, else basePrice
-    const effectivePrice = subservicePrice ?? basePrice
+  // Always use selected subservice price for calculations
+  const effectivePrice = subservicePrice ?? 0;
   const getSessionCount = (label: string) => {
     const m = String(label).match(/(\d+)/)
     return m ? parseInt(m[0], 10) : 1
@@ -204,7 +203,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
       // Persist pending booking so the auth flow can resume to confirmation
       try { localStorage.setItem("pendingBooking", JSON.stringify(booking)) } catch {}
       setLoading(false)
-      router.push("/signup")
+      router.push("/signin")
       return
     }
 
@@ -212,7 +211,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
       // Calculate session count and pricing for reschedule
       const sessionCount = getSessionCount(selectedPackage)
       const discountPercent = Math.round(getDiscount(selectedPackage) * 100)
-      const unitPrice = Math.round((basePrice * (1 - getDiscount(selectedPackage))) * 100) / 100
+      const unitPrice = Math.round((effectivePrice * (1 - getDiscount(selectedPackage))) * 100) / 100
       const totalAmount = Math.round((unitPrice * sessionCount) * 100) / 100
 
       // Update the existing order with new date, time, session count, pricing, and set status to pending
@@ -339,7 +338,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
               return (
                 <div
                   key={p}
-                  onClick={() => { setUserInteracted(true); console.log('select package', p); setSelectedPackage(p) }}
+                  onClick={() => { setUserInteracted(true); setSelectedPackage(p) }}
                   className={`border rounded-xl px-4 py-2 flex items-center justify-between hover:shadow-md hover:bg-white hover:text-black transition cursor-pointer ${selectedPackage === p ? "ring-2 ring-offset-2 ring-slate-400" : ""}`}
                 >
                   <div>

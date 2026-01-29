@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { ServiceWithCategory } from "@/types"
 import { memo } from "react"
 import Image from "next/image"
+import Link from "next/link"
 
 interface ServiceCardProps {
   service: ServiceWithCategory
@@ -58,9 +59,11 @@ function ServiceCardComponent({ service, featured = false }: ServiceCardProps) {
       </CardContent>
 
       <CardFooter className="p-6 pt-0">
-        <Button className="w-full cursor-pointer" size="lg">
-          {featured ? "Book now" : "Buy now"}
-        </Button>
+        <Link href={`/customer-services/${service.slug}`} className="w-full">
+          <Button className="w-full cursor-pointer" size="lg" asChild>
+            <span>{featured ? "Book now" : "Buy now"}</span>
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   )

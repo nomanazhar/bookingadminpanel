@@ -118,11 +118,10 @@ function OrdersTableComponent({
               <TableCell className="font-medium">
                 <div>
                   <div>
-                    {order.customer?.first_name || order.customer_name || "Unknown"}{" "}
-                    {order.customer?.last_name || ""}
+                    {order.customer_name || "Unknown"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {order.customer?.email || order.customer_email || ""}
+                    {order.customer_email || ""}
                     {order.customer_phone ? ` • ${order.customer_phone}` : ""}
                   </div>
                 </div>

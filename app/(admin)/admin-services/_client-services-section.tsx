@@ -14,6 +14,13 @@ import {
 
 import type { Category, ServiceWithCategory } from "@/types";
 
+interface Subservice {
+  id: string;
+  name: string;
+  price: number;
+  slug: string;
+}
+
 interface ClientServicesSectionProps {
   categories: Category[];
 }
@@ -25,11 +32,30 @@ export default function ClientServicesSection({
   const [search, setSearch] = useState("");
   const [editService, setEditService] =
     useState<ServiceWithCategory | undefined>(undefined);
+  // Map of serviceId to subservices
+  const [subservicesMap, setSubservicesMap] = useState<Record<string, Subservice[]>>({});
 
   /* ------------------ DATA FETCH ------------------ */
   const fetchServices = async () => {
     const res = await fetch("/api/services", { cache: "no-store" });
-    if (res.ok) setServices(await res.json());
+    if (res.ok) {
+      const services = await res.json();
+      setServices(services);
+      // Fetch subservices for all services in parallel
+      const subMap: Record<string, Subservice[]> = {};
+      await Promise.all(
+        services.map(async (service: ServiceWithCategory) => {
+          try {
+            const subRes = await fetch(`/api/subservices?serviceId=${service.id}`);
+            if (subRes.ok) {
+              const subs = await subRes.json();
+              if (Array.isArray(subs)) subMap[service.id] = subs;
+            }
+          } catch {}
+        })
+      );
+      setSubservicesMap(subMap);
+    }
   };
 
   useEffect(() => {
@@ -116,6 +142,7 @@ export default function ClientServicesSection({
               <th className="px-4 py-3 text-left">Description</th>
               <th className="px-4 py-3 text-left">Duration</th>
               <th className="px-4 py-3 text-left">Locations</th>
+              <th className="px-4 py-3 text-left">Subtreatments</th>
               <th className="px-4 py-3 text-center">Active</th>
               <th className="px-4 py-3 text-center">Manage</th>
             </tr>
@@ -169,6 +196,11 @@ export default function ClientServicesSection({
                           {loc}
                         </span>
                       ))
+                    : "-"}
+                </td>
+                <td className="px-2 py-3 text-sm">
+                  {Array.isArray(subservicesMap[service.id]) && subservicesMap[service.id].length > 0
+                    ? subservicesMap[service.id].map((sub) => sub.name).join(", ")
                     : "-"}
                 </td>
                 <td className="px-4 py-3 text-center">

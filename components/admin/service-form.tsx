@@ -31,7 +31,8 @@ export function ServiceForm({
   const [slugEdited, setSlugEdited] = useState(!!initialValues?.slug);
   const [description, setDescription] = useState(initialValues?.description || "");
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || "");
-  const [basePrice, setBasePrice] = useState(initialValues?.base_price?.toString() || "");
+  // Base price is always zero and hidden
+  const [basePrice] = useState("0");
   const [duration, setDuration] = useState(initialValues?.duration_minutes?.toString() || "");
   const [isPopular, setIsPopular] = useState(!!initialValues?.is_popular);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
@@ -54,7 +55,16 @@ export function ServiceForm({
     slug?: string;
   }
 
-  const [subservices, setSubservices] = useState<SubserviceRow[]>([]);
+  // Always include a free consultation subservice row at index 0 (use real DB id if available)
+  const HARDCODED_SUBSERVICE_NAME = "free consultation";
+  const HARDCODED_SUBSERVICE_SLUG = "free-consultation";
+  const HARDCODED_SUBSERVICE_PRICE = "0";
+  const [subservices, setSubservices] = useState<SubserviceRow[]>([{
+    id: undefined,
+    name: HARDCODED_SUBSERVICE_NAME,
+    price: HARDCODED_SUBSERVICE_PRICE,
+    slug: HARDCODED_SUBSERVICE_SLUG,
+  }]);
   const [subserviceTouched, setSubserviceTouched] = useState(false);
   const [subserviceError, setSubserviceError] = useState<string | null>(null);
 
@@ -79,20 +89,42 @@ export function ServiceForm({
       axios
         .get(`/api/subservices?serviceId=${initialValues.id}`)
         .then((res) => {
-          setSubservices(
-            Array.isArray(res.data)
-              ? res.data.map((s: any) => ({
-                  id: s.id,
-                  name: s.name,
-                  price: s.price?.toString() || "",
-                  slug: s.slug,
-                }))
-              : []
-          );
+          let loaded = Array.isArray(res.data)
+            ? res.data.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                price: s.price?.toString() || "",
+                slug: s.slug,
+              }))
+            : [];
+          // Find the free consultation subservice in DB (if any)
+          const freeRow = loaded.find(s => s.name.trim().toLowerCase() === HARDCODED_SUBSERVICE_NAME);
+          // Remove any other free consultation rows from loaded
+          const filtered = loaded.filter(s => s.name.trim().toLowerCase() !== HARDCODED_SUBSERVICE_NAME);
+          // Always ensure the free consultation row is present at index 0, using DB id if available
+          setSubservices([
+            freeRow ? { ...freeRow, name: HARDCODED_SUBSERVICE_NAME, price: HARDCODED_SUBSERVICE_PRICE, slug: HARDCODED_SUBSERVICE_SLUG } : {
+              id: undefined,
+              name: HARDCODED_SUBSERVICE_NAME,
+              price: HARDCODED_SUBSERVICE_PRICE,
+              slug: HARDCODED_SUBSERVICE_SLUG,
+            },
+            ...filtered
+          ]);
         })
-        .catch(() => setSubservices([]));
+        .catch(() => setSubservices([{
+          id: undefined,
+          name: HARDCODED_SUBSERVICE_NAME,
+          price: HARDCODED_SUBSERVICE_PRICE,
+          slug: HARDCODED_SUBSERVICE_SLUG,
+        }]));
     } else {
-      setSubservices([]);
+      setSubservices([{
+        id: undefined,
+        name: HARDCODED_SUBSERVICE_NAME,
+        price: HARDCODED_SUBSERVICE_PRICE,
+        slug: HARDCODED_SUBSERVICE_SLUG,
+      }]);
     }
   }, [initialValues?.id]);
 
@@ -118,7 +150,7 @@ export function ServiceForm({
     setSlugEdited(!!initialValues?.slug);
     setDescription(initialValues?.description || "");
     setCategoryId(initialValues?.category_id || "");
-    setBasePrice(initialValues?.base_price?.toString() || "");
+    // basePrice is always zero, do not set from initialValues
     setDuration(initialValues?.duration_minutes?.toString() || "");
     setIsPopular(!!initialValues?.is_popular);
     setIsActive(initialValues?.is_active ?? true);
@@ -209,7 +241,7 @@ export function ServiceForm({
         slug: finalSlug,
         description,
         category_id: categoryId,
-        base_price: Number(basePrice),
+        base_price: 0,
         duration_minutes: duration ? Number(duration) : null,
         is_popular: isPopular,
         is_active: isActive,
@@ -256,19 +288,56 @@ export function ServiceForm({
     const existingMap = new Map((existing || []).map((s: any) => [s.id, s]));
 
     // Upsert or create subservices from form
-    for (const row of subservices) {
+    for (const [idx, row] of subservices.entries()) {
       if (!row.name.trim() || !row.price.trim()) continue;
+      // Always ensure the first row is the free consultation subservice
+      if (idx === 0) {
+        // Try to find an existing DB subservice for free consultation
+        const existingFree = (Array.from(existingMap.values()) as any[]).find((s) => s.name && s.name.trim().toLowerCase() === HARDCODED_SUBSERVICE_NAME);
+        const data = {
+          name: HARDCODED_SUBSERVICE_NAME,
+          price: Number(HARDCODED_SUBSERVICE_PRICE),
+          slug: HARDCODED_SUBSERVICE_SLUG,
+          service_id: serviceId,
+        };
+        try {
+          if (existingFree && existingFree.id) {
+            await axios.put(`/api/subservices/${existingFree.id}`, data);
+            existingMap.delete(existingFree.id);
+          } else {
+            const resp = await axios.post("/api/subservices", data);
+            if (resp.data && resp.data.error) {
+              toast({ title: "Subservice Error", description: resp.data.error, variant: "destructive" });
+              console.error("Subservice POST error:", resp.data.error);
+            }
+          }
+        } catch (err: any) {
+          toast({ title: "Subservice Error", description: err?.response?.data?.error || err.message, variant: "destructive" });
+          console.error("Subservice POST exception:", err);
+        }
+        continue;
+      }
+      // All other subservices (not free consultation)
       const data = {
         name: row.name.trim(),
         price: Number(row.price),
         slug: row.slug || slugify(row.name),
         service_id: serviceId,
       };
-      if (row.id) {
-        await axios.put(`/api/subservices/${row.id}`, data);
-        existingMap.delete(row.id);
-      } else {
-        await axios.post("/api/subservices", data);
+      try {
+        if (row.id) {
+          await axios.put(`/api/subservices/${row.id}`, data);
+          existingMap.delete(row.id);
+        } else {
+          const resp = await axios.post("/api/subservices", data);
+          if (resp.data && resp.data.error) {
+            toast({ title: "Subservice Error", description: resp.data.error, variant: "destructive" });
+            console.error("Subservice POST error:", resp.data.error);
+          }
+        }
+      } catch (err: any) {
+        toast({ title: "Subservice Error", description: err?.response?.data?.error || err.message, variant: "destructive" });
+        console.error("Subservice POST exception:", err);
       }
     }
 
@@ -284,7 +353,7 @@ export function ServiceForm({
     setSlugEdited(false);
     setDescription("");
     setCategoryId("");
-    setBasePrice("");
+    // basePrice is always zero, no setter needed
     setDuration("");
     setIsPopular(false);
     setIsActive(true);
@@ -292,7 +361,12 @@ export function ServiceForm({
     setImageFile(null);
     setSessionOptions([]);
     setTimeOptions([]);
-    setSubservices([]);
+    setSubservices([{
+      id: undefined,
+      name: HARDCODED_SUBSERVICE_NAME,
+      price: HARDCODED_SUBSERVICE_PRICE,
+      slug: HARDCODED_SUBSERVICE_SLUG,
+    }]);
     setSubserviceTouched(false);
     setSubserviceError(null);
     setLocations([]);
@@ -345,11 +419,7 @@ export function ServiceForm({
           </select>
         </div>
 
-        {/* Base Price */}
-        <div>
-          <label className="block mb-1.5 text-sm font-medium">Base Price *</label>
-          <Input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} min={0} required />
-        </div>
+        {/* Base Price is always zero and hidden */}
 
         {/* Duration */}
         <div>
@@ -444,41 +514,51 @@ export function ServiceForm({
                 {subservices.map((row, idx) => (
                   <tr key={row.id || idx}>
                     <td className="px-3 py-2">
-                      <Input
-                        value={row.name}
-                        onChange={(e) =>
-                          setSubservices((prev) =>
-                            prev.map((r, i) =>
-                              i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
+                      {idx === 0 ? (
+                        <Input value={row.name} disabled className="bg-muted text-black" />
+                      ) : (
+                        <Input
+                          value={row.name}
+                          onChange={(e) =>
+                            setSubservices((prev) =>
+                              prev.map((r, i) =>
+                                i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
+                              )
                             )
-                          )
-                        }
-                        placeholder="Subservice name"
-                      />
+                          }
+                          placeholder="Subservice name"
+                        />
+                      )}
                     </td>
                     <td className="px-3 py-2">
-                      <Input
-                        type="number"
-                        value={row.price}
-                        onChange={(e) =>
-                          setSubservices((prev) =>
-                            prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
-                          )
-                        }
-                        placeholder="Price"
-                        min={0}
-                      />
+                      {idx === 0 ? (
+                        <Input value={row.price} disabled className="bg-muted" />
+                      ) : (
+                        <Input
+                          type="number"
+                          value={row.price}
+                          onChange={(e) =>
+                            setSubservices((prev) =>
+                              prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                            )
+                          }
+                          placeholder="Price"
+                          min={0}
+                        />
+                      )}
                     </td>
                     <td className="px-2 py-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-destructive h-8 w-8 p-0"
-                      >
-                        ×
-                      </Button>
+                      {idx === 0 ? null : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-destructive h-8 w-8 p-0"
+                        >
+                          ×
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -106,6 +106,14 @@ export default async function BookConsultationPage() {
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
+            <Link href="/my-treatments" className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer">
+              <span className="bg-muted p-2 rounded-full"><ShoppingBag className="w-6 h-6 text-primary" /></span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-lg">My Treatments</div>
+                <div className="text-muted-foreground text-sm">Browse and book available treatments</div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </Link>
             <Link href="/order-history" className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer">
               <span className="bg-muted p-2 rounded-full"><ShoppingBag className="w-6 h-6 text-primary" /></span>
               <div className="flex-1 min-w-0">

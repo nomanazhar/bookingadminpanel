@@ -1,5 +1,6 @@
-"use client"
 
+
+"use client";
 import { usePathname } from "next/navigation"
 import { Navbar } from "./navbar"
 import { createClient } from "@/lib/supabase/client"
@@ -11,7 +12,7 @@ export default function NavbarWrapper() {
   const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return
+    if (pathname.startsWith("/admin-dashboard")) return
     let mounted = true
     const supabase = createClient()
 
@@ -42,7 +43,7 @@ export default function NavbarWrapper() {
     }
   }, [pathname])
 
-  if (pathname.startsWith("/admin")) return null
+  if (pathname.startsWith("/admin-dashboard")) return null
 
   return <Navbar user={profile} />
 }
