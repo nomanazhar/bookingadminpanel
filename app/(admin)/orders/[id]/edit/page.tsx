@@ -256,7 +256,7 @@ export default function EditOrderPage() {
             {/* Customer Information Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Information</h3>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="customerName">Customer Name *</Label>
                   <Input
@@ -306,7 +306,7 @@ export default function EditOrderPage() {
             {/* Service & Booking Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Service & Booking</h3>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="serviceTitle">Service Title *</Label>
                   <Input
@@ -436,7 +436,7 @@ export default function EditOrderPage() {
             {/* Status & Notes Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Status & Notes</h3>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status *</Label>
                   <Select value={status} onValueChange={setStatus}>

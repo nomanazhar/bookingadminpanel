@@ -61,7 +61,11 @@ export default async function MyBookingsPage() {
         </section>
 
         {authUser && (
-          <MyBookingsClient customerId={authUser.id} />
+          <MyBookingsClient 
+            customerId={authUser.id}
+            upcoming={upcoming}
+            previous={previous}
+          />
         )}
       </main>
     </>

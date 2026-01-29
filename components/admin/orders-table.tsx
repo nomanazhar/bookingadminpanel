@@ -211,11 +211,19 @@ function OrdersTableComponent({
                   <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem
                       onSelect={() =>
-                        router.push(`/admin/orders/${order.id}/edit`)
+                        router.push(`/orders/${order.id}/edit`)
                       }
                       className="cursor-pointer"
                     >
                       Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        router.push(`/orders/new?duplicate=${order.id}`)
+                      }
+                      className="cursor-pointer"
+                    >
+                      Duplicate
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -16,14 +16,15 @@ function tabReducer(state: { activeTab: "Upcoming" | "Previous" }, action: { typ
 }
 
 
+
 interface Props {
-  customerId: string
+  customerId: string;
+  upcoming: OrderWithDetails[];
+  previous: OrderWithDetails[];
 }
 
-export default function MyBookingsClient({ customerId }: Props) {
+export default function MyBookingsClient({ customerId, upcoming, previous }: Props) {
   const [state, dispatch] = useReducer(tabReducer, { activeTab: "Upcoming" })
-  const fetcher = (url: string) => fetch(url).then(res => res.json())
-  const { data, error, isLoading } = useSWR<OrderWithDetails[]>(`/api/orders/customer/${encodeURIComponent(customerId)}`, fetcher, { refreshInterval: 5000 })
 
   function formatDate(dateStr: string) {
     try {
@@ -33,16 +34,6 @@ export default function MyBookingsClient({ customerId }: Props) {
       return dateStr
     }
   }
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error loading bookings.</div>;
-  const orders: OrderWithDetails[] = data || [];
-  function toDate(o: OrderWithDetails) {
-    return parseBookingDateTime(o.booking_date, o.booking_time)
-  }
-  const now = new Date()
-  const upcoming = orders.filter((o) => (o.status === 'pending' || o.status === 'confirmed') && toDate(o) >= now).sort((a, b) => toDate(a).getTime() - toDate(b).getTime())
-  const previous = orders.filter((o) => !(o.status === 'pending' || o.status === 'confirmed') || toDate(o) < now).sort((a, b) => toDate(b).getTime() - toDate(a).getTime())
 
   return (
     <>

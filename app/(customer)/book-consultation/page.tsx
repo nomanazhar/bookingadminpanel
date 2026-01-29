@@ -72,7 +72,7 @@ export default async function BookConsultationPage() {
         </section>
        
         {/* Upcoming Appointment Section */}
-        <section className="bg-muted rounded-xl shadow p-6 md:p-8 max-w-3xl mx-auto">
+        <section className="bg-muted rounded-xl shadow-md p-6 md:p-8 max-w-3xl mx-auto border border-1">
           {upcoming ? (
             <UpcomingClient
               booking_date={upcoming.booking_date}
@@ -95,7 +95,7 @@ export default async function BookConsultationPage() {
           )}
         </section>
         {/* Manage Section */}
-        <section className="max-w-3xl mx-auto mt-10">
+        <section className="max-w-3xl mx-auto mt-10  shadow-md rounded-xl  ">
           <h2 className="text-xl font-bold mb-4">Manage</h2>
           <div className="bg-muted rounded-xl shadow divide-y">
             <Link href="/my-bookings" className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer">

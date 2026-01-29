@@ -13,7 +13,7 @@ export function OrdersPageHeader() {
         <h1 className="text-3xl font-bold font-heading mb-2">Bookings</h1>
         <p className="text-muted-foreground">Manage customer bookings</p>
       </div>
-      <Button onClick={() => router.push("/admin/orders/new")} className="gap-2">
+      <Button onClick={() => router.push("/orders/new")} className="gap-2">
         <Plus className="h-4 w-4" />
         New Booking
       </Button>

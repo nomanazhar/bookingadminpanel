@@ -11,6 +11,7 @@ export default function DashboardPage() {
   return (
     <LocationProvider>
       <div className="min-h-screen flex flex-col overflow-x-hidden">
+        {/* Only show LocationSelectModal if no location is selected (handled inside modal itself) */}
         <LocationSelectModal />
         <main className="flex-1 w-full overflow-x-hidden">
           <HeroSection />

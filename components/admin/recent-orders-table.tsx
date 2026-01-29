@@ -91,9 +91,9 @@ function RecentOrdersTableComponent({ orders }: RecentOrdersTableProps) {
             {filtered.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">
-                  {order.customer.first_name} {order.customer.last_name}
+                  {order.customer ? `${order.customer.first_name ?? ''} ${order.customer.last_name ?? ''}`.trim() : order.customer_name ?? '-'}
                 </TableCell>
-                <TableCell>{order.service.name}</TableCell>
+                <TableCell>{order.service ? order.service.name : order.service_title ?? '-'}</TableCell>
                 <TableCell>
                   {format(parseBookingDateTime(order.booking_date, order.booking_time || '00:00:00'), "MMM dd, yyyy")}
                 </TableCell>

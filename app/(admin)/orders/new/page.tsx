@@ -30,6 +30,7 @@ export default function NewBookingPage() {
 
   // Get doctor_id from URL params (if coming from doctor's bookings page)
   const doctorIdFromUrl = searchParams?.get('doctor_id') || null
+  const duplicateOrderId = searchParams?.get('duplicate') || null
 
   // Form fields
   const [customerName, setCustomerName] = useState("")
@@ -42,6 +43,30 @@ export default function NewBookingPage() {
   const [bookingTime, setBookingTime] = useState("")
   const [address, setAddress] = useState("")
   const [notes, setNotes] = useState("")
+
+  // Duplication logic: if duplicateOrderId is present, fetch order and prefill fields
+  useEffect(() => {
+    if (!duplicateOrderId) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/orders/${duplicateOrderId}`);
+        if (!res.ok) throw new Error("Failed to fetch order for duplication");
+        const order = await res.json();
+        setCustomerName(order.customer_name || order.customer?.first_name + ' ' + order.customer?.last_name || "");
+        setCustomerEmail(order.customer_email || order.customer?.email || "");
+        setCustomerPhone(order.customer_phone || "");
+        setAddress(order.address || "");
+        setSelectedServiceId(order.service_id || "");
+        setSelectedDoctorId(order.doctor_id || "");
+        setSelectedSessions(String(order.session_count || 1));
+        setBookingDate(order.booking_date || "");
+        setBookingTime(order.booking_time?.slice(0,5) || "00:00");
+        setNotes(order.notes || "");
+      } catch (e) {
+        toast({ title: "Duplication Error", description: (e as Error).message, variant: "destructive" });
+      }
+    })();
+  }, [duplicateOrderId]);
 
   // Load services and doctors on mount
   useEffect(() => {
