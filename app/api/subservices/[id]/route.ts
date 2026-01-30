@@ -6,6 +6,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await req.json()
   const supabase = await createClient()
+  // Check for duplicate slug (ignore self)
+  if (body.slug) {
+    const { data: existing } = await supabase
+      .from("subservices")
+      .select("id")
+      .eq("slug", body.slug)
+      .neq("id", id)
+      .maybeSingle();
+    if (existing) {
+      return NextResponse.json({ error: `Slug '${body.slug}' already exists. Please use a unique slug.` }, { status: 400 })
+    }
+  }
   const { data, error } = await supabase
     .from("subservices")
     .update(body)

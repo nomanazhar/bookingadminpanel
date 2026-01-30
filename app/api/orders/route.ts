@@ -1,15 +1,32 @@
-import { getOrders } from '@/lib/supabase/queries';
 
-export async function GET() {
+import { getOrders } from '@/lib/supabase/queries';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { parseBookingDateTime } from '@/lib/utils';
+
+export async function GET(req: NextRequest) {
   try {
-    const orders = await getOrders();
-    return NextResponse.json(orders);
+    const customerId = req.nextUrl.searchParams.get('customerId');
+    const supabase = await createClient();
+    let orders = await getOrders();
+    if (customerId) {
+      orders = orders.filter((o: any) => o.customer_id === customerId);
+    }
+    // Split into upcoming and previous
+    const now = new Date();
+    function toDate(o: any) {
+      return parseBookingDateTime(o.booking_date, o.booking_time || '00:00:00');
+    }
+    const upcoming = orders.filter((o: any) => (o.status === 'pending' || o.status === 'confirmed') && toDate(o) >= now)
+      .sort((a: any, b: any) => toDate(a).getTime() - toDate(b).getTime());
+    const previous = orders.filter((o: any) => !(o.status === 'pending' || o.status === 'confirmed') || toDate(o) < now)
+      .sort((a: any, b: any) => toDate(b).getTime() - toDate(a).getTime());
+    return NextResponse.json({ upcoming, previous });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+
 
 export async function POST(req: NextRequest) {
   try {

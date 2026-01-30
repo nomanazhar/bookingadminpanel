@@ -1,5 +1,5 @@
 "use client"
-import React from 'react'
+import React, { useState } from 'react'
 import { parseBookingDateTime } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import RescheduleButton from './RescheduleButton'
@@ -14,9 +14,37 @@ interface Props {
 }
 
 export default function UpcomingClient({ booking_date, booking_time, service, service_title, customer, orderId }: Props) {
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
   const dt = parseBookingDateTime(booking_date, booking_time || '00:00:00')
   const dateLabel = dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
   const timeLabel = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+
+  const handleCancel = async () => {
+    if (!orderId) return;
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCancelled(true);
+      } else {
+        alert('Failed to cancel booking.');
+      }
+    } catch {
+      alert('Failed to cancel booking.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  if (cancelled) {
+    return (
+      <div className="flex items-center justify-center py-8 w-full">
+        <span className="text-green-600 font-semibold">Booking cancelled.</span>
+      </div>
+    );
+  }
 
   return (
     <div className='flex '>
@@ -32,7 +60,14 @@ export default function UpcomingClient({ booking_date, booking_time, service, se
       <div className="flex items-end justify-end flex-col items-end gap-4 min-w-[180px]  md:mt-0">
         <div className="text-base font-semibold text-right">{timeLabel}</div>
         <div className="flex gap-2 bottom-4">
-          <Button variant="ghost" className="capitalize border border-input bg-background hover:bg-muted">Cancel</Button>
+          <Button
+            variant="ghost"
+            className="capitalize border border-input bg-background hover:bg-red-500"
+            onClick={handleCancel}
+            disabled={isCancelling}
+          >
+            {isCancelling ? 'Cancelling...' : 'Cancel'}
+          </Button>
           {service?.slug && orderId && (
             <RescheduleButton slug={service.slug} orderId={orderId} />
           )}

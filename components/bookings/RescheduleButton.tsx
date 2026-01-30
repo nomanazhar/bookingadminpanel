@@ -10,7 +10,7 @@ export default function RescheduleButton({ slug, orderId }: { slug: string, orde
       className="flex items-center gap-2"
       onClick={() => {
         if (slug && orderId) {
-          window.location.href = `/services/${slug}?reschedule=${orderId}`;
+          window.location.href = `/customer-services/${slug}?reschedule=${orderId}`;
         }
       }}
     >

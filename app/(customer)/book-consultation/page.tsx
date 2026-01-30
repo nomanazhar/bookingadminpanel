@@ -89,7 +89,7 @@ export default async function BookConsultationPage() {
                 <div className="text-muted-foreground text-sm mb-2">You have no upcoming bookings.</div>
               </div>
               <div className="flex gap-2 mt-4 md:mt-0">
-               <Link href="/dashboard"><Button variant="ghost" className="border border-input bg-background hover:bg-muted">Book now</Button></Link>
+               <Link href="/"><Button variant="ghost" className="border border-input bg-background hover:bg-muted">Book now</Button></Link>
               </div>
             </div>
           )}

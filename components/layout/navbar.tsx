@@ -146,7 +146,7 @@ export function Navbar({ user, action }: NavbarProps) {
             </Sheet>
 
             {/* Logo - Hidden on mobile when menu is available */}
-            <Link href="/dashboard" className="hidden md:block">
+            <Link href="/" className="hidden md:block">
               <div 
                 className="px-4 py-2 rounded-lg"
                 style={{ backgroundColor: '#333333' }}
@@ -169,10 +169,16 @@ export function Navbar({ user, action }: NavbarProps) {
 
           {/* Center Section - Dashboard and Treatments links */}
           <div className="hidden md:flex flex-1 justify-center gap-2">
-            <Link href="/" className="text-md font-semibold text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full">
+            <Link
+              href="/"
+              className={`text-md font-semibold transition-colors px-4 py-2 rounded-full ${pathname === "/" ? "text-[#42E0CF]" : "text-muted-foreground hover:text-primary"}`}
+            >
               Dashboard
             </Link>
-            <Link href="/treatments" className="text-md font-semibold text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full">
+            <Link
+              href="/treatments"
+              className={`text-md font-semibold transition-colors px-4 py-2 rounded-full ${pathname === "/treatments" ? "text-[#42E0CF]" : "text-muted-foreground hover:text-primary"}`}
+            >
               Treatments
             </Link>
           </div>
@@ -209,7 +215,7 @@ export function Navbar({ user, action }: NavbarProps) {
                 </LocationDropdownMenuItem>
               </LocationDropdownMenuContent>
             </LocationDropdownMenu>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
              
 
             {localUser && (
@@ -238,7 +244,7 @@ export function Navbar({ user, action }: NavbarProps) {
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                  <DropdownMenuItem onClick={() => router.push('/')}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">Dashboard</span>
                   </DropdownMenuItem>
@@ -251,7 +257,7 @@ export function Navbar({ user, action }: NavbarProps) {
                     <span className="cursor-pointer">My Treatmens</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/profile-settings')}>
+                  <DropdownMenuItem onClick={() => router.push('/profile/settings')}>
                     <User className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">Profile</span>
                   </DropdownMenuItem>

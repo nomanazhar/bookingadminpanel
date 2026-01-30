@@ -318,10 +318,27 @@ export function ServiceForm({
         continue;
       }
       // All other subservices (not free consultation)
+      let baseSlug = row.slug || slugify(row.name);
+      let uniqueSlug = baseSlug;
+      let slugCheckCount = 1;
+      // Check for slug uniqueness before sending to backend
+      while (true) {
+        try {
+          const checkResp = await axios.get(`/api/subservices?slug=${uniqueSlug}`);
+          if (Array.isArray(checkResp.data) && checkResp.data.length > 0) {
+            // Slug exists, try next
+            uniqueSlug = `${baseSlug}-${slugCheckCount++}`;
+          } else {
+            break;
+          }
+        } catch {
+          break; // If error, just use the current slug
+        }
+      }
       const data = {
         name: row.name.trim(),
         price: Number(row.price),
-        slug: row.slug || slugify(row.name),
+        slug: uniqueSlug,
         service_id: serviceId,
       };
       try {

@@ -60,7 +60,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
 
   /* ------------------ ACTIONS ------------------ */
   const handleEdit = (doctor: Doctor) => {
-    router.push(`/admin/doctors/${doctor.id}/edit`);
+    router.push(`/doctors/${doctor.id}/edit`);
   };
 
   const handleDelete = async (doctor: Doctor) => {

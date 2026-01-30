@@ -299,7 +299,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
         <div className="bg-muted rounded-xl shadow p-4">
             {subservices.length > 0 && (
               <div className="mb-4">
-                <div className="text-lg font-semibold mb-2">Select Treatment Type</div>
+                <div className="text-lg font-semibold mb-2">Select Package Type</div>
                 <div className="flex flex-col gap-2">
                   {subservices.map((s) => (
                     <label key={s.id} className="flex items-center gap-2 cursor-pointer">
@@ -314,14 +314,14 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
                         }}
                       />
                       <span className="font-medium">{s.name}</span>
-                      <span className="ml-2 text-sm text-muted-foreground">DKK {Number(s.price).toLocaleString()}</span>
+                      <span className="ml-2 text-sm text-muted-foreground">$ {Number(s.price).toLocaleString()}</span>
                     </label>
                   ))}
                 </div>
               </div>
             )}
           <div className="flex items-center justify-between mb-2">
-            <div className="text-xl font-semibold">Select package</div>
+            <div className="text-xl font-semibold">Select Package</div>
           </div>
           {service.description && (
             <div className="text-muted-foreground text-base mb-4">

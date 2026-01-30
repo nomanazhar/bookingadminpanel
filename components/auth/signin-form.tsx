@@ -71,7 +71,7 @@ export function SignInForm() {
 
       if (error) {
         toast({
-          variant: "destructive",
+         
           title: "Sign In Failed",
           description: error.message,
         })

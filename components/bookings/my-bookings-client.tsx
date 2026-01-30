@@ -1,5 +1,5 @@
 "use client"
-import React, { useReducer } from "react"
+import React, { useReducer, useState } from "react"
 import useSWR from 'swr'
 import { Button } from "@/components/ui/button"
 import { RefreshCcw } from "lucide-react"
@@ -25,6 +25,8 @@ interface Props {
 
 export default function MyBookingsClient({ customerId, upcoming, previous }: Props) {
   const [state, dispatch] = useReducer(tabReducer, { activeTab: "Upcoming" })
+  const [upcomingList, setUpcomingList] = useState(upcoming);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   function formatDate(dateStr: string) {
     try {
@@ -60,16 +62,16 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
 
       {state.activeTab === "Upcoming" ? (
         <section className="max-w-3xl mx-auto">
-          {(!upcoming || upcoming.length === 0) ? (
+          {(!upcomingList || upcomingList.length === 0) ? (
             <div className="bg-muted rounded-xl shadow p-8 min-h-[180px] flex items-center justify-center">
               <span className="text-lg text-muted-foreground">No upcoming bookings.</span>
             </div>
           ) : (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Upcoming ({upcoming.length})</h2>
+                <h2 className="text-xl font-semibold">Upcoming ({upcomingList.length})</h2>
               </div>
-              {upcoming.map((upcomingOrder, idx) => (
+              {upcomingList.map((upcomingOrder, idx) => (
                 <section key={idx} className="bg-muted rounded-xl shadow p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between mb-6">
                   <div className="flex-1 min-w-0">
                     <div className="mb-2">
@@ -83,7 +85,30 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
                   <div className="flex flex-col items-end gap-4 min-w-[180px] mt-4 md:mt-0">
                     <div className="text-base font-semibold text-right">{parseBookingDateTime(upcomingOrder.booking_date, upcomingOrder.booking_time || '00:00:00').toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
                     <div className="flex gap-2 bottom-4">
-                      <Button variant="ghost" className="border border-input bg-background hover:bg-muted capitalize">Cancel</Button>
+                      <Button
+                        variant="ghost"
+                        className="border border-input bg-background hover:bg-red-500 capitalize"
+                        disabled={cancellingId === upcomingOrder.id}
+                        onClick={async () => {
+                          if (!upcomingOrder.id) return;
+                          if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+                          setCancellingId(upcomingOrder.id);
+                          try {
+                            const res = await fetch(`/api/orders/${upcomingOrder.id}`, { method: 'DELETE' });
+                            if (res.ok) {
+                              setUpcomingList(list => list.filter(o => o.id !== upcomingOrder.id));
+                            } else {
+                              alert('Failed to cancel booking.');
+                            }
+                          } catch {
+                            alert('Failed to cancel booking.');
+                          } finally {
+                            setCancellingId(null);
+                          }
+                        }}
+                      >
+                        {cancellingId === upcomingOrder.id ? 'Cancelling...' : 'Cancel'}
+                      </Button>
                       <Button
                         variant="outline"
                         className="flex items-center gap-2"

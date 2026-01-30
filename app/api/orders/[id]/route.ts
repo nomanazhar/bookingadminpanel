@@ -1,3 +1,17 @@
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  // Set status to 'cancelled' instead of deleting
+  const { data, error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', id).select().maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Optionally clear cache or do other side effects here
+
+  return NextResponse.json({ success: true, data });
+}
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { clearCachePrefix } from '@/lib/supabase/queries'

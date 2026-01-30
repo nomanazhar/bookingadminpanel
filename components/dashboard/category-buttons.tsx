@@ -30,7 +30,7 @@ export function CategoryButtons({ categories, selectedId = null, onSelect }: Cat
               key={category.id}
               variant={selectedId === category.id ? "default" : "outline"}
               size="sm"
-              className="font-semibold bg-[#333333] text-xs text-white md:text-sm whitespace-nowrap capitalize"
+              className={`font-semibold text-xs md:text-sm whitespace-nowrap capitalize ${selectedId === category.id ? "bg-[#333333] text-white border-2 border-primary" : "bg-white text-[#333333]"}`}
               onClick={() => handleClick(category.id)}
             >
               {category.name}
