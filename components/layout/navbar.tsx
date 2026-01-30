@@ -105,13 +105,13 @@ export function Navbar({ user, action }: NavbarProps) {
           {/* Left Section - Logo & Mobile Menu */}
           <div className="flex items-center gap-4">
             {/* Mobile Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            {/* <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
                 <Button variant="ghost" size="icon">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-52">
+              <SheetContent side="left" className="w-52 bg-background">
                 <SheetHeader>
                   <SheetTitle>
                     <div 
@@ -143,10 +143,10 @@ export function Navbar({ user, action }: NavbarProps) {
                   )}
                 </nav>
               </SheetContent>
-            </Sheet>
+            </Sheet> */}
 
             {/* Logo - Hidden on mobile when menu is available */}
-            <Link href="/" className="hidden md:block">
+            <Link href="/" className=" md:block">
               <div 
                 className="px-4 py-2 rounded-lg"
                 style={{ backgroundColor: '#333333' }}
@@ -215,6 +215,14 @@ export function Navbar({ user, action }: NavbarProps) {
                 </LocationDropdownMenuItem>
               </LocationDropdownMenuContent>
             </LocationDropdownMenu>
+            {/* Mobile-only Sign In button (show if not signed in) */}
+            {!localUser && (
+              <Link href="/signin" className="block lg:hidden">
+                <Button variant="primary" size="default">
+                  Sign In
+                </Button>
+              </Link>
+            )}
             {/* <ThemeToggle /> */}
              
 
