@@ -7,18 +7,25 @@ import { Button } from "@/components/ui/button"
 
 
 export default function LocationSelectModal() {
+
   const [open, setOpen] = useState(false);
   const { location, setLocation } = useLocation();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (!location) setOpen(true);
+      const locationSelectedOnce = localStorage.getItem("locationSelectedOnce");
+      if (!location && !locationSelectedOnce) {
+        setOpen(true);
+      }
     }
   }, [location]);
 
   const handleSelect = (loc: string | null) => {
     setLocation(loc);
     setOpen(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("locationSelectedOnce", "true");
+    }
   };
 
   if (!open) return null;

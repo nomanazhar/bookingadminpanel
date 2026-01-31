@@ -72,6 +72,11 @@ export function Navbar({ user, action }: NavbarProps) {
     // Clear the client session first
     try { await supabase.auth.signOut() } catch {}
 
+    // Remove locationSelectedOnce from localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("locationSelectedOnce");
+    }
+
     // Also call the server-side signout endpoint so server cookies
     // (including ds_role) are cleared immediately and server components
     // will observe the signed-out state on refresh.
@@ -82,15 +87,10 @@ export function Navbar({ user, action }: NavbarProps) {
     }
     // Immediately update local UI
     setLocalUser(null)
-
-    toast({ title: "Signed out", description: "You have been signed out successfully" })
-    // navigate and revalidate server components so parent server props update
-    try {
-      // replace current route to ensure server components re-run and then refresh
-      const currentPath = (pathname ?? '/') + (searchParams?.toString() ? `?${searchParams.toString()}` : '')
-      await router.replace(currentPath)
-    } catch {}
+    // Always redirect to dashboard after logout
+    router.push('/')
     router.refresh()
+    toast({ title: "Signed out", description: "You have been signed out successfully" })
   }
 
   const getInitials = (firstName?: string, lastName?: string) => {
