@@ -31,8 +31,8 @@ export function ServiceForm({
   const [slugEdited, setSlugEdited] = useState(!!initialValues?.slug);
   const [description, setDescription] = useState(initialValues?.description || "");
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || "");
-  // Base price is always zero and hidden
-  const [basePrice] = useState("0");
+  // Base price is now editable
+  const [basePrice, setBasePrice] = useState(initialValues?.base_price?.toString() || "0");
   const [duration, setDuration] = useState(initialValues?.duration_minutes?.toString() || "");
   const [isPopular, setIsPopular] = useState(!!initialValues?.is_popular);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
@@ -172,7 +172,7 @@ export function ServiceForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !slug.trim() || !categoryId || !basePrice) {
+    if (!name.trim() || !slug.trim() || !categoryId || basePrice === "") {
       toast({ title: "Required fields missing", variant: "destructive" });
       return;
     }
@@ -241,7 +241,7 @@ export function ServiceForm({
         slug: finalSlug,
         description,
         category_id: categoryId,
-        base_price: 0,
+        base_price: Number(basePrice),
         duration_minutes: duration ? Number(duration) : null,
         is_popular: isPopular,
         is_active: isActive,
@@ -436,7 +436,19 @@ export function ServiceForm({
           </select>
         </div>
 
-        {/* Base Price is always zero and hidden */}
+
+        {/* Base Price */}
+        <div>
+          <label className="block mb-1.5 text-sm font-medium">Base Price*</label>
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={basePrice}
+            onChange={e => setBasePrice(e.target.value)}
+            required
+          />
+        </div>
 
         {/* Duration */}
         <div>
@@ -516,7 +528,7 @@ export function ServiceForm({
        
 
         {/* Subservices */}
-        <div className="col-span-full">
+        {/* <div className="col-span-full">
           <label className="block mb-1.5 text-sm font-medium">Subservices (optional)</label>
           <div className="overflow-x-auto border rounded">
             <table className="min-w-full text-sm">
@@ -595,7 +607,7 @@ export function ServiceForm({
             </table>
           </div>
           {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
-        </div>
+        </div> */}
 
         {/* Thumbnail */}
         <div>

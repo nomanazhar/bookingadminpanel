@@ -6,13 +6,18 @@ import Link from "next/link";
 import ServiceDateSelector from "@/components/services/ServiceDateSelector";
 import BookingPanel from "@/components/services/BookingPanel";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export default async function ServiceDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams?: Promise<{ reschedule?: string }> }) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
   const rescheduleId = resolvedSearchParams?.reschedule;
 
+  const cookieStore = cookies();
   const supabase = await createClient();
+  // Check authentication
+  const { data: userData } = await supabase.auth.getUser();
+  const isAuthenticated = !!userData?.user;
   // Fetch service and optional reschedule order in parallel to avoid SSR waterfall
   const servicePromise = supabase
     .from("services")
@@ -45,6 +50,7 @@ export default async function ServiceDetailPage({ params, searchParams }: { para
         <section className="max-w-3xl mx-auto mb-6">
           <div className="bg-muted rounded-xl shadow p-6">
             <div className="text-2xl font-semibold mb-6">Service</div>
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Image
                 src={
@@ -63,6 +69,10 @@ export default async function ServiceDetailPage({ params, searchParams }: { para
                 </div>
                 <div className="text-muted-foreground text-base">{service.duration_minutes ? `${service.duration_minutes} min` : ""}</div>
               </div>
+            </div>
+            {isAuthenticated && (
+              <div className="pr-4">{service.base_price}</div>
+            )}
             </div>
           </div>
         </section>
