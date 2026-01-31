@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { DropdownMenu as LocationDropdownMenu, DropdownMenuTrigger as LocationDropdownMenuTrigger, DropdownMenuContent as LocationDropdownMenuContent, DropdownMenuItem as LocationDropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { MapPin } from "lucide-react"
+import { MapPin, ShoppingCart } from "lucide-react"
 // Helper to get all unique locations from categories in localStorage or fallback
 function getAllLocations() {
   if (typeof window !== 'undefined') {
@@ -261,7 +261,7 @@ export function Navbar({ user, action }: NavbarProps) {
                     <span className="cursor-pointer">My Bookings</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/treatments')}>
-                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <ShoppingCart className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">My Treatmens</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
