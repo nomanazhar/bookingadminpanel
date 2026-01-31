@@ -176,13 +176,14 @@ export default function ConfirmBookingPage() {
           <Button
             variant="ghost"
             className="text-muted-foreground px-2 py-1"
-            onClick={() =>
+            onClick={() => {
+              localStorage.removeItem("pendingBooking");
               router.push(
                 serviceDetails?.slug
                   ? `/customer-services/${serviceDetails.slug}`
                   : "/customer-services"
-              )
-            }
+              );
+            }}
           >
             ← Back to Services
           </Button>
@@ -308,11 +309,12 @@ export default function ConfirmBookingPage() {
                 </div>
 
                 {serviceDetails && (() => {
+                  // Prefer explicit values from booking if available
                   const basePrice = Number(serviceDetails.base_price ?? 0);
-                  const count = getSessionCount(booking.package);
-                  const discount = getDiscount(booking.package);
-                  const perSession = basePrice * (1 - discount);
-                  const total = perSession * count;
+                  const count = booking.session_count || getSessionCount(booking.package);
+                  const perSession = booking.unit_price !== undefined ? Number(booking.unit_price) : basePrice * (1 - getDiscount(booking.package));
+                  const discountPercent = booking.discount_percent !== undefined ? Number(booking.discount_percent) : Math.round(getDiscount(booking.package) * 100);
+                  const total = booking.total_amount !== undefined ? Number(booking.total_amount) : perSession * count;
                   const totalSave = basePrice * count - total;
                   return (
                     <div className="mb-2 mt-6">
@@ -322,8 +324,8 @@ export default function ConfirmBookingPage() {
                           <div className="text-xs text-muted-foreground">{count} × {formatPrice(perSession)} per session</div>
                         </div>
                         <div className="text-right mt-2 md:mt-0">
-                          {discount > 0 ? (
-                            <div className="text-sm text-green-700 font-semibold">Save {Math.round(discount * 100)}% — {formatPrice(totalSave)}</div>
+                          {discountPercent > 0 ? (
+                            <div className="text-sm text-green-700 font-semibold">Save {discountPercent}% — {formatPrice(totalSave)}</div>
                           ) : (
                             <div className="text-sm text-muted-foreground">No discount</div>
                           )}

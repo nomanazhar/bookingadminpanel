@@ -19,6 +19,8 @@ import { ArrowLeft } from "lucide-react"
 import type { Service, Doctor } from "@/types"
 
 export default function NewBookingPage() {
+  // New field: customer type
+  const [customerType, setCustomerType] = useState("new");
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -230,6 +232,7 @@ export default function NewBookingPage() {
         booking_time: bookingTime,
         address: address || null,
         notes: notes || null,
+        customer_type: customerType,
       }
 
       const res = await fetch("/api/admin/orders", {
@@ -314,6 +317,19 @@ export default function NewBookingPage() {
             {/* Customer Details Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Details</h3>
+              {/* Select Type Field */}
+              <div className="space-y-2 md:w-1/2">
+                <Label htmlFor="customerType">Select Type *</Label>
+                <Select value={customerType} onValueChange={setCustomerType} required>
+                  <SelectTrigger id="customerType" className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Customer</SelectItem>
+                    <SelectItem value="returning">Returning Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="customerName">Full Name *</Label>

@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
     const customerPhone = body.customer_phone || null
     const customerId = body.customer_id || null
     const doctorId = body.doctor_id || null
+    const customerType = body.customer_type === 'returning' ? 'returning' : 'new';
 
     if (!customerEmail || !customerName) {
       return NextResponse.json({ error: "Customer email and name are required" }, { status: 400 })
@@ -258,6 +259,7 @@ export async function POST(req: NextRequest) {
       booking_time: bookingTime,
       notes: body.notes || null,
       status: 'pending', // Default to pending
+      customer_type: customerType,
     }
 
     const { data: inserted, error } = await supabase

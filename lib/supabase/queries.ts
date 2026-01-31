@@ -333,12 +333,12 @@ export async function getUsersPaginatedAdmin(page: number = 1, pageSize: number 
 }
 
 // All bookings tab
-export async function getOrdersPaginatedAdmin(page: number = 1, pageSize: number = 20) {
-  const supabase = createServiceRoleClient()
-  const start = (page - 1) * pageSize
-  const end = start + pageSize - 1
+export async function getOrdersPaginatedAdmin(page: number = 1, pageSize: number = 20, status?: string) {
+  const supabase = createServiceRoleClient();
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize - 1;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('orders')
     .select(`
       *,
@@ -350,10 +350,15 @@ export async function getOrdersPaginatedAdmin(page: number = 1, pageSize: number
       doctor:doctors(*)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
-    .range(start, end)
+    .range(start, end);
 
-  if (error) throw error
-  return { data: data as OrderWithDetails[], count: count ?? 0 }
+  if (status && status !== 'all') {
+    query = query.eq('status', status);
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { data: data as OrderWithDetails[], count: count ?? 0 };
 }
 
 // Services - paginated

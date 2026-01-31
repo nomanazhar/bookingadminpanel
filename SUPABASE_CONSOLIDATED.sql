@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     customer_name    TEXT NOT NULL,
     customer_email   TEXT NOT NULL,
     customer_phone   TEXT,
+    customer_type    TEXT CHECK (customer_type IN ('new', 'returning')) DEFAULT 'new',
     address          TEXT,
     session_count    INTEGER NOT NULL DEFAULT 1,
     unit_price       NUMERIC(10,2) NOT NULL,
