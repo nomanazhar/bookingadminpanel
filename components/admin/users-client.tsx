@@ -50,11 +50,19 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
           placeholder="Search name or email..."
           className="input input-bordered w-full max-w-sm"
         />
-        <div className="text-sm text-muted-foreground">{data ? `${data.count} results` : ''}</div>
+       
       </div>
 
       {loading && <div className="py-6 text-center text-muted-foreground">Loading...</div>}
-      {data && <UsersTable users={data.data} currentPage={page} totalCount={data.count} pageSize={pageSize} />}
+
+      {data && (
+        <UsersTable
+          users={data.data.filter((user: any) => user.role !== 'admin')}
+          currentPage={page}
+          totalCount={data.count}
+          pageSize={pageSize}
+        />
+      )}
 
       <div className="mt-4 flex items-center justify-center gap-2">
         <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="btn">Previous</button>
