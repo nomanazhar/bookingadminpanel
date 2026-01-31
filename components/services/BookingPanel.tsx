@@ -206,88 +206,81 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     <div>
 
       {isAuthenticated && (
-      <section className="max-w-3xl mx-auto mb-8">
-        <div className="bg-muted rounded-xl shadow p-4">
+        <section className="max-w-3xl mx-auto mb-8">
+          <div className="bg-muted rounded-xl shadow p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xl font-semibold">Select Package</div>
+            </div>
 
-          {/* {subservices.length > 0 && (
-            <div className="mb-4">
-              <div className="text-lg font-semibold mb-2">Select Package Type</div>
-              <div className="flex flex-col gap-2">
-                {subservices.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="subservice"
-                      value={s.id}
-                      checked={selectedSubserviceId === s.id}
-                      onChange={() => {
-                        setSelectedSubserviceId(s.id);
-                        setSubservicePrice(Number(s.price));
-                      }}
-                    />
-                    <span className="font-medium">{s.name}</span>
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      $ {Number(s.price).toLocaleString()}
-                    </span>
-                  </label>
-                ))}
+            {service.description && (
+              <div className="text-muted-foreground text-base mb-4">
+                {service.description}
               </div>
-            </div>
-          )} */}
-
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xl font-semibold">Select Package</div>
-          </div>
-
-          {service.description && (
-            <div className="text-muted-foreground text-base mb-4">
-              {service.description}
-            </div>
-          )}
-          <div className="flex flex-col gap-4">
-            {servicePackages.map((p) => {
+            )}
+            <div className="flex flex-col gap-4">
+              {servicePackages.map((p) => {
                 const count = getSessionCount(p)
                 const discount = getDiscount(p)
                 const perSession = effectivePrice * (1 - discount)
                 const total = perSession * count
                 const totalSave = effectivePrice * count - total
-              return (
-                <div
-                  key={p}
-                  onClick={() => { setUserInteracted(true); setSelectedPackage(p) }}
-                  className={`border rounded-xl px-4 py-2 flex items-center justify-between hover:shadow-md hover:bg-white hover:text-black transition cursor-pointer ${selectedPackage === p ? "ring-2 ring-offset-2 ring-slate-400" : ""}`}
-                >
-                  <div>
-                    <div className="text-lg font-semibold">{p}</div>
-                    <div className="text-sm text-muted-foreground">{count} × {formatPrice(perSession)} per session</div>
-                    {discount > 0 && (
-                      <div className="text-xs text-green-700 mt-1">Save {Math.round(discount * 100)}% — you save {formatPrice(totalSave)}</div>
-                    )}
+                return (
+                  <div
+                    key={p}
+                    onClick={() => { setUserInteracted(true); setSelectedPackage(p) }}
+                    className={`border rounded-xl px-4 py-2 flex items-center justify-between hover:shadow-md hover:bg-white hover:text-black transition cursor-pointer ${selectedPackage === p ? "ring-2 ring-offset-2 ring-slate-400" : ""}`}
+                  >
+                    <div>
+                      <div className="text-lg font-semibold">{p}</div>
+                      <div className="text-sm text-muted-foreground">{count} × {formatPrice(perSession)} per session</div>
+                      {discount > 0 && (
+                        <div className="text-xs text-green-700 mt-1">Save {Math.round(discount * 100)}% — you save {formatPrice(totalSave)}</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold">{formatPrice(perSession)}</div>
+                      <div className="text-muted-foreground text-xs">per session</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold">{formatPrice(perSession)}</div>
-                    <div className="text-muted-foreground text-xs">per session</div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
 
-        </div>
-      </section>
+          </div>
+        </section>
       )}
 
+     <section className="max-w-3xl mx-auto mb-8">
+            <div className="mt-6">
+              <Label htmlFor="doctor-select" className="mb-2 block">Select Doctor</Label>
+              <Select
+                value={selectedDoctorId}
+                onValueChange={setSelectedDoctorId}
+                disabled={loadingDoctors || filteredDoctors.length === 0}
+              >
+                <SelectTrigger id="doctor-select" className="w-full">
+                  <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : filteredDoctors.length === 0 ? "No doctors available" : "Select a doctor"} />
+                </SelectTrigger>
+                  <SelectContent>
+                    {filteredDoctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        DR. {doctor.first_name}_{doctor.last_name} --{doctor.specialization}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+              </Select>
+            </div>
+</section>
       <ServiceDateSelector onChange={(s: { date?: string | null; time?: string | null }) => {
         setSelectedDate(s.date || null)
         setSelectedTime(s.time || null)
       }} />
 
-      <div className="flex justify-center items-center my-8 rounded-md">
+      <div className="flex justify-center items-center my-8 rounded-md px-6">
         <Button onClick={handleBook} disabled={loading}>
           {loading ? "Booking..." : "Book Treatment"}
         </Button>
       </div>
-
     </div>
   )
 }
