@@ -8,42 +8,57 @@ import { useEffect, useState } from "react"
 import type { Profile } from "@/types"
 
 export default function NavbarWrapper() {
-  const pathname = usePathname() || ""
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const pathname = usePathname() || "";
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  // List all admin route prefixes here
+  const adminPrefixes = [
+    "/admin",
+    "/(admin)",
+    "/admin-dashboard",
+    "/admin-services",
+    "/categories",
+    "/doctors",
+    "/orders",
+    "/users",
+    // Add more as needed
+  ];
+
+  const isAdminRoute = adminPrefixes.some(prefix => pathname.startsWith(prefix));
 
   useEffect(() => {
-    if (pathname.startsWith("/admin-dashboard")) return
-    let mounted = true
-    const supabase = createClient()
+    if (isAdminRoute) return;
+    let mounted = true;
+    const supabase = createClient();
 
     async function loadProfile() {
       try {
-        const { data: userData } = await supabase.auth.getUser()
-        const authUser = userData?.user || null
-        if (!mounted) return
+        const { data: userData } = await supabase.auth.getUser();
+        const authUser = userData?.user || null;
+        if (!mounted) return;
         if (!authUser) {
-          setProfile(null)
-          return
+          setProfile(null);
+          return;
         }
         const { data: prof } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", authUser.id)
-          .maybeSingle()
-        if (!mounted) return
-        setProfile(prof || null)
+          .maybeSingle();
+        if (!mounted) return;
+        setProfile(prof || null);
       } catch (e) {
-        if (mounted) setProfile(null)
+        if (mounted) setProfile(null);
       }
     }
 
-    loadProfile()
+    loadProfile();
     return () => {
-      mounted = false
-    }
-  }, [pathname])
+      mounted = false;
+    };
+  }, [pathname, isAdminRoute]);
 
-  if (pathname.startsWith("/admin-dashboard")) return null
+  if (isAdminRoute) return null;
 
-  return <Navbar user={profile} />
+  return <Navbar user={profile} />;
 }
