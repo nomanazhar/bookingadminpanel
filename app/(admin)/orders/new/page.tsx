@@ -68,7 +68,7 @@ export default function NewBookingPage() {
         const order = await res.json();
         setCustomerName(order.customer_name || order.customer?.first_name + ' ' + order.customer?.last_name || "");
         setCustomerEmail(order.customer_email || order.customer?.email || "");
-        setCustomerPhone(order.customer_phone || "");
+        setCustomerPhone(order.customer_phone || order.customer?.phone || "");
         setAddress(order.address || "");
         setSelectedServiceId(order.service_id || "");
         setSelectedDoctorId(order.doctor_id || "");
