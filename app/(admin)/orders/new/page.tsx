@@ -43,6 +43,18 @@ export default function NewBookingPage() {
   const [selectedSessions, setSelectedSessions] = useState("1")
   const [bookingDate, setBookingDate] = useState("")
   const [bookingTime, setBookingTime] = useState("")
+
+  // Generate time options: 09:00 to 18:00, every 15 minutes
+  const timeOptions = [];
+  for (let h = 9; h <= 18; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      // Don't add times after 18:00
+      if (h === 18 && m > 0) break;
+      const hour = h.toString().padStart(2, '0');
+      const minute = m.toString().padStart(2, '0');
+      timeOptions.push(`${hour}:${minute}`);
+    }
+  }
   const [address, setAddress] = useState("")
   const [notes, setNotes] = useState("")
 
@@ -317,19 +329,7 @@ export default function NewBookingPage() {
             {/* Customer Details Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Details</h3>
-              {/* Select Type Field */}
-              <div className="space-y-2 md:w-1/2">
-                <Label htmlFor="customerType">Select Type *</Label>
-                <Select value={customerType} onValueChange={setCustomerType} required>
-                  <SelectTrigger id="customerType" className="w-full">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New Customer</SelectItem>
-                    <SelectItem value="returning">Returning Customer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+             
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="customerName">Full Name *</Label>
@@ -476,8 +476,8 @@ export default function NewBookingPage() {
             {/* Booking Date & Time Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Booking Date & Time</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2 ">
                   <Label htmlFor="bookingDate">Date *</Label>
                   <Input
                     id="bookingDate"
@@ -489,17 +489,38 @@ export default function NewBookingPage() {
                     className="w-full"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 ">
                   <Label htmlFor="bookingTime">Time *</Label>
-                  <Input
-                    id="bookingTime"
-                    type="time"
+                  <Select
                     value={bookingTime}
-                    onChange={(e) => setBookingTime(e.target.value)}
+                    onValueChange={setBookingTime}
                     required
-                    className="w-full"
-                  />
+                  >
+                    <SelectTrigger id="bookingTime" className="w-[60%]">
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                 {/* Select Type Field */}
+              <div className="space-y-2 ">
+                <Label htmlFor="customerType">Select Type *</Label>
+                <Select value={customerType} onValueChange={setCustomerType} required>
+                  <SelectTrigger id="customerType" className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Customer</SelectItem>
+                    <SelectItem value="returning">Returning Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               </div>
             </div>
 

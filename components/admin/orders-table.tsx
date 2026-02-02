@@ -84,7 +84,7 @@ function OrdersTableComponent({
   }, [orders, search]);
 
   const handleConfirm = async (orderId: string) => {
-    await axios.post(`/api/orders/${orderId}/confirm`)
+    await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' })
     router.refresh()
   }
 
