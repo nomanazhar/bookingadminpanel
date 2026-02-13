@@ -241,6 +241,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid booking date or time' }, { status: 400 })
     }
 
+    // Fetch service duration for overlap check
+    const { data: serviceDetails } = await supabase
+      .from('services')
+      .select('duration_minutes')
+      .eq('id', serviceId)
+      .single();
+
+    const durationMinutes = serviceDetails?.duration_minutes || 0;
+    // Calculate booking end time
+    let booking_end_time = null;
+    if (durationMinutes && bookingTime) {
+      const [h, m, s] = bookingTime.split(":").map(Number);
+      const start = new Date(`${bookingDate}T${bookingTime}`);
+      if (!isNaN(start.getTime())) {
+        const end = new Date(start.getTime() + durationMinutes * 60000);
+        booking_end_time = `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}:${end.getSeconds().toString().padStart(2, "0")}`;
+      }
+    }
+
+    // Overlap check: find bookings for the same doctor, same date, overlapping time
+    if (doctorId && booking_end_time) {
+      const { data: overlapping } = await supabase
+        .from('orders')
+        .select('id, booking_time, booking_end_time')
+        .eq('doctor_id', doctorId)
+        .eq('booking_date', bookingDate)
+        .in('status', ['pending', 'confirmed'])
+        .neq('id', null); // Defensive: skip null ids
+
+      const toMinutes = (t: string | null) => {
+        if (!t) return 0;
+        const [h, m, s] = t.split(":").map(Number);
+        return h * 60 + m + (s ? s / 60 : 0);
+      };
+      const newStart = toMinutes(bookingTime);
+      const newEnd = toMinutes(booking_end_time);
+      const hasOverlap = (overlapping || []).some((b) => {
+        const existStart = toMinutes(b.booking_time);
+        const existEnd = toMinutes(b.booking_end_time);
+        // Overlap if start < existEnd and end > existStart
+        return newStart < existEnd && newEnd > existStart;
+      });
+      if (hasOverlap) {
+        return NextResponse.json({ error: 'Doctor already has a booking in this time slot.' }, { status: 409 });
+      }
+    }
+
     // Create the order
     const insertObj = {
       customer_id: targetCustomerId,
@@ -257,6 +304,7 @@ export async function POST(req: NextRequest) {
       total_amount: totalAmount,
       booking_date: bookingDate,
       booking_time: bookingTime,
+      booking_end_time,
       notes: body.notes || null,
       status: 'pending', // Default to pending
       customer_type: customerType,

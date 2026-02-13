@@ -3,6 +3,7 @@ import { useReducer, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarDays } from "lucide-react";
 
+
 function modalReducer(state: { showCalendar: boolean }, action: { type: string }) {
   switch (action.type) {
     case "OPEN_CALENDAR":
@@ -21,8 +22,8 @@ const timeSlots = {
 };
 
 export default function ServiceDateSelector({ onChange, allowedTabs }: { onChange?: (s: { date?: string | null; time?: string | null }) => void, allowedTabs?: ('Morning'|'Afternoon'|'Evening')[] }) {
+   const [selectedDate, setSelectedDate] = useState<string | null>(null); // ISO date: YYYY-MM-DD
   const [state, dispatch] = useReducer(modalReducer, { showCalendar: false });
-  const [selectedDate, setSelectedDate] = useState<string | null>(null); // ISO date: YYYY-MM-DD
   const defaultTab: 'Morning'|'Afternoon'|'Evening' = (allowedTabs && allowedTabs.length>0) ? allowedTabs[0] : 'Morning'
   const [selectedTab, setSelectedTab] = useState<'Morning' | 'Afternoon' | 'Evening'>(defaultTab);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);

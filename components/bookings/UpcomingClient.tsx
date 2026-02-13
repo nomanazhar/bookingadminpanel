@@ -18,7 +18,18 @@ export default function UpcomingClient({ booking_date, booking_time, service, se
   const [cancelled, setCancelled] = useState(false);
   const dt = parseBookingDateTime(booking_date, booking_time || '00:00:00')
   const dateLabel = dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
-  const timeLabel = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+
+  // Compute end time if service.duration_minutes is available
+  let timeLabel = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (service?.duration_minutes) {
+    const end = new Date(dt.getTime() + service.duration_minutes * 60000);
+    let hour = end.getHours();
+    const minute = end.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    timeLabel = `${timeLabel} - ${hour}:${minute} ${ampm}`;
+  }
 
   const handleCancel = async () => {
     if (!orderId) return;

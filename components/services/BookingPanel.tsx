@@ -146,6 +146,37 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
 
   const formatPrice = (v: number) => `£${v.toFixed(2)}`
 
+
+  // Helper to convert 12h time (e.g., "10:15 am") to 24h
+  function to24h(time12h: string) {
+    const [time, ampm] = time12h.split(' ');
+    let [h, m] = time.split(':').map(Number);
+    if (ampm === 'pm' && h !== 12) h += 12;
+    if (ampm === 'am' && h === 12) h = 0;
+    return { h, m };
+  }
+
+  // Helper to compute end time string from start time and duration
+  function computeEndTime(startTime: string, duration: number) {
+    if (!startTime || !duration) return null;
+    const { h, m } = to24h(startTime);
+    const start = new Date(2000, 0, 1, h, m);
+    const end = new Date(start.getTime() + duration * 60000);
+    // Format as 12-hour time for display
+    let hour = end.getHours();
+    const minute = end.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return `${hour}:${minute} ${ampm}`;
+  }
+
+  const bookingTimeSlot = React.useMemo(() => {
+    if (!selectedTime || !service?.duration_minutes) return null;
+    const end = computeEndTime(selectedTime, service.duration_minutes);
+    return end ? `${selectedTime} - ${end}` : null;
+  }, [selectedTime, service?.duration_minutes]);
+
   const handleBook = async () => {
     if (subservices.length > 0 && !selectedSubserviceId) {
       toast({
@@ -173,6 +204,10 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
       })
       return
     }
+
+
+
+    // Optionally, you can add logic here to check slot availability before proceeding (already handled in backend and UI)
 
     setLoading(true)
 

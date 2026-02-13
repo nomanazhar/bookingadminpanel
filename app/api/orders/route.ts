@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
     // Ensure session count is between 1 and 10
     sessionCount = Math.max(1, Math.min(10, sessionCount))
 
-    // fetch service base price
-    const { data: service } = await supabase.from('services').select('base_price').eq('id', serviceId).single()
+    // fetch service base price and duration
+    const { data: service } = await supabase.from('services').select('base_price, duration_minutes').eq('id', serviceId).single()
 
     // normalize numeric fields from body
     const suppliedUnitPrice = body.unit_price !== undefined ? Number(body.unit_price) : undefined
@@ -159,6 +159,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid booking date or time' }, { status: 400 })
     }
 
+    // Calculate booking end time using duration_minutes
+    let booking_end_time = null;
+    if (service?.duration_minutes && bookingTime) {
+      // bookingTime is in HH:mm:ss, bookingDate is YYYY-MM-DD
+      const [h, m, s] = bookingTime.split(":").map(Number);
+      const start = new Date(`${bookingDate}T${bookingTime}`);
+      if (!isNaN(start.getTime())) {
+        const end = new Date(start.getTime() + service.duration_minutes * 60000);
+        booking_end_time = `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}:${end.getSeconds().toString().padStart(2, "0")}`;
+      }
+    }
     const insertObj = {
       customer_id: user.id,
       service_id: serviceId,
@@ -175,6 +186,7 @@ export async function POST(req: NextRequest) {
       total_amount: totalAmount,
       booking_date: bookingDate,
       booking_time: bookingTime,
+      booking_end_time,
       notes: body.notes || null,
     }
 

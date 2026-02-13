@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
-import { format } from "date-fns"
+import { format, addMinutes } from "date-fns"
 import { parseBookingDateTime } from "@/lib/utils"
 import TableSearchBar from "./table-search-bar"
 
@@ -101,13 +101,15 @@ function OrdersTableComponent({
           <TableRow>
             <TableHead>Customer</TableHead>
             <TableHead>Service</TableHead>
-            <TableHead>Locations</TableHead>
+            {/* <TableHead>Locations</TableHead> */}
             <TableHead>Sessions</TableHead>
             <TableHead>Address</TableHead>
+            <TableHead>Phone</TableHead>
             <TableHead>Booking Date</TableHead>
             <TableHead>Booking Time</TableHead>
-            <TableHead>Amount</TableHead>
+            {/* <TableHead>Amount</TableHead> */}
             <TableHead>Status</TableHead>
+             <TableHead>Comments</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -136,7 +138,7 @@ function OrdersTableComponent({
                 )}
               </TableCell>
 
-              <TableCell>
+              {/* <TableCell>
                 {Array.isArray(order.service?.locations) && order.service.locations.length > 0
                   ? order.service.locations.map((loc) => (
                       <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
@@ -144,7 +146,7 @@ function OrdersTableComponent({
                       </span>
                     ))
                   : "-"}
-              </TableCell>
+              </TableCell> */}
 
               <TableCell className="font-medium">
                 {order.session_count}{" "}
@@ -153,6 +155,9 @@ function OrdersTableComponent({
 
               <TableCell className="text-sm text-muted-foreground">
                 {order.address || "-"}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {order.customer_phone || "-"}
               </TableCell>
 
               <TableCell>
@@ -166,16 +171,22 @@ function OrdersTableComponent({
               </TableCell>
 
               <TableCell>
-                {format(
-                  parseBookingDateTime(
-                    order.booking_date,
-                    order.booking_time || "00:00:00"
-                  ),
-                  "p"
-                )}
+                  {(() => {
+                    const startDate = parseBookingDateTime(
+                      order.booking_date,
+                      order.booking_time || "00:00:00"
+                    );
+                    const duration = order.service?.duration_minutes;
+                    if (typeof duration === 'number' && !isNaN(duration)) {
+                      const endDate = addMinutes(startDate, duration);
+                      return `${format(startDate, "HH:mm")} - ${format(endDate, "HH:mm")}`;
+                    } else {
+                      return format(startDate, "p");
+                    }
+                  })()}
               </TableCell>
 
-              <TableCell>£{order.total_amount.toFixed(2)}</TableCell>
+              {/* <TableCell>£{order.total_amount.toFixed(2)}</TableCell> */}
 
               <TableCell>
                 {order.status === "pending" ? (
@@ -197,6 +208,18 @@ function OrdersTableComponent({
                   <Badge variant={getStatusVariant(order.status)}>
                     {order.status}
                   </Badge>
+                )}
+              </TableCell>
+
+              <TableCell>
+                {order.notes ? (
+                  <span className="text-sm text-muted-foreground">
+                    {order.notes.length > 40
+                      ? `${order.notes.substring(0, 40)}...`
+                      : order.notes}
+                  </span>
+                ) : (
+                  "-"
                 )}
               </TableCell>
 

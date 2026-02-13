@@ -117,11 +117,23 @@ export default async function MyTreatmentsPage() {
 
                 <div className="text-right shrink-0">
                   <div className="font-medium">
-                    {bookingDateTime.toLocaleTimeString(undefined, {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                    {(() => {
+                      let label = bookingDateTime.toLocaleTimeString(undefined, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      });
+                      if (order.service?.duration_minutes) {
+                        const end = new Date(bookingDateTime.getTime() + order.service.duration_minutes * 60000);
+                        let hour = end.getHours();
+                        const minute = end.getMinutes().toString().padStart(2, '0');
+                        const ampm = hour >= 12 ? 'pm' : 'am';
+                        hour = hour % 12;
+                        if (hour === 0) hour = 12;
+                        label = `${label} - ${hour}:${minute} ${ampm}`;
+                      }
+                      return label;
+                    })()}
                   </div>
                   <div className={`text-sm font-medium capitalize ${statusColor}`}>
                     {statusLabel}

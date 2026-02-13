@@ -83,7 +83,22 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
                     <div className="text-muted-foreground text-sm mb-4 capitalize">{upcomingOrder.customer?.first_name} {upcomingOrder.customer?.last_name}</div>
                   </div>
                   <div className="flex flex-col items-end gap-4 min-w-[180px] mt-4 md:mt-0">
-                    <div className="text-base font-semibold text-right">{parseBookingDateTime(upcomingOrder.booking_date, upcomingOrder.booking_time || '00:00:00').toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
+                    <div className="text-base font-semibold text-right">
+                      {(() => {
+                        const startDt = parseBookingDateTime(upcomingOrder.booking_date, upcomingOrder.booking_time || '00:00:00');
+                        let label = startDt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                        if (upcomingOrder.service?.duration_minutes) {
+                          const end = new Date(startDt.getTime() + upcomingOrder.service.duration_minutes * 60000);
+                          let hour = end.getHours();
+                          const minute = end.getMinutes().toString().padStart(2, '0');
+                          const ampm = hour >= 12 ? 'pm' : 'am';
+                          hour = hour % 12;
+                          if (hour === 0) hour = 12;
+                          label = `${label} - ${hour}:${minute} ${ampm}`;
+                        }
+                        return label;
+                      })()}
+                    </div>
                     <div className="flex gap-2 bottom-4">
                       <Button
                         variant="ghost"
@@ -142,7 +157,22 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
                   <div className="text-muted-foreground text-sm">{booking.customer?.first_name} {booking.customer?.last_name}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{parseBookingDateTime(booking.booking_date, booking.booking_time || '00:00:00').toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
+                  <div className="font-semibold">
+                    {(() => {
+                      const startDt = parseBookingDateTime(booking.booking_date, booking.booking_time || '00:00:00');
+                      let label = startDt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                      if (booking.service?.duration_minutes) {
+                        const end = new Date(startDt.getTime() + booking.service.duration_minutes * 60000);
+                        let hour = end.getHours();
+                        const minute = end.getMinutes().toString().padStart(2, '0');
+                        const ampm = hour >= 12 ? 'pm' : 'am';
+                        hour = hour % 12;
+                        if (hour === 0) hour = 12;
+                        label = `${label} - ${hour}:${minute} ${ampm}`;
+                      }
+                      return label;
+                    })()}
+                  </div>
                   <div className="text-sm text-muted-foreground">{booking.status}</div>
                 </div>
               </div>

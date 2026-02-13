@@ -16,10 +16,10 @@ async function StatsCards() {
       description: "Registered customers",
     },
     {
-      title: "Total Orders",
+      title: "Total Appointments ",
       value: stats.totalOrders,
       icon: ShoppingCart,
-      description: "All time orders",
+      description: "All time appointments",
     },
     {
       title: "Total Categories",

@@ -10,6 +10,7 @@ import type { Profile } from "@/types"
 export default function NavbarWrapper() {
   const pathname = usePathname() || "";
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // List all admin route prefixes here
   const adminPrefixes = [
@@ -32,12 +33,14 @@ export default function NavbarWrapper() {
     const supabase = createClient();
 
     async function loadProfile() {
+      setLoading(true);
       try {
         const { data: userData } = await supabase.auth.getUser();
         const authUser = userData?.user || null;
         if (!mounted) return;
         if (!authUser) {
           setProfile(null);
+          setLoading(false);
           return;
         }
         const { data: prof } = await supabase
@@ -47,8 +50,10 @@ export default function NavbarWrapper() {
           .maybeSingle();
         if (!mounted) return;
         setProfile(prof || null);
+        setLoading(false);
       } catch (e) {
         if (mounted) setProfile(null);
+        setLoading(false);
       }
     }
 
@@ -59,6 +64,9 @@ export default function NavbarWrapper() {
   }, [pathname, isAdminRoute]);
 
   if (isAdminRoute) return null;
-
+  if (loading) {
+    // You can replace this with a skeleton or spinner if you want
+    return <div style={{height: 64}}></div>;
+  }
   return <Navbar user={profile} />;
 }
