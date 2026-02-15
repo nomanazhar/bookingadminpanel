@@ -15,14 +15,44 @@ function modalReducer(state: { showCalendar: boolean }, action: { type: string }
   }
 }
 
+// Generate time slots every 15 min from 9:00 am to 6:00 pm (last slot starts at 5:45 pm)
+const allSlots: string[] = [];
+for (let min = 9 * 60; min <= 18 * 60 - 15; min += 15) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  let hour = h % 12;
+  if (hour === 0) hour = 12;
+  const ampm = h < 12 ? "am" : "pm";
+  allSlots.push(`${hour}:${m.toString().padStart(2, "0")} ${ampm}`);
+}
+
 const timeSlots = {
-  Morning: ["10:00 am", "10:15 am", "10:30 am", "10:45 am", "11:00 am", "11:15 am", "11:30 am", "11:45 am"],
-  Afternoon: ["12:00 pm", "12:15 pm", "12:30 pm", "12:45 pm", "1:00 pm", "1:15 pm", "1:30 pm", "1:45 pm"],
-  Evening: ["5:00 pm", "5:15 pm", "5:30 pm", "5:45 pm", "6:00 pm", "6:15 pm", "6:30 pm", "6:45 pm"],
+  Morning: allSlots.filter(slot => {
+    const [time, ampm] = slot.split(' ');
+    const [h, m] = time.split(':').map(Number);
+    const hour24 = ampm === 'pm' && h !== 12 ? h + 12 : ampm === 'am' && h === 12 ? 0 : h;
+    return hour24 >= 9 && hour24 < 12;
+  }),
+  Afternoon: allSlots.filter(slot => {
+    const [time, ampm] = slot.split(' ');
+    const [h, m] = time.split(':').map(Number);
+    const hour24 = ampm === 'pm' && h !== 12 ? h + 12 : ampm === 'am' && h === 12 ? 0 : h;
+    return hour24 >= 12 && hour24 < 16;
+  }),
+  Evening: allSlots.filter(slot => {
+    const [time, ampm] = slot.split(' ');
+    const [h, m] = time.split(':').map(Number);
+    const hour24 = ampm === 'pm' && h !== 12 ? h + 12 : ampm === 'am' && h === 12 ? 0 : h;
+    return hour24 >= 16 && hour24 < 18;
+  }),
 };
 
-export default function ServiceDateSelector({ onChange, allowedTabs }: { onChange?: (s: { date?: string | null; time?: string | null }) => void, allowedTabs?: ('Morning'|'Afternoon'|'Evening')[] }) {
-   const [selectedDate, setSelectedDate] = useState<string | null>(null); // ISO date: YYYY-MM-DD
+export default function ServiceDateSelector({ onChange, allowedTabs, availableSlots }: {
+  onChange?: (s: { date?: string | null; time?: string | null }) => void,
+  allowedTabs?: ('Morning'|'Afternoon'|'Evening')[],
+  availableSlots?: string[]
+}) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null); // ISO date: YYYY-MM-DD
   const [state, dispatch] = useReducer(modalReducer, { showCalendar: false });
   const defaultTab: 'Morning'|'Afternoon'|'Evening' = (allowedTabs && allowedTabs.length>0) ? allowedTabs[0] : 'Morning'
   const [selectedTab, setSelectedTab] = useState<'Morning' | 'Afternoon' | 'Evening'>(defaultTab);
@@ -84,11 +114,15 @@ export default function ServiceDateSelector({ onChange, allowedTabs }: { onChang
             </div>
             <div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-                {timeSlots[selectedTab].map((slot) => (
+                {(availableSlots && availableSlots.length > 0
+                  ? timeSlots[selectedTab].filter(slot => availableSlots.includes(slot))
+                  : timeSlots[selectedTab]
+                ).map((slot) => (
                   <button
                     key={slot}
                     className={`rounded-full border px-6 py-2 text-base font-medium hover:text-white transition-all ${selectedTime === slot ? "bg-[#333] text-white" : "bg-background hover:bg-[#222]"}`}
                     onClick={() => handleTimeSelect(slot)}
+                    disabled={availableSlots && availableSlots.length > 0 && !availableSlots.includes(slot)}
                   >
                     {slot}
                   </button>

@@ -84,6 +84,29 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   const [selectedDate, setSelectedDate] = useState<string | null>(rescheduleOrder?.booking_date || null)
   const [selectedTime, setSelectedTime] = useState<string | null>(rescheduleOrder?.booking_time || null)
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(rescheduleOrder?.doctor_id || "")
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+    // Fetch available slots when date, doctor, or service changes
+    useEffect(() => {
+      async function fetchSlots() {
+        if (!selectedDate || !selectedDoctorId || !service?.id) {
+          setAvailableSlots([]);
+          return;
+        }
+        try {
+          const params = new URLSearchParams({
+            date: selectedDate,
+            doctorId: selectedDoctorId,
+            serviceId: service.id,
+          });
+          const res = await fetch(`/api/available-timeslots?${params.toString()}`);
+          const data = await res.json();
+          setAvailableSlots(Array.isArray(data.slots) ? data.slots : []);
+        } catch {
+          setAvailableSlots([]);
+        }
+      }
+      fetchSlots();
+    }, [selectedDate, selectedDoctorId, service?.id]);
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const { location: selectedLocation } = useLocation();
   const [loadingDoctors, setLoadingDoctors] = useState(false)
@@ -306,10 +329,13 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
               </Select>
             </div>
 </section>
-      <ServiceDateSelector onChange={(s: { date?: string | null; time?: string | null }) => {
-        setSelectedDate(s.date || null)
-        setSelectedTime(s.time || null)
-      }} />
+      <ServiceDateSelector
+        onChange={(s: { date?: string | null; time?: string | null }) => {
+          setSelectedDate(s.date || null)
+          setSelectedTime(s.time || null)
+        }}
+        availableSlots={availableSlots}
+      />
 
       <div className="flex justify-center items-center my-8 rounded-md px-6">
         <Button onClick={handleBook} disabled={loading}>
