@@ -50,11 +50,11 @@ const sidebarLinks = [
     href: "/doctors",
     icon: Stethoscope,
   },
-  // {
-  //   title: "Emails",
-  //   href: "/admin/emails",
-  //   icon: Mail,
-  // },
+  {
+    title: "SearchBooking",
+    href: "/searchbooking",
+    icon: ShoppingCart, // or another icon if preferred
+  },
   {
     title: "Users",
     href: "/users",
