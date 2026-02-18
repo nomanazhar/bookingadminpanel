@@ -15,7 +15,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { ThemeToggle } from "@/components/theme-toggle"
+// import { ThemeToggle } from "@/components/theme-toggle"
 import { createClient } from "@/lib/supabase/client"
 import { LogOut, User, Settings, Menu, LayoutDashboard, Package, FolderTree, ShoppingCart, MessageSquare, Stethoscope } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -59,6 +59,26 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
     { href: "/reviews", icon: MessageSquare, label: "Reviews" },
   ]
 
+  // Date and time state
+  const [dateTime, setDateTime] = useState<string>("");
+  // Update date and time every second
+  useState(() => {
+    const update = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      };
+      setDateTime(now.toLocaleString("en-US", options));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  });
   return (
     <nav className=" sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="relative flex h-16 items-center justify-between px-4">
@@ -135,15 +155,21 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
           {/* Can add page title here if needed */}
         </div>
 
-        {/* Right Section - Theme Toggle + User Menu */}
-        <div className="flex items-center gap-3 ml-auto">
-          <ThemeToggle />
-
+        {/* Right Section - Date/Time + Theme Toggle + User Menu */}
+        <div className="flex items-center gap-3 ml-auto mr-2">
+          {/* Date and Time */}
+          <span
+            className="px-2 py-1 rounded bg-amber-500 text-white text-xs font-medium mr-8"
+            style={{ minWidth: 180, textAlign: 'center' }}
+          >
+            {dateTime}
+          </span>
+          {/* <ThemeToggle /> */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   className="relative h-10 gap-2 px-2"
                 >
                   <Avatar className="h-8 w-8">
@@ -152,7 +178,6 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
                       {getInitials(user.first_name, user.last_name)}
                     </AvatarFallback>
                   </Avatar>
-              
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-slate-100 px-2">
@@ -173,7 +198,6 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

@@ -22,6 +22,7 @@ export default function NavbarWrapper() {
     "/doctors",
     "/orders",
     "/users",
+    "/searchbooking",
     // Add more as needed
   ];
 

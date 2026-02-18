@@ -54,7 +54,7 @@ export interface Service {
   updated_at: string
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'expired'
 
 export interface Order {
   id: string

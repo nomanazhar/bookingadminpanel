@@ -78,7 +78,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
         CREATE TYPE public.order_status AS ENUM (
-            'pending','confirmed','completed','cancelled'
+            'pending','confirmed','completed','cancelled','expired'
         );
     END IF;
 END $$;

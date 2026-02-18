@@ -189,26 +189,43 @@ function OrdersTableComponent({
               {/* <TableCell>£{order.total_amount.toFixed(2)}</TableCell> */}
 
               <TableCell>
-                {order.status === "pending" ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled
-                      className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-300"
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className="px-2 py-1 rounded bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition"
-                      onClick={() => handleConfirm(order.id)}
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                ) : (
-                  <Badge variant={getStatusVariant(order.status)}>
-                    {order.status}
-                  </Badge>
-                )}
+                {(() => {
+                  const bookingDateTime = parseBookingDateTime(order.booking_date, order.booking_time || "00:00:00");
+                  const now = new Date();
+                  // If pending and booking time has passed
+                  if (order.status === "pending" && bookingDateTime < now) {
+                    return (
+                      <Badge variant="destructive">
+                        Not available / Expired
+                      </Badge>
+                    );
+                  }
+                  // If pending and booking time is upcoming
+                  if (order.status === "pending") {
+                    return (
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled
+                          className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-300"
+                        >
+                          Pending
+                        </button>
+                        <button
+                          className="px-2 py-1 rounded bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition"
+                          onClick={() => handleConfirm(order.id)}
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    );
+                  }
+                  // Otherwise, show normal status
+                  return (
+                    <Badge variant={getStatusVariant(order.status)}>
+                      {order.status}
+                    </Badge>
+                  );
+                })()}
               </TableCell>
 
               <TableCell>

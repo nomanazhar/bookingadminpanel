@@ -1,14 +1,23 @@
 import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getStats, getRecentOrdersAdmin } from "@/lib/supabase/queries"
+import { getStats, getRecentOrdersAdmin, getFutureAppointmentsCount } from "@/lib/supabase/queries"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
 import { Users, ShoppingCart, FolderTree, Sparkles } from "lucide-react"
 
 async function StatsCards() {
-  const stats = await getStats()
+  const [stats, futureAppointments] = await Promise.all([
+    getStats(),
+    getFutureAppointmentsCount(),
+  ])
 
   const cards = [
+    {
+      title: "Upcoming Appointments",
+      value: futureAppointments,
+      icon: ShoppingCart,
+      description: "Future bookings",
+    },
     {
       title: "Total Customers",
       value: stats.totalCustomers,
@@ -28,11 +37,12 @@ async function StatsCards() {
       description: "Active categories",
     },
     {
-      title: "Total Services",
+      title: "Total Treatments",
       value: stats.totalServices,
       icon: Sparkles,
-      description: "Active services",
+      description: "Active treatments",
     },
+    
   ]
 
   return (
@@ -76,7 +86,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Suspense
           fallback={
             <>

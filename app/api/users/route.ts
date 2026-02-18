@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = await createClient();
-    // Try to match first_name, last_name, email, and phone. We'll handle full-name matching in JS.
+    // Try to match first_name, last_name, email, phone, and full name (server-side)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email, phone, address, gender, role, avatar_url')

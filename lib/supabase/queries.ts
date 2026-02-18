@@ -1,3 +1,22 @@
+// Get count of future appointments (upcoming orders)
+export async function getFutureAppointmentsCount() {
+  const supabase = createServiceRoleClient();
+  // Get current date and time in ISO format
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10); // yyyy-mm-dd
+  const time = now.toTimeString().slice(0, 8); // HH:MM:SS
+
+  // Query for orders where:
+  // (booking_date > today) OR (booking_date = today AND booking_time >= now)
+  // Only count those with status 'pending' or 'confirmed' (optional, can be adjusted)
+  const { count, error } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .or(`booking_date.gt.${today},and(booking_date.eq.${today},booking_time.gte.${time})`)
+    .in('status', ['pending', 'confirmed']);
+  if (error) throw error;
+  return count || 0;
+}
 import { createClient } from './server'
 import { unstable_cache } from 'next/cache'
 import { createPublicClient } from './publicClient'
@@ -440,26 +459,22 @@ export const getStats = unstable_cache(async () => {
     totalServices: servicesRes.count || 0,
   }
 }, ['getStats'], { revalidate: 60 })
-export const getRecentOrdersAdmin = unstable_cache(
-  async (limit: number = 5) => {
-    const supabase = createServiceRoleClient()
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
+export async function getRecentOrdersAdmin(limit: number = 5) {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      service:services(
         *,
-        service:services(
-          *,
-          category:categories(*)
-        ),
-        customer:profiles(*),
-        doctor:doctors(*)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    if (error) throw error
-    return data as OrderWithDetails[]
-  },
-  ['getRecentOrdersAdmin'],
-  { revalidate: 60 }
-)
+        category:categories(*)
+      ),
+      customer:profiles(*),
+      doctor:doctors(*)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data as OrderWithDetails[];
+}
 
