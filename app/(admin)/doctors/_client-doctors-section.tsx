@@ -143,6 +143,15 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                 filteredDoctors.length === 1 ? "" : "s"
               } found`
             : "No doctors yet"}
+             <div className="mb-4">
+        <TableSearchBar
+          value={search}
+          onChange={setSearch}
+          onSearch={() => {}}
+          className=""
+          placeholder="Search doctors..."
+        />
+      </div>
         </p>
 
         <Link href="/doctors/new">
@@ -153,14 +162,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         </Link>
       </div>
 
-      <div className="mb-4">
-        <TableSearchBar
-          value={search}
-          onChange={setSearch}
-          onSearch={() => {}}
-          placeholder="Search doctors..."
-        />
-      </div>
+     
 
       <div className="overflow-x-auto rounded-lg border border-border">
 

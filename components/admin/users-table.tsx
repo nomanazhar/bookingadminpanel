@@ -37,7 +37,7 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
         user.last_name,
         user.email,
         user.phone,
-        user.phone_number,
+        // removed user.phone_number (standardize on phone)
         user.gender,
         user.address,
         user.role,
@@ -104,7 +104,7 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
                   </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.phone || user.phone_number || '—'}</TableCell>
+                <TableCell>{user.phone || '—'}</TableCell>
                 <TableCell>{user.gender || '—'}</TableCell>
                 <TableCell className="max-w-xs truncate">{user.address || '—'}</TableCell>
                 <TableCell>

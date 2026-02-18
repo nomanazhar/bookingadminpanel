@@ -35,7 +35,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     'first_name',
     'last_name',
     'phone',
-    'phone_number',
     'gender',
     'address',
     'role',

@@ -58,7 +58,7 @@ export default function EditUserPage() {
         setFirstName(data.first_name || "")
         setLastName(data.last_name || "")
         setEmail(data.email || "")
-        setPhone(data.phone || data.phone_number || "")
+        setPhone(data.phone || "")
         setGender(data.gender || "")
         setAddress(data.address || "")
         setRole((data.role as "customer" | "admin") || "customer")
