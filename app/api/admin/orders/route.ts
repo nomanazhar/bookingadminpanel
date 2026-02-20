@@ -33,10 +33,33 @@ export async function GET(req: NextRequest) {
     const page = parseInt(url.searchParams.get('page') || '1', 10) || 1
     const pageSize = parseInt(url.searchParams.get('pageSize') || '20', 10) || 20
 
-    // Fetch all orders (admin has access to all orders via RLS)
-    const { data: orders } = await getOrdersPaginated(page, pageSize, false)
+    // Fetch paginated orders from main table
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .order('booking_date', { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
 
-    return NextResponse.json(orders || [], { status: 200 })
+    // Fetch paginated legacy orders
+    const { data: legacyOrders, error: legacyError } = await supabase
+      .from('legacy_orders')
+      .select('*')
+      .order('booking_date', { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
+
+    if (ordersError || legacyError) {
+      return NextResponse.json({ error: ordersError?.message || legacyError?.message || 'Unknown error' }, { status: 500 });
+    }
+
+    // Combine and sort both tables
+    const combined = [...(orders || []), ...(legacyOrders || [])].sort((a, b) => {
+      // Sort by booking_date desc, fallback to created_at
+      const dateA = a.booking_date || a.created_at;
+      const dateB = b.booking_date || b.created_at;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+
+    return NextResponse.json(combined, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
   }

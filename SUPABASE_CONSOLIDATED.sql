@@ -1,72 +1,43 @@
 -- ============================================
+-- LEGACY ORDERS TABLE FOR IMPORTED DATA
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.legacy_orders (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id      UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    service_id       UUID REFERENCES public.services(id) ON DELETE SET NULL,
+    subservice_id    UUID REFERENCES public.subservices(id) ON DELETE SET NULL,
+    doctor_id        UUID REFERENCES public.doctors(id) ON DELETE SET NULL,
+    service_title    TEXT,
+    customer_name    TEXT,
+    customer_email   TEXT,
+    customer_phone   TEXT,
+    customer_type    TEXT,
+    address          TEXT,
+    session_count    INTEGER,
+    unit_price       NUMERIC(10,2),
+    discount_percent NUMERIC(5,2),
+    total_amount     NUMERIC(10,2),
+    status           public.order_status,
+    booking_date     DATE,
+    booking_time     TIME,
+    booking_end_time TIME,
+    notes            TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- ============================================
 -- SUPABASE SCHEMA - PHONE OTP FIX + LOCATION SUPPORT
 -- Updated: January 2026
--- FIXED: subservices.slug is now NON-UNIQUE
+-- IDEMPOTENT: Safe to re-run at any time
 -- ============================================
 
 -- ============================================
--- STEP 1: DISABLE THE TRIGGER TEMPORARILY
+-- STEP 1: DISABLE TRIGGER TEMPORARILY
 -- ============================================
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- ============================================
--- STEP 2: CLEANUP OLD POLICIES
--- ============================================
-DO $$
-DECLARE
-    pol RECORD;
-BEGIN
-    FOR pol IN 
-        SELECT schemaname, tablename, policyname 
-        FROM pg_policies 
-        WHERE schemaname = 'public' 
-          AND tablename IN (
-              'profiles','categories','services',
-              'subservices','orders','reviews','doctors'
-          )
-    LOOP
-        EXECUTE format(
-            'DROP POLICY IF EXISTS %I ON public.%I',
-            pol.policyname,
-            pol.tablename
-        );
-    END LOOP;
-END $$;
-
--- ============================================
--- FIX: DROP UNIQUE CONSTRAINT ON subservices.slug
--- ============================================
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.table_constraints
-        WHERE table_schema = 'public'
-          AND table_name = 'subservices'
-          AND constraint_name = 'subservices_slug_key'
-          AND constraint_type = 'UNIQUE'
-    ) THEN
-        ALTER TABLE public.subservices
-        DROP CONSTRAINT subservices_slug_key;
-    END IF;
-END $$;
-
--- ============================================
--- STORAGE POLICIES CLEANUP — FIX FOR 42710
--- ============================================
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Authenticated users upload images" ON storage.objects;
-    DROP POLICY IF EXISTS "Public read images" ON storage.objects;
-    DROP POLICY IF EXISTS "Users delete own images" ON storage.objects;
-
-    DROP POLICY IF EXISTS "Authenticated users can upload to image buckets" ON storage.objects;
-    DROP POLICY IF EXISTS "Anyone can read image buckets" ON storage.objects;
-    DROP POLICY IF EXISTS "Users can delete their own uploads" ON storage.objects;
-END $$;
-
--- ============================================
--- STEP 3: EXTENSIONS & ENUMS
+-- STEP 2: EXTENSIONS & ENUMS
 -- ============================================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -84,7 +55,7 @@ BEGIN
 END $$;
 
 -- ============================================
--- STEP 4: TABLES (WITH LOCATIONS SUPPORT)
+-- STEP 3: TABLES (WITH LOCATIONS SUPPORT)
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -122,7 +93,7 @@ CREATE TABLE IF NOT EXISTS public.subservices (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_id  UUID NOT NULL REFERENCES public.services(id) ON DELETE CASCADE,
     name        TEXT NOT NULL,
-    slug        TEXT NOT NULL,
+    slug        TEXT NOT NULL,   -- NON-UNIQUE intentionally
     price       NUMERIC(10,2) NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -167,7 +138,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     customer_name    TEXT NOT NULL,
     customer_email   TEXT NOT NULL,
     customer_phone   TEXT,
-    customer_type    TEXT CHECK (customer_type IN ('new', 'returning'))  DEFAULT 'new',
+    customer_type    TEXT CHECK (customer_type IN ('new', 'returning')) DEFAULT 'new',
     address          TEXT,
     session_count    INTEGER NOT NULL DEFAULT 1,
     unit_price       NUMERIC(10,2) NOT NULL,
@@ -176,7 +147,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     status           public.order_status NOT NULL DEFAULT 'pending',
     booking_date     DATE NOT NULL,
     booking_time     TIME NOT NULL,
-    
+    booking_end_time TIME,
     notes            TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -196,25 +167,38 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 );
 
 -- ============================================
--- INDEXES (UNCHANGED)
+-- STEP 4: FIX — DROP UNIQUE CONSTRAINT ON subservices.slug
 -- ============================================
-
-CREATE INDEX IF NOT EXISTS idx_profiles_email_lower ON public.profiles (lower(email));
-CREATE INDEX IF NOT EXISTS idx_profiles_phone ON public.profiles (phone) WHERE phone IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_orders_customer ON public.orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status   ON public.orders(status);
-CREATE INDEX IF NOT EXISTS idx_orders_doctor   ON public.orders(doctor_id);
-
-CREATE INDEX IF NOT EXISTS idx_services_category_active ON public.services(category_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_subservices_service ON public.subservices(service_id);
-
-CREATE INDEX IF NOT EXISTS idx_categories_locations ON public.categories USING GIN (locations);
-CREATE INDEX IF NOT EXISTS idx_services_locations   ON public.services   USING GIN (locations);
-CREATE INDEX IF NOT EXISTS idx_doctors_locations    ON public.doctors    USING GIN (locations);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints
+        WHERE table_schema = 'public'
+          AND table_name = 'subservices'
+          AND constraint_name = 'subservices_slug_key'
+          AND constraint_type = 'UNIQUE'
+    ) THEN
+        ALTER TABLE public.subservices DROP CONSTRAINT subservices_slug_key;
+    END IF;
+END $$;
 
 -- ============================================
--- HELPER FUNCTIONS + TRIGGERS (UNCHANGED)
+-- STEP 5: INDEXES
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_profiles_email_lower     ON public.profiles (lower(email));
+CREATE INDEX IF NOT EXISTS idx_profiles_phone           ON public.profiles (phone) WHERE phone IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_customer          ON public.orders (customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status            ON public.orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_doctor            ON public.orders (doctor_id);
+CREATE INDEX IF NOT EXISTS idx_services_category_active ON public.services (category_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_subservices_service      ON public.subservices (service_id);
+CREATE INDEX IF NOT EXISTS idx_categories_locations     ON public.categories USING GIN (locations);
+CREATE INDEX IF NOT EXISTS idx_services_locations       ON public.services   USING GIN (locations);
+CREATE INDEX IF NOT EXISTS idx_doctors_locations        ON public.doctors    USING GIN (locations);
+
+-- ============================================
+-- STEP 6: HELPER FUNCTIONS + TRIGGERS
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -232,16 +216,14 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-    INSERT INTO public.profiles (
-        id, email, first_name, last_name, phone, role
-    )
+    INSERT INTO public.profiles (id, email, first_name, last_name, phone, role)
     VALUES (
         NEW.id,
         COALESCE(NEW.email, NEW.raw_user_meta_data->>'email'),
-        COALESCE(NULLIF(NEW.raw_user_meta_data->>'first_name',''),'User'),
-        COALESCE(NULLIF(NEW.raw_user_meta_data->>'last_name',''),''),  
+        COALESCE(NULLIF(NEW.raw_user_meta_data->>'first_name', ''), 'User'),
+        COALESCE(NULLIF(NEW.raw_user_meta_data->>'last_name',  ''), ''),
         COALESCE(NEW.phone, NEW.raw_user_meta_data->>'phone'),
-        COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role,'customer')
+        COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'customer')
     )
     ON CONFLICT (id) DO NOTHING;
 
@@ -254,9 +236,8 @@ AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
--- RLS POLICIES (EXACTLY YOURS — PRESERVED)
+-- STEP 7: ENABLE ROW LEVEL SECURITY
 -- ============================================
-
 ALTER TABLE public.profiles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.services    ENABLE ROW LEVEL SECURITY;
@@ -265,66 +246,98 @@ ALTER TABLE public.doctors     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews     ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
+-- STEP 8: RLS POLICIES
+-- Drop before (re)creating to ensure idempotency.
+-- ============================================
+
+-- profiles
+DROP POLICY IF EXISTS "Users read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins manage profiles"  ON public.profiles;
 CREATE POLICY "Users read own profile" ON public.profiles
-FOR SELECT USING (auth.uid() = id);
-
+    FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Admins manage profiles" ON public.profiles
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- categories
+DROP POLICY IF EXISTS "Public read active categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins manage categories"      ON public.categories;
 CREATE POLICY "Public read active categories" ON public.categories
-FOR SELECT USING (is_active = true);
-
+    FOR SELECT USING (is_active = true);
 CREATE POLICY "Admins manage categories" ON public.categories
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- services
+DROP POLICY IF EXISTS "Public read active services" ON public.services;
+DROP POLICY IF EXISTS "Admins manage services"      ON public.services;
 CREATE POLICY "Public read active services" ON public.services
-FOR SELECT USING (is_active = true);
-
+    FOR SELECT USING (is_active = true);
 CREATE POLICY "Admins manage services" ON public.services
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- subservices
+DROP POLICY IF EXISTS "Public read subservices"  ON public.subservices;
+DROP POLICY IF EXISTS "Admins manage subservices" ON public.subservices;
 CREATE POLICY "Public read subservices" ON public.subservices
-FOR SELECT USING (true);
-
+    FOR SELECT USING (true);
 CREATE POLICY "Admins manage subservices" ON public.subservices
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- doctors
+DROP POLICY IF EXISTS "Public read active doctors" ON public.doctors;
+DROP POLICY IF EXISTS "Admins manage doctors"      ON public.doctors;
 CREATE POLICY "Public read active doctors" ON public.doctors
-FOR SELECT USING (is_active = true);
-
+    FOR SELECT USING (is_active = true);
 CREATE POLICY "Admins manage doctors" ON public.doctors
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- orders
+DROP POLICY IF EXISTS "Users manage own orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins manage orders"    ON public.orders;
 CREATE POLICY "Users manage own orders" ON public.orders
-FOR ALL USING (auth.uid() = customer_id);
-
+    FOR ALL USING (auth.uid() = customer_id);
 CREATE POLICY "Admins manage orders" ON public.orders
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
+-- reviews
+DROP POLICY IF EXISTS "Public read reviews"      ON public.reviews;
+DROP POLICY IF EXISTS "Users manage own reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Admins manage reviews"    ON public.reviews;
 CREATE POLICY "Public read reviews" ON public.reviews
-FOR SELECT USING (true);
-
+    FOR SELECT USING (true);
 CREATE POLICY "Users manage own reviews" ON public.reviews
-FOR ALL USING (auth.uid() = customer_id);
-
+    FOR ALL USING (auth.uid() = customer_id);
 CREATE POLICY "Admins manage reviews" ON public.reviews
-FOR ALL USING (public.is_admin());
+    FOR ALL USING (public.is_admin());
 
 -- ============================================
--- STORAGE POLICIES — FINAL CORRECT VERSION
+-- STEP 9: STORAGE POLICIES
+-- Drop before (re)creating to ensure idempotency.
 -- ============================================
+DROP POLICY IF EXISTS "Authenticated users upload images"              ON storage.objects;
+DROP POLICY IF EXISTS "Public read images"                             ON storage.objects;
+DROP POLICY IF EXISTS "Users delete own images"                        ON storage.objects;
+DROP POLICY IF EXISTS "Service role full access"                       ON storage.objects;
+-- Legacy names (clean up if they exist from old runs)
+DROP POLICY IF EXISTS "Authenticated users can upload to image buckets" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can read image buckets"                   ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own uploads"              ON storage.objects;
 
 CREATE POLICY "Authenticated users upload images"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id IN ('category-images','service-images','doctor-images'));
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (bucket_id IN ('category-images', 'service-images', 'doctor-images'));
 
 CREATE POLICY "Public read images"
-ON storage.objects FOR SELECT
-USING (bucket_id IN ('category-images','service-images','doctor-images'));
+    ON storage.objects FOR SELECT
+    USING (bucket_id IN ('category-images', 'service-images', 'doctor-images'));
 
 CREATE POLICY "Users delete own images"
-ON storage.objects FOR DELETE TO authenticated
-USING ((storage.foldername(name))[1] = auth.uid()::text);
+    ON storage.objects FOR DELETE TO authenticated
+    USING ((storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Service role full access"
+    ON storage.objects FOR ALL
+    USING (auth.role() = 'service_role');
 
 -- ============================================
 -- END OF SCHEMA

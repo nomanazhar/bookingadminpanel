@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { useLocation } from "../providers/location-provider"
 import { LOCATIONS } from "../providers/locations"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -15,7 +16,11 @@ export default function LocationSelectModal() {
     if (typeof window !== "undefined") {
       const locationSelectedOnce = localStorage.getItem("locationSelectedOnce");
       if (!location && !locationSelectedOnce) {
-        setOpen(true);
+        // Force logout before showing location popup
+        const supabase = createClient();
+        supabase.auth.signOut().finally(() => {
+          setOpen(true);
+        });
       }
     }
   }, [location]);

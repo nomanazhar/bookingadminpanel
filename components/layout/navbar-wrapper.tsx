@@ -23,6 +23,7 @@ export default function NavbarWrapper() {
     "/orders",
     "/users",
     "/searchbooking",
+    "/legacy-orders",
     // Add more as needed
   ];
 

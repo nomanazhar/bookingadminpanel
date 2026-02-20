@@ -46,17 +46,27 @@ function getStatusVariant(status: string) {
 
 function OrdersTableComponent({
   orders,
-  currentPage,
+  currentPage = 1,
   totalCount,
-  pageSize = 20,
+  pageSize = 50,
 }: OrdersTableProps) {
-  const router = useRouter()
-  const [search, setSearch] = useState("")
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+
+  // Sort orders by most recent booking_date and booking_time (descending)
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      // Combine date and time for comparison
+      const aDate = `${a.booking_date || ''}T${a.booking_time || '00:00:00'}`;
+      const bDate = `${b.booking_date || ''}T${b.booking_time || '00:00:00'}`;
+      return bDate.localeCompare(aDate);
+    });
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
-    if (!search) return orders;
+    if (!search) return sortedOrders;
     const q = search.toLowerCase();
-    return orders.filter((order) => {
+    return sortedOrders.filter((order) => {
       // Combine all relevant fields for searching
       const locations = Array.isArray(order.service?.locations) ? order.service.locations.join(' ') : '';
       const fields = [
@@ -81,12 +91,17 @@ function OrdersTableComponent({
       ].join(' ').toLowerCase();
       return fields.includes(q);
     });
-  }, [orders, search]);
+  }, [sortedOrders, search]);
+
+  // For legacy orders page, pagination is handled server-side, so use all orders as-is
+  const paginatedOrders = filteredOrders;
 
   const handleConfirm = async (orderId: string) => {
-    await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' })
-    router.refresh()
-  }
+    await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' });
+    router.refresh();
+  };
+
+  const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   return (
     <div className="space-y-4">
@@ -99,13 +114,14 @@ function OrdersTableComponent({
       <Table>
         <TableHeader className="bg-[#333333] text-white">
           <TableRow>
+             <TableHead>Booking Date</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Service</TableHead>
             {/* <TableHead>Locations</TableHead> */}
             <TableHead>Sessions</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Phone</TableHead>
-            <TableHead>Booking Date</TableHead>
+           
             <TableHead>Booking Time</TableHead>
             {/* <TableHead>Amount</TableHead> */}
             <TableHead>Status</TableHead>
@@ -115,8 +131,17 @@ function OrdersTableComponent({
         </TableHeader>
 
         <TableBody>
-          {filteredOrders.map((order) => (
+          {paginatedOrders.map((order) => (
             <TableRow key={order.id}>
+              <TableCell>
+                {format(
+                  parseBookingDateTime(
+                    order.booking_date,
+                    order.booking_time || "00:00:00"
+                  ),
+                  "MMM dd, yyyy"
+                )}
+              </TableCell>
               <TableCell className="font-medium">
                 <div>
                   <div>
@@ -160,15 +185,7 @@ function OrdersTableComponent({
                 {order.customer_phone || "-"}
               </TableCell>
 
-              <TableCell>
-                {format(
-                  parseBookingDateTime(
-                    order.booking_date,
-                    order.booking_time || "00:00:00"
-                  ),
-                  "MMM dd, yyyy"
-                )}
-              </TableCell>
+              
 
               <TableCell>
                   {(() => {
@@ -271,27 +288,6 @@ function OrdersTableComponent({
           ))}
         </TableBody>
       </Table>
-
-      {typeof currentPage !== "undefined" &&
-        typeof totalCount !== "undefined" && (
-          <div className="flex items-center justify-between p-4">
-            <div className="text-sm text-muted-foreground">
-              Showing page {currentPage}
-            </div>
-            <div className="flex items-center gap-2">
-              {currentPage > 1 && (
-                <a href={`?page=${currentPage - 1}`} className="btn">
-                  Previous
-                </a>
-              )}
-              {currentPage * pageSize < totalCount && (
-                <a href={`?page=${currentPage + 1}`} className="btn">
-                  Next
-                </a>
-              )}
-            </div>
-          </div>
-        )}
     </div>
   )
 }

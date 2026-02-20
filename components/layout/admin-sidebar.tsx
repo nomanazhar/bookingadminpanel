@@ -12,6 +12,10 @@ import {
   Mail,
   Users,
   Stethoscope,
+  History,
+  BookOpen,
+  UserCircle,
+  FileText,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -43,7 +47,7 @@ const sidebarLinks = [
   {
     title: "Treatments",
     href: "/admin-services",
-    icon: Sparkles,
+    icon: BookOpen,
   },
   {
     title: "Doctors",
@@ -53,12 +57,17 @@ const sidebarLinks = [
   {
     title: "SearchBooking",
     href: "/searchbooking",
-    icon: ShoppingCart, // or another icon if preferred
+    icon: FileText,
   },
   {
     title: "Users",
     href: "/users",
-    icon: Users,
+    icon: UserCircle,
+  },
+  {
+    title: "Legacy Orders",
+    href: "/legacy-orders",
+    icon: History,
   },
 ]
 
@@ -160,7 +169,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
                 )} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 ml-2">
+            <DropdownMenuContent align="start" className="w-42 ml-2">
               <DropdownMenuItem asChild>
                 <Link href="/orders" onClick={onLinkClick}>
                   All Bookings
@@ -168,7 +177,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
               </DropdownMenuItem>
               {doctors.length > 0 && (
                 <>
-                  <DropdownMenuItem disabled className="opacity-70 text-xs">
+                  <DropdownMenuItem disabled className="opacity-70 text-xs underline">
                     By Doctor:
                   </DropdownMenuItem>
                   {doctors.map((doctor) => {
@@ -178,7 +187,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
                         <Link
                           href={`/orders/doctors/${doctor.id}`}
                           onClick={onLinkClick}
-                          className={isDoctorActive ? "bg-accent" : ""}
+                          className={isDoctorActive ? "bg-[#42E0CF] text-white shadow-md" : "bg-accent hover:bg-accent/80"}
                         >
                           <span className="truncate">
                             Dr. {doctor.first_name} {doctor.last_name}
@@ -200,7 +209,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
               "flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               isBookingsActive
                 ? "bg-[#42E0CF] text-white shadow-md"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                : "text-muted-foreground hover:bg-primary hover:text-accent-foreground"
             )}
             style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
           >
