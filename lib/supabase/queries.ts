@@ -1,3 +1,29 @@
+import { Session } from '@/types/database';
+// Fetch all sessions for a given order
+export async function getSessionsByOrder(supabase: any, orderId: string): Promise<Session[]> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('session_number', { ascending: true });
+  if (error) throw error;
+  return data as Session[];
+}
+
+// Calculate session progress for display
+export function calculateSessionProgress(sessions: Session[]) {
+  const total = sessions.length;
+  const attended = sessions.filter(s => s.status === 'completed').length;
+  const remaining = sessions.filter(s => s.status === 'pending' || s.status === 'scheduled').length;
+  const expired = sessions.filter(s => s.status === 'expired').length;
+  return { attended, remaining, total, expired };
+}
+
+// Check if a session is expired
+export function isSessionExpired(session: Session) {
+  if (!session.expires_at) return false;
+  return new Date(session.expires_at) < new Date();
+}
 // Get count of future appointments (upcoming orders)
 export async function getFutureAppointmentsCount() {
   const supabase = createServiceRoleClient();
@@ -173,7 +199,8 @@ export const getOrders = unstable_cache(async () => {
         category:categories(*)
       ),
       customer:profiles(*),
-      doctor:doctors(*)
+      doctor:doctors(*),
+      sessions:sessions(*)
     `)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -201,7 +228,8 @@ export async function getOrdersPaginated(page: number = 1, pageSize: number = 20
         category:categories(*)
       ),
       customer:profiles(*),
-      doctor:doctors(*)
+      doctor:doctors(*),
+      sessions:sessions(*)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(start, end)
@@ -366,7 +394,8 @@ export async function getOrdersPaginatedAdmin(page: number = 1, pageSize: number
         category:categories(*)
       ),
       customer:profiles(*),
-      doctor:doctors(*)
+      doctor:doctors(*),
+      sessions:sessions(*)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(start, end);

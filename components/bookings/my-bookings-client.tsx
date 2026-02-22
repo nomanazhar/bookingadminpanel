@@ -37,6 +37,29 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
     }
   }
 
+  // Helper to show session progress (e.g., 1/3, 2/3)
+  function renderSessionProgress(order: OrderWithDetails) {
+    // If sessions array exists, show next session number and total
+    // Otherwise fallback to 1/1
+    let current = 1;
+    let total = 1;
+    if (Array.isArray(order.sessions) && order.sessions.length > 0) {
+      total = order.sessions.length;
+      // Find the next session to attend (status: 'pending' or 'scheduled')
+      const nextSessionIdx = order.sessions.findIndex(s => s.status === 'pending' || s.status === 'scheduled');
+      current = nextSessionIdx >= 0 ? nextSessionIdx + 1 : total; // If all completed, show last
+    } else {
+      // Fallback to session_count/total_sessions if available
+      total =  order.session_count || 1;
+      current = 1;
+    }
+    return (
+      <div className="text-xs font-semibold text-primary mb-2">
+        Session {current} of {total}
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="max-w-3xl mx-auto mb-8">
@@ -77,6 +100,7 @@ export default function MyBookingsClient({ customerId, upcoming, previous }: Pro
                     <div className="mb-2">
                       <span className="inline-block bg-[#7B61FF] text-white text-xs font-semibold px-3 py-1 rounded-full mb-2">Upcoming</span>
                     </div>
+                    {renderSessionProgress(upcomingOrder)}
                     <h2 className="text-2xl font-bold mb-1">{formatDate(upcomingOrder.booking_date)}</h2>
                     <div className="text-muted-foreground text-sm mb-2 capitalize">{upcomingOrder.service?.category?.name || ''}</div>
                     <div className="text-lg font-medium mb-1 capitalize">{upcomingOrder.service_title}</div>

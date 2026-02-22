@@ -1,91 +1,97 @@
-// app/my-treatments/page.tsx   ← or similar path
+// app/(customer)/my-treatments/MyTreatmentsClient.tsx
 
+"use client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { getOrdersByCustomer } from "@/lib/supabase/queries";
-import { parseBookingDateTime } from "@/lib/utils";
-import type { Profile } from "@/types";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+const RescheduleSessionDialog = dynamic(
+  () => import("@/components/bookings/RescheduleSessionDialog"),
+  { ssr: false }
+);
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+import { calculateSessionProgress } from "@/lib/supabase/queries";
 
-export default async function MyTreatmentsPage() {
-  const supabase = await createClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+type Session = any; // ← improve with real type when possible
+type Order = any;
 
-  let user: Profile | null = null;
-  let orders: any[] = [];
+type Props = {
+  treatments: Order[];
+  orderSessions: Record<string, Session[]>;
+  formatDate: (dateStr: string) => string;
+};
 
-  if (authUser) {
-    const [profileRes, ordersRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", authUser.id).single(),
-      getOrdersByCustomer(supabase, authUser.id),
-    ]);
+export default function MyTreatmentsClient({
+  treatments,
+  orderSessions,
+  formatDate,
+}: Props) {
+  // Defensive: ensure treatments and orderSessions are always defined
+  const safeTreatments = Array.isArray(treatments) ? treatments : [];
+  const safeOrderSessions = orderSessions && typeof orderSessions === 'object' ? orderSessions : {};
+  const router = useRouter();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    user = profileRes.data as Profile ?? null;
-    orders = ordersRes ?? [];
-  }
+  const handleReschedule = (session: Session) => {
+    setSelectedSession(session);
+    setDialogOpen(true);
+  };
 
-  // Show both completed and upcoming treatments
-  const now = new Date();
-  const treatments = orders
-    .filter((o: any) =>
-      o.status === "completed" ||
-      ((o.status === "pending" || o.status === "confirmed") && parseBookingDateTime(o.booking_date, o.booking_time ?? "00:00:00") >= now)
-    )
-    .sort((a: any, b: any) => {
-      const ad = parseBookingDateTime(a.booking_date, a.booking_time ?? "00:00:00");
-      const bd = parseBookingDateTime(b.booking_date, b.booking_time ?? "00:00:00");
-      return bd.getTime() - ad.getTime(); // newest first
-    });
+  const handleRescheduleSubmit = async (date: string, time: string) => {
+    if (!selectedSession) return;
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/orders/${selectedSession.order_id}/sessions`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: selectedSession.id,
+          scheduled_date: date,
+          scheduled_time: time,
+          status: "scheduled",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to reschedule");
+
+      setDialogOpen(false);
+      setSelectedSession(null);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reschedule session. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
+    <>
     <main className="container mx-auto py-8">
-      <section className="max-w-3xl mx-auto mb-10">
-        <div className="flex items-center gap-2 mb-4">
-          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-          <Link
-            href="/book-consultation"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Go back
-          </Link>
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight">My Treatments</h1>
-      </section>
-
-      <section className="max-w-3xl mx-auto mb-8">
-        <div className="flex w-full rounded-full overflow-hidden bg-muted p-1.5">
-          <div className="flex-1 py-3.5 px-6 text-center text-lg font-medium bg-background rounded-full shadow">
-            Purchased
+    <section className="max-w-3xl mx-auto mb-10">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+            <Link href="/book-consultation" className="text-muted-foreground text-base font-normal cursor-pointer">Go back</Link>
           </div>
-        </div>
-      </section>
-
-      {/* Treatments: Upcoming and Completed */}
+          <h1 className="text-4xl font-bold tracking-tight">My Treatments</h1>
+        </section>
       <section className="max-w-4xl mx-auto space-y-4">
-        {treatments.length === 0 ? (
+        {safeTreatments.length === 0 ? (
           <div className="bg-muted/60 rounded-xl shadow-sm p-10 text-center min-h-[200px] flex items-center justify-center">
             <p className="text-lg text-muted-foreground">
               You have not purchased or booked any treatments yet.
             </p>
           </div>
         ) : (
-          treatments.map((order: any) => {
-            const bookingDateTime = parseBookingDateTime(
-              order.booking_date,
-              order.booking_time ?? "00:00:00"
-            );
+          safeTreatments.map((order: Order) => {
+            const bookingDateTime = new Date(`${order.booking_date}T${order.booking_time ?? "00:00:00"}`);
             let statusLabel = "";
             let statusColor = "";
+
             if (order.status === "completed") {
               statusLabel = "Completed";
               statusColor = "text-emerald-600";
@@ -96,54 +102,117 @@ export default async function MyTreatmentsPage() {
               statusLabel = "Confirmed";
               statusColor = "text-blue-700";
             }
+
+            const sessions = safeOrderSessions[order.id] || [];
+            const progress = calculateSessionProgress(sessions); // assuming this is exported & works
+
             return (
               <div
                 key={order.id}
-                className="bg-white border rounded-xl shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow transition-shadow"
+                className="bg-white border rounded-xl shadow-sm p-5 sm:p-6 flex flex-col gap-2 hover:shadow transition-shadow"
               >
-                <div className="flex-1 space-y-1">
-                  <h3 className="font-semibold text-lg">
-                    {formatDate(order.booking_date)}
-                  </h3>
-                  <div className="text-muted-foreground">
-                    {order.service_title}
-                  </div>
-                  {order.customer && (
-                    <div className="text-sm text-muted-foreground">
-                      {order.customer.first_name} {order.customer.last_name}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <h3 className="font-semibold text-lg">
+                      {formatDate(order.booking_date)}
+                    </h3>
+                    <div className="text-muted-foreground">
+                      {order.service_title}
                     </div>
-                  )}
+                    {order.customer && (
+                      <div className="text-sm text-muted-foreground">
+                        {order.customer.first_name} {order.customer.last_name}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="font-medium">
+                      {(() => {
+                        let label = bookingDateTime.toLocaleTimeString(undefined, {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        });
+                        if (order.service?.duration_minutes) {
+                          const end = new Date(bookingDateTime.getTime() + order.service.duration_minutes * 60000);
+                          let hour = end.getHours() % 12 || 12;
+                          const minute = end.getMinutes().toString().padStart(2, "0");
+                          const ampm = end.getHours() >= 12 ? "pm" : "am";
+                          label = `${label} – ${hour}:${minute} ${ampm}`;
+                        }
+                        return label;
+                      })()}
+                    </div>
+                    <div className={`text-sm font-medium capitalize ${statusColor}`}>
+                      {statusLabel}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <div className="font-medium">
-                    {(() => {
-                      let label = bookingDateTime.toLocaleTimeString(undefined, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      });
-                      if (order.service?.duration_minutes) {
-                        const end = new Date(bookingDateTime.getTime() + order.service.duration_minutes * 60000);
-                        let hour = end.getHours();
-                        const minute = end.getMinutes().toString().padStart(2, '0');
-                        const ampm = hour >= 12 ? 'pm' : 'am';
-                        hour = hour % 12;
-                        if (hour === 0) hour = 12;
-                        label = `${label} - ${hour}:${minute} ${ampm}`;
-                      }
-                      return label;
-                    })()}
+                {/* Session progress and details */}
+                {sessions.length > 0 && (
+                  <div className="mt-4 pt-3 border-t">
+                    <div className="text-sm font-medium text-gray-700 mb-2">
+                      {progress.attended} of {progress.total} sessions attended • {progress.remaining} remaining
+                    </div>
+
+                    <div className="flex flex-col gap-2 text-sm">
+                      {sessions.map((s: Session) => (
+                        <div key={s.id} className="flex items-center gap-3">
+                          <div className="min-w-[140px]">
+                            <span className="font-semibold">Session {s.session_number}:</span>
+                          </div>
+                          <div className="flex-1">
+                            {s.scheduled_date
+                              ? formatDate(s.scheduled_date)
+                              : "Not scheduled"}{" "}
+                            {s.scheduled_time ? s.scheduled_time.slice(0, 5) : ""}
+                          </div>
+                          <span
+                            className={
+                              s.status === "completed"
+                                ? "text-emerald-600 font-medium"
+                                : s.status === "scheduled"
+                                ? "text-blue-600 font-medium"
+                                : s.status === "pending"
+                                ? "text-gray-500"
+                                : s.status === "expired"
+                                ? "text-red-500"
+                                : "text-gray-400"
+                            }
+                          >
+                            {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                          </span>
+
+                          {(s.status === "pending" || s.status === "scheduled") && (
+                            <button
+                              className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                              onClick={() => handleReschedule(s)}
+                            >
+                              Reschedule
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className={`text-sm font-medium capitalize ${statusColor}`}>
-                    {statusLabel}
-                  </div>
-                </div>
+                )}
               </div>
             );
           })
         )}
       </section>
-    </main>
+
+      {/* Reschedule dialog – client-only */}
+      <RescheduleSessionDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSubmit={handleRescheduleSubmit}
+        session={selectedSession}
+        loading={loading}
+      />
+       </main>
+    </>
   );
 }

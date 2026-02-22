@@ -196,6 +196,24 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
+    // Create sessions for this order
+    if (inserted && inserted.id && sessionCount > 0) {
+      // First session is scheduled, rest are pending
+      const sessions = [];
+      for (let i = 1; i <= sessionCount; i++) {
+        sessions.push({
+          order_id: inserted.id,
+          session_number: i,
+          status: i === 1 ? 'scheduled' : 'pending',
+          scheduled_date: i === 1 ? bookingDate : null,
+          scheduled_time: i === 1 ? bookingTime : null,
+          expires_at: null,
+        });
+      }
+      // Insert all sessions
+      await supabase.from('sessions').insert(sessions);
+    }
+
     return NextResponse.json(inserted, { status: 201 });
   } catch (err: any) {
     console.error("POST /api/orders error:", err);

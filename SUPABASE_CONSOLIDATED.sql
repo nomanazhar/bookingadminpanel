@@ -1,4 +1,20 @@
 -- ============================================
+-- SESSIONS TABLE FOR MULTI-SESSION TREATMENT TRACKING
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.sessions (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id         UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    session_number   INTEGER NOT NULL, -- 1, 2, 3, ...
+    scheduled_date   DATE,
+    scheduled_time   TIME,
+    status           TEXT NOT NULL CHECK (status IN ('pending', 'scheduled', 'completed', 'missed', 'cancelled', 'expired')) DEFAULT 'pending',
+    attended_date    DATE,
+    notes            TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at       DATE
+);
+-- ============================================
 -- LEGACY ORDERS TABLE FOR IMPORTED DATA
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.legacy_orders (

@@ -1,3 +1,16 @@
+export interface Session {
+  id: string
+  order_id: string
+  session_number: number
+  scheduled_date?: string | null
+  scheduled_time?: string | null
+  status: 'pending' | 'scheduled' | 'completed' | 'missed' | 'cancelled' | 'expired'
+  attended_date?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+  expires_at?: string | null
+}
 export type Json =
   | string
   | number
@@ -121,6 +134,7 @@ export interface OrderWithDetails extends Order {
   service: ServiceWithCategory
   customer: Profile
   doctor?: Doctor | null
+  sessions?: Session[]
 }
 
 export interface ReviewWithDetails extends Review {
@@ -150,6 +164,11 @@ export interface Database {
         Row: Order
         Insert: Omit<Order, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Order, 'id' | 'created_at' | 'updated_at'>>
+      }
+      sessions: {
+        Row: Session
+        Insert: Omit<Session, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Session, 'id' | 'created_at' | 'updated_at'>>
       }
       reviews: {
         Row: Review

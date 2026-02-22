@@ -101,6 +101,22 @@ function OrdersTableComponent({
     router.refresh();
   };
 
+    // Session check-in logic
+    const handleSessionCheckIn = async (orderId: string, sessionId: string) => {
+      await axios.patch(`/api/orders/${orderId}/sessions`, {
+        sessionId,
+        status: 'completed',
+        attended_date: new Date().toISOString().slice(0, 10),
+      });
+      // After check-in, check if all sessions are completed
+      const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
+      const allCompleted = sessions.every((s: any) => s.status === 'completed');
+      if (allCompleted) {
+        await axios.patch(`/api/orders/${orderId}`, { status: 'completed' });
+      }
+      router.refresh();
+    };
+
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   return (
@@ -154,7 +170,6 @@ function OrdersTableComponent({
                 </div>
               </TableCell>
 
-
               <TableCell>
                 {order.service ? (
                   order.service.name
@@ -176,6 +191,37 @@ function OrdersTableComponent({
               <TableCell className="font-medium">
                 {order.session_count}{" "}
                 {order.session_count === 1 ? "session" : "sessions"}
+                {/* Session check-in UI */}
+                {(order.sessions?.length ?? 0) > 0 && (() => {
+                  const sessions = order.sessions ?? [];
+                  const total = sessions.length;
+                  const completed = sessions.filter((s: any) => s.status === 'completed').length;
+                  const nextSession = sessions.find((s: any) => s.status !== 'completed');
+                  // If all sessions completed
+                  if (completed === total && total > 0) {
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">Sessions {total}/{total}</span>
+                        <Badge variant="default">All checked in</Badge>
+                      </div>
+                    );
+                  }
+                  // Otherwise show progress and check-in button
+                  return (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">Session {completed + 1}/{total}</span>
+                      {nextSession ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleSessionCheckIn(order.id, nextSession.id)}
+                          disabled={order.status !== 'confirmed'}
+                        >
+                          Check in
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                })()}
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
