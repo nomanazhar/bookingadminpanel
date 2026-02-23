@@ -37,8 +37,9 @@ export default async function MyBookingsPage() {
     .filter((o: any) => (o.status === 'pending' || o.status === 'confirmed') && toDate(o) >= now)
     .sort((a: any, b: any) => toDate(a).getTime() - toDate(b).getTime())
 
-  const previous = orders.filter((o: any) => !(o.status === 'pending' || o.status === 'confirmed') || toDate(o) < now)
-  previous.sort((a: any, b: any) => toDate(b).getTime() - toDate(a).getTime())
+  const previous = orders
+    .filter((o: any) => (o.status !== 'pending' && o.status !== 'confirmed') || (o.status === 'confirmed' && toDate(o) < now))
+    .sort((a: any, b: any) => toDate(b).getTime() - toDate(a).getTime())
 
   function formatDate(dateStr: string) {
     try {
@@ -63,8 +64,6 @@ export default async function MyBookingsPage() {
         {authUser && (
           <MyBookingsClient 
             customerId={authUser.id}
-            upcoming={upcoming}
-            previous={previous}
           />
         )}
       </main>

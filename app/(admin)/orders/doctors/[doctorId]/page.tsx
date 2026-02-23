@@ -36,7 +36,8 @@ async function OrdersListByDoctor({ doctorId, page }: { doctorId: string; page: 
         category:categories(*)
       ),
       customer:profiles(*),
-      doctor:doctors(*)
+      doctor:doctors(*),
+      sessions:sessions(*)
     `, { count: 'exact' })
     .eq("doctor_id", doctorId)
     .order("created_at", { ascending: false })

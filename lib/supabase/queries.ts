@@ -251,7 +251,8 @@ export async function getOrdersByCustomer(supabase: any, customerId: string) {
         category:categories(*)
       ),
       customer:profiles(*),
-      doctor:doctors(*)
+      doctor:doctors(*),
+      sessions(*)
     `)
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
