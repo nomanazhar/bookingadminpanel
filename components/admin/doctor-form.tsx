@@ -11,6 +11,17 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Doctor } from "@/types";
 
+// List of admin pages that can be allowed for doctors
+const ADMIN_PAGES = [
+  { value: 'admin-dashboard', label: 'Dashboard' },
+  { value: 'orders', label: 'Orders' },
+  { value: 'users', label: 'Users' },
+  { value: 'categories', label: 'Categories' },
+  { value: 'services', label: 'Services' },
+  { value: 'doctors', label: 'Doctors' },
+  // Add more as needed
+];
+
 interface DoctorFormProps {
   onDoctorSaved?: () => void;
   initialValues?: Partial<Doctor>;
@@ -34,6 +45,8 @@ export function DoctorForm({
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
   const [locations, setLocations] = useState<string[]>(initialValues?.locations || []);
   const [updating, setUpdating] = useState(false);
+  const [allowedPages, setAllowedPages] = useState<string[]>(initialValues?.allowed_admin_pages || []);
+  const [password, setPassword] = useState("");
 
   // Sync form when initialValues change (edit mode)
   useEffect(() => {
@@ -47,6 +60,7 @@ export function DoctorForm({
     setImageUrl(initialValues?.avatar_url || "");
     setIsActive(initialValues?.is_active ?? true);
     setLocations(initialValues?.locations || []);
+    setAllowedPages(initialValues?.allowed_admin_pages || []);
   }, [initialValues]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,6 +126,7 @@ export function DoctorForm({
     }
 
     try {
+
       if (initialValues?.id) {
         // Update existing doctor
         await axios.put(`/api/doctors/${initialValues.id}`, {
@@ -124,6 +139,8 @@ export function DoctorForm({
           avatar_url: finalImageUrl || null,
           is_active: isActive,
           locations,
+          allowed_admin_pages: allowedPages,
+          password: password,
         });
         toast({ title: "Doctor updated successfully!" });
       } else {
@@ -138,6 +155,8 @@ export function DoctorForm({
           avatar_url: finalImageUrl || null,
           is_active: isActive,
           locations,
+          allowed_admin_pages: allowedPages,
+          password: password,
         });
         toast({ title: "Doctor created successfully!" });
 
@@ -152,6 +171,8 @@ export function DoctorForm({
         setImageUrl("");
         setIsActive(true);
         setLocations([]);
+        setAllowedPages([]);
+        setPassword("");
       }
 
       onDoctorSaved?.();
@@ -194,6 +215,43 @@ export function DoctorForm({
       </h3>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Password field for admin to set password */}
+        <div className="md:col-span-2">
+          <Label htmlFor="password">Set Password</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Set password for doctor"
+            autoComplete="new-password"
+          />
+          <span className="text-xs text-muted-foreground">Admin can set password and share credentials with doctor.</span>
+        </div>
+                {/* Allowed Admin Pages Multi-select */}
+                <div className="md:col-span-2">
+                  <Label className="block mb-1 font-medium text-foreground">Allowed Pages</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {ADMIN_PAGES.map((page) => (
+                      <label key={page.value} className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          value={page.value}
+                          checked={allowedPages.includes(page.value)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setAllowedPages(prev => [...prev, page.value]);
+                            } else {
+                              setAllowedPages(prev => prev.filter(p => p !== page.value));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span>{page.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
         <div>
           <Label htmlFor="firstName">First Name *</Label>
           <Input

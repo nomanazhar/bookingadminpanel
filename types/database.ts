@@ -19,7 +19,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type UserRole = 'customer' | 'admin'
+export type UserRole = 'customer' | 'admin' | 'doctor'
 
 export interface Profile {
   id: string
@@ -117,6 +117,7 @@ export interface Doctor {
   is_active: boolean
   created_at: string
   updated_at: string
+  allowed_admin_pages?: string[]
 }
 
 // Extended types with relations

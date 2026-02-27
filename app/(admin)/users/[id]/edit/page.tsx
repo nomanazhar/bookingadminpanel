@@ -34,7 +34,7 @@ export default function EditUserPage() {
   const [phone, setPhone] = useState("")
   const [gender, setGender] = useState("")
   const [address, setAddress] = useState("")
-  const [role, setRole] = useState<"customer" | "admin">("customer")
+  const [role, setRole] = useState<"customer" | "admin" | "doctor">("customer")
 
   // Load user profile
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function EditUserPage() {
         setPhone(data.phone || "")
         setGender(data.gender || "")
         setAddress(data.address || "")
-        setRole((data.role as "customer" | "admin") || "customer")
+        setRole((data.role as "customer" | "admin" | "doctor") || "customer")
       } catch (error: any) {
         toast({
           title: "Error",
@@ -254,13 +254,14 @@ export default function EditUserPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="role">User Role</Label>
-                  <Select value={role} onValueChange={(v: "customer" | "admin") => setRole(v)}>
+                  <Select value={role} onValueChange={(v: "customer" | "admin" | "doctor") => setRole(v)}>
                     <SelectTrigger id="role" className="w-full bg-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                       <SelectItem value="customer">Customer</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="doctor">Doctor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NEXT_BUILDER=webpack next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "create-admin": "tsx scripts/create-admin.ts"

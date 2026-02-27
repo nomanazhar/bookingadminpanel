@@ -461,7 +461,7 @@ export async function getFeaturedReviews() {
 export const getStats = unstable_cache(async () => {
   const supabase = createServiceRoleClient()
   // Run count queries in parallel to reduce total latency.
-  const [profilesRes, ordersRes, categoriesRes, servicesRes] = await Promise.all([
+  const [profilesRes, ordersRes, categoriesRes, servicesRes, doctorsRes] = await Promise.all([
     supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
@@ -477,16 +477,22 @@ export const getStats = unstable_cache(async () => {
       .from('services')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true),
+    supabase
+      .from('doctors')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true),
   ])
   if (profilesRes.error) throw profilesRes.error
   if (ordersRes.error) throw ordersRes.error
   if (categoriesRes.error) throw categoriesRes.error
   if (servicesRes.error) throw servicesRes.error
+  if (doctorsRes.error) throw doctorsRes.error
   return {
     totalCustomers: profilesRes.count || 0,
     totalOrders: ordersRes.count || 0,
     totalCategories: categoriesRes.count || 0,
     totalServices: servicesRes.count || 0,
+    totalDoctors: doctorsRes.count || 0,
   }
 }, ['getStats'], { revalidate: 60 })
 export async function getRecentOrdersAdmin(limit: number = 5) {

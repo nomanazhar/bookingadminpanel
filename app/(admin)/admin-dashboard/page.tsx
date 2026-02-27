@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getStats, getRecentOrdersAdmin, getFutureAppointmentsCount } from "@/lib/supabase/queries"
+import { createClient } from "@/lib/supabase/server"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
 import { Users, ShoppingCart, FolderTree, Sparkles } from "lucide-react"
 
@@ -11,7 +12,23 @@ async function StatsCards() {
     getFutureAppointmentsCount(),
   ])
 
-  const cards = [
+  // Get user role (server-side)
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  let role = "admin"
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+    if (profile?.role) role = profile.role
+  }
+
+  // Define cards for each role
+  const adminCards = [
     {
       title: "Upcoming Appointments",
       value: futureAppointments,
@@ -42,8 +59,30 @@ async function StatsCards() {
       icon: Sparkles,
       description: "Active treatments",
     },
-    
+    {
+      title: "Total Doctors",
+      value: stats.totalDoctors,
+      icon: Users,
+      description: "Active doctors",
+    },
   ]
+  const doctorCards = [
+    {
+      title: "Upcoming Appointments",
+      value: futureAppointments,
+      icon: ShoppingCart,
+      description: "Your future bookings",
+    },
+    {
+      title: "Total Appointments ",
+      value: stats.totalOrders,
+      icon: ShoppingCart,
+      description: "All your appointments",
+    },
+    // Add more doctor-specific cards as needed
+  ]
+
+  const cards = role === "doctor" ? doctorCards : adminCards
 
   return (
     <>

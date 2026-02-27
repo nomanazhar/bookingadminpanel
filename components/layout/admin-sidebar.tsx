@@ -75,7 +75,10 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
   const pathname = usePathname()
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [bookingsOpen, setBookingsOpen] = useState(false)
+  const [allowedPages, setAllowedPages] = useState<string[] | null>(null)
+  const [role, setRole] = useState<string | null>(null)
 
+  // Fetch doctors for bookings dropdown
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -93,8 +96,40 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
     fetchDoctors()
   }, [])
 
+  // Fetch current user role and allowed_admin_pages if doctor
+  useEffect(() => {
+    async function fetchRoleAndAllowedPages() {
+      try {
+        const res = await fetch("/api/auth/me")
+        if (res.ok) {
+          const data = await res.json()
+          setRole(data.role)
+          if (data.role === "doctor") {
+            setAllowedPages(Array.isArray(data.allowed_admin_pages) ? data.allowed_admin_pages : [])
+          } else {
+            setAllowedPages(null)
+          }
+        }
+      } catch {
+        setRole(null)
+        setAllowedPages(null)
+      }
+    }
+    fetchRoleAndAllowedPages()
+  }, [])
+
   // Check if current path is a bookings-related path
   const isBookingsActive = pathname?.startsWith("/admin-dashboard/orders")
+
+  // Filter sidebar links for doctors
+  let filteredSidebarLinks = sidebarLinks
+  if (role === "doctor" && Array.isArray(allowedPages)) {
+    filteredSidebarLinks = sidebarLinks.filter(link => {
+      // Extract slug from href (e.g., /users -> users, /admin-dashboard -> admin-dashboard)
+      const slug = link.href.replace(/^\//, "")
+      return allowedPages.includes(slug)
+    })
+  }
 
   return (
     <>
@@ -122,10 +157,9 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
       </div>
 
       <nav className="flex-1 space-y-1 p-4 ">
-        {sidebarLinks.map((link) => {
+        {filteredSidebarLinks.map((link) => {
           const isActive = pathname === link.href
           const Icon = link.icon
-
           return (
             <Link
               key={link.href}
@@ -149,57 +183,88 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
 
         {/* Bookings Dropdown */}
         {!isCollapsed ? (
-          <DropdownMenu open={bookingsOpen} onOpenChange={setBookingsOpen}>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={cn(
-                  "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isBookingsActive
-                    ? "bg-[#42E0CF] text-white shadow-md"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          role === "doctor" ? (
+            <DropdownMenu open={bookingsOpen} onOpenChange={setBookingsOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isBookingsActive
+                      ? "bg-[#42E0CF] text-white shadow-md"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
+                  title="Bookings"
+                >
+                  <ShoppingCart className="h-5 w-5 flex-shrink-0" />
+                  <span>Bookings</span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 ml-auto transition-transform",
+                    bookingsOpen && "rotate-180"
+                  )} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-42 ml-2">
+                <DropdownMenuItem asChild>
+                  <Link href={`/orders/doctors/${doctors[0]?.id || ''}`} onClick={onLinkClick}>
+                    My Bookings
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <DropdownMenu open={bookingsOpen} onOpenChange={setBookingsOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isBookingsActive
+                      ? "bg-[#42E0CF] text-white shadow-md"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
+                  title="Bookings"
+                >
+                  <ShoppingCart className="h-5 w-5 flex-shrink-0" />
+                  <span>Bookings</span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 ml-auto transition-transform",
+                    bookingsOpen && "rotate-180"
+                  )} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-42 ml-2">
+                <DropdownMenuItem asChild>
+                  <Link href="/orders" onClick={onLinkClick}>
+                    All Bookings
+                  </Link>
+                </DropdownMenuItem>
+                {doctors.length > 0 && (
+                  <>
+                    <DropdownMenuItem disabled className="opacity-70 text-xs underline">
+                      By Doctor:
+                    </DropdownMenuItem>
+                    {doctors.map((doctor) => {
+                      const isDoctorActive = pathname === `/orders/doctors/${doctor.id}`
+                      return (
+                        <DropdownMenuItem key={doctor.id} asChild>
+                          <Link
+                            href={`/orders/doctors/${doctor.id}`}
+                            onClick={onLinkClick}
+                            className={isDoctorActive ? "bg-[#42E0CF] text-white shadow-md" : "bg-accent hover:bg-accent/80"}
+                          >
+                            <span className="truncate">
+                              Dr. {doctor.first_name} {doctor.last_name}
+                            </span>
+                          </Link>
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </>
                 )}
-                style={isBookingsActive ? { backgroundColor: '#42E0CF', color: '#fff', borderRadius: '24px' } : undefined}
-                title="Bookings"
-              >
-                <ShoppingCart className="h-5 w-5 flex-shrink-0" />
-                <span>Bookings</span>
-                <ChevronDown className={cn(
-                  "h-4 w-4 ml-auto transition-transform",
-                  bookingsOpen && "rotate-180"
-                )} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-42 ml-2">
-              <DropdownMenuItem asChild>
-                <Link href="/orders" onClick={onLinkClick}>
-                  All Bookings
-                </Link>
-              </DropdownMenuItem>
-              {doctors.length > 0 && (
-                <>
-                  <DropdownMenuItem disabled className="opacity-70 text-xs underline">
-                    By Doctor:
-                  </DropdownMenuItem>
-                  {doctors.map((doctor) => {
-                    const isDoctorActive = pathname === `/orders/doctors/${doctor.id}`
-                    return (
-                      <DropdownMenuItem key={doctor.id} asChild>
-                        <Link
-                          href={`/orders/doctors/${doctor.id}`}
-                          onClick={onLinkClick}
-                          className={isDoctorActive ? "bg-[#42E0CF] text-white shadow-md" : "bg-accent hover:bg-accent/80"}
-                        >
-                          <span className="truncate">
-                            Dr. {doctor.first_name} {doctor.last_name}
-                          </span>
-                        </Link>
-                      </DropdownMenuItem>
-                    )
-                  })}
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
         ) : (
           <Link
             href="/orders"

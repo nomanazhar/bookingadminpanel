@@ -1,5 +1,5 @@
 "use client"
-
+import { useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -61,8 +61,8 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
 
   // Date and time state
   const [dateTime, setDateTime] = useState<string>("");
-  // Update date and time every second
-  useState(() => {
+  // Update date and time every second (useEffect for side effect)
+  useEffect(() => {
     const update = () => {
       const now = new Date();
       const options: Intl.DateTimeFormatOptions = {
@@ -78,7 +78,7 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  });
+  }, []);
   return (
     <nav className=" sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="relative flex h-16 items-center justify-between px-4">

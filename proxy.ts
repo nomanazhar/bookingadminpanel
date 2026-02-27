@@ -48,11 +48,11 @@ export async function proxy(request: NextRequest) {
   // 3. Handle redirects using role (if fast path)
   if (useFastPath && userRole) {
     if (path.startsWith('/signin') || path.startsWith('/signup')) {
-      const redirectUrl = userRole === 'admin' ? '/admin-dashboard' : '/'
+      const redirectUrl = userRole === 'admin' || userRole === 'doctor' ? '/admin-dashboard' : '/'
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
 
-      if (path === '/' && userRole === 'admin') {
+      if (path === '/' && (userRole === 'admin' || userRole === 'doctor')) {
       return NextResponse.redirect(new URL('/admin-dashboard', request.url))
     }
 
@@ -101,8 +101,21 @@ export async function proxy(request: NextRequest) {
   // This call refreshes the session if expired (network possible)
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Optional: You can add extra protection here if needed
-  // e.g. if (!user && path.startsWith('/dashboard')) { redirect to signin }
+  // Fallback: If we refreshed the session, redirect based on role if possible
+  if (user) {
+    // Fetch the user's profile to get the actual role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const actualRole = profile?.role || null
+    if (actualRole === 'admin' || actualRole === 'doctor') {
+      return NextResponse.redirect(new URL('/admin-dashboard', request.url))
+    }
+    // Otherwise, redirect to the customer dashboard
+    return NextResponse.redirect(new URL('/', request.url))
+  }
 
   // Return the response with updated cookies (if refreshed)
   return response

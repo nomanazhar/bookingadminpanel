@@ -24,7 +24,22 @@ export default async function AdminLayout({
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") {
+  if (profile?.role === "doctor") {
+    // Fetch allowed_admin_pages for this doctor
+    const { data: doctor } = await supabase
+      .from("doctors")
+      .select("allowed_admin_pages")
+      .eq("email", profile.email)
+      .single()
+    // Extract the page slug from the path
+    const path = typeof window !== "undefined" ? window.location.pathname : ""
+    const pageMatch = path.match(/^\/admin-dashboard\/?([^\/]*)/)
+    const pageSlug = pageMatch && pageMatch[1] ? pageMatch[1] : "admin-dashboard"
+    const allowedPages = doctor?.allowed_admin_pages || []
+    if (pageSlug !== "admin-dashboard" && !allowedPages.includes(pageSlug)) {
+      redirect("/admin-dashboard")
+    }
+  } else if (profile?.role !== "admin") {
     redirect("/")
   }
 

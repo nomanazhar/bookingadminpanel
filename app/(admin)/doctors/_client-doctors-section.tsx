@@ -17,8 +17,10 @@ import { Plus } from "lucide-react";
 
 import type { Doctor } from "@/types";
 
+// Allow for error objects with either 'error' or 'message' string
+type DoctorsError = { error: string } | { message: string } | { [key: string]: any };
 interface Props {
-  initialDoctors: Doctor[] | { error: string };
+  initialDoctors: Doctor[] | DoctorsError;
 }
 
 export default function ClientDoctorsSection({ initialDoctors }: Props) {
@@ -31,11 +33,20 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   const [search, setSearch] = useState("");
 
   const [tableError, setTableError] = useState<string | null>(() => {
-    if (!Array.isArray(initialDoctors) && "error" in initialDoctors) {
-      return (
-        initialDoctors.error ||
-        "The doctors table does not exist. Please run the database migration."
-      );
+    if (!Array.isArray(initialDoctors)) {
+      // Defensive: handle any error object shape
+      if (
+        typeof (initialDoctors as any).error === "string"
+      ) {
+        return (initialDoctors as any).error;
+      }
+      if (
+        typeof (initialDoctors as any).message === "string"
+      ) {
+        return (initialDoctors as any).message;
+      }
+      // Fallback for unknown error shape
+      return "An unknown error occurred loading doctors.";
     }
     return null;
   });
@@ -43,18 +54,34 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   /* ------------------ FETCH ------------------ */
   const refreshDoctors = useCallback(async () => {
     setTableError(null);
-    const res = await fetch("/api/doctors", { cache: "no-store" });
-
-    if (!res.ok) return;
-
-    const data = await res.json();
-
-    if (data?.error?.includes("does not exist")) {
-      setTableError(
-        "The doctors table does not exist. Please run the database migration."
-      );
-    } else {
-      setDoctors(data);
+    try {
+      const res = await fetch("/api/doctors", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) {
+        // Defensive: handle any error object shape
+        if (typeof data.error === "string") {
+          setTableError(data.error);
+        } else if (typeof data.message === "string") {
+          setTableError(data.message);
+        } else {
+          setTableError("An unknown error occurred loading doctors.");
+        }
+        return;
+      }
+      if (data?.error?.includes("does not exist") || data?.message?.includes("does not exist")) {
+        setTableError("The doctors table does not exist. Please run the database migration.");
+      } else if (Array.isArray(data)) {
+        setDoctors(data);
+      } else {
+        setTableError("Unexpected response from server.");
+      }
+    } catch (err) {
+      setTableError("Failed to fetch doctors. Please try again later.");
+      // Optionally log error for debugging
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("Error fetching doctors:", err);
+      }
     }
   }, []);
 
@@ -139,20 +166,19 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">
           {filteredDoctors.length
-            ? `${filteredDoctors.length} doctor${
-                filteredDoctors.length === 1 ? "" : "s"
-              } found`
+            ? `${filteredDoctors.length} doctor${filteredDoctors.length === 1 ? "" : "s"} found`
             : "No doctors yet"}
-             <div className="mb-4">
-        <TableSearchBar
-          value={search}
-          onChange={setSearch}
-          onSearch={() => {}}
-          className=""
-          placeholder="Search doctors..."
-        />
-      </div>
         </p>
+        <div className="mb-4">
+          <TableSearchBar
+            value={search}
+            onChange={setSearch}
+            onSearch={() => { }}
+            className=""
+            placeholder="Search doctors..."
+          />
+        </div>
+
 
         <Link href="/doctors/new">
           <Button>
@@ -162,7 +188,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         </Link>
       </div>
 
-     
+
 
       <div className="overflow-x-auto rounded-lg border border-border">
 
@@ -237,10 +263,10 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                 <td className="px-4 py-3">
                   {Array.isArray(doctor.locations) && doctor.locations.length > 0
                     ? doctor.locations.map((loc) => (
-                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
-                          {loc}
-                        </span>
-                      ))
+                      <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                        {loc}
+                      </span>
+                    ))
                     : "-"}
                 </td>
 

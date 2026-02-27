@@ -131,7 +131,7 @@ export async function updateSession(request: NextRequest) {
   if (path.startsWith('/signin') || path.startsWith('/signup')) {
     if (user) {
       // Redirect to appropriate dashboard based on role
-      const redirectUrl = userRole === 'admin' ? '/admin-dashboard' : '/'
+      const redirectUrl = (userRole === 'admin' || userRole === 'doctor') ? '/admin-dashboard' : '/'
       return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
   }
@@ -142,12 +142,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL('/admin-dashboard', request.url))
   }
 
+  // If a doctor is logged in and hits the main dashboard, redirect to admin-dashboard
+  if (path === '/' && userRole === 'doctor') {
+    return NextResponse.redirect(new URL('/admin-dashboard', request.url))
+  }
+
   // Protect admin-dashboard routes
   if (path.startsWith('/admin-dashboard')) {
     if (!user) {
       return NextResponse.redirect(new URL('/signin', request.url))
     }
-    if (userRole !== 'admin') {
+    if (userRole === 'doctor') {
+      // Fetch allowed_admin_pages for this doctor
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('allowed_admin_pages')
+        .eq('email', user.email)
+        .single()
+      // Extract the page slug from the path, e.g. /admin-dashboard/orders -> orders
+      const pageMatch = path.match(/^\/admin-dashboard\/?([^\/]*)/)
+      const pageSlug = pageMatch && pageMatch[1] ? pageMatch[1] : 'admin-dashboard'
+      const allowedPages = doctor?.allowed_admin_pages || []
+      if (!allowedPages.includes(pageSlug)) {
+        // Not allowed: redirect to dashboard or show error
+        return NextResponse.redirect(new URL('/admin-dashboard', request.url))
+      }
+    } else if (userRole !== 'admin') {
       // Sign out the user and redirect to signin for a fresh login
       const signoutUrl = new URL('/api/auth/signout', request.url)
       signoutUrl.searchParams.set('redirect', '/signin')

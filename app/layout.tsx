@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
+      <body cz-shortcut-listen="false"
         className={`${poppins.variable} ${inter.variable} font-sans antialiased overflow-x-hidden`}
       >
         <div className="min-h-screen w-full overflow-x-hidden">
