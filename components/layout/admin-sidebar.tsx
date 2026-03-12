@@ -50,7 +50,7 @@ const sidebarLinks = [
     icon: BookOpen,
   },
   {
-    title: "Doctors",
+    title: "Therapists",
     href: "/doctors",
     icon: Stethoscope,
   },
@@ -90,7 +90,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
           }
         }
       } catch (error) {
-        console.error("Failed to fetch doctors:", error)
+        console.error("Failed to fetch Therapists:", error)
       }
     }
     fetchDoctors()

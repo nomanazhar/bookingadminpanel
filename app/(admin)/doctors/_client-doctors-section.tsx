@@ -46,7 +46,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         return (initialDoctors as any).message;
       }
       // Fallback for unknown error shape
-      return "An unknown error occurred loading doctors.";
+      return "An unknown error occurred loading Therapists.";
     }
     return null;
   });
@@ -64,23 +64,23 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         } else if (typeof data.message === "string") {
           setTableError(data.message);
         } else {
-          setTableError("An unknown error occurred loading doctors.");
+          setTableError("An unknown error occurred loading Therapists.");
         }
         return;
       }
       if (data?.error?.includes("does not exist") || data?.message?.includes("does not exist")) {
-        setTableError("The doctors table does not exist. Please run the database migration.");
+        setTableError("The Therapists table does not exist. Please run the database migration.");
       } else if (Array.isArray(data)) {
         setDoctors(data);
       } else {
         setTableError("Unexpected response from server.");
       }
     } catch (err) {
-      setTableError("Failed to fetch doctors. Please try again later.");
+      setTableError("Failed to fetch Therapists. Please try again later.");
       // Optionally log error for debugging
       if (typeof window !== "undefined") {
         // eslint-disable-next-line no-console
-        console.error("Error fetching doctors:", err);
+        console.error("Error fetching therapists:", err);
       }
     }
   }, []);
@@ -147,7 +147,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
           Database Setup Required
         </h3>
         <p className="text-red-700 mb-4">
-          The doctors table does not exist. Run the migration before using this
+          The Therapists table does not exist. Run the migration before using this
           feature.
         </p>
         <button
@@ -164,26 +164,27 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   return (
     <>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">
-          {filteredDoctors.length
-            ? `${filteredDoctors.length} doctor${filteredDoctors.length === 1 ? "" : "s"} found`
-            : "No doctors yet"}
-        </p>
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col">
           <TableSearchBar
             value={search}
             onChange={setSearch}
             onSearch={() => { }}
             className=""
-            placeholder="Search doctors..."
+            placeholder="Search therapists..."
           />
+        <p className="text-sm text-muted-foreground">
+          {filteredDoctors.length
+            ? `${filteredDoctors.length} therapist${filteredDoctors.length === 1 ? "" : "s"} found`
+            : "No therapists yet"}
+        </p>
+        
         </div>
 
 
         <Link href="/doctors/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Add New Doctor
+            Add New Therapist
           </Button>
         </Link>
       </div>
@@ -211,7 +212,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
             {filteredDoctors.length === 0 && (
               <tr>
                 <td colSpan={8} className="py-6 text-center text-muted-foreground">
-                  No doctors found.
+                  No therapists found.
                 </td>
               </tr>
             )}

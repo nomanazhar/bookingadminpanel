@@ -86,7 +86,7 @@ export function NewBookingDialog({
         setDoctors(data.filter((d: Doctor) => d.is_active))
       }
     } catch (error) {
-      console.error("Failed to load doctors:", error)
+      console.error("Failed to load therapists:", error)
     } finally {
       setLoadingDoctors(false)
     }
@@ -369,10 +369,10 @@ export function NewBookingDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="doctor">Doctor (Optional)</Label>
+                <Label htmlFor="doctor">Therapist (Optional)</Label>
                 {loadingDoctors ? (
                   <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                    Loading doctors...
+                    Loading therapists...
                   </div>
                 ) : (
                   <Select
@@ -387,7 +387,7 @@ export function NewBookingDialog({
                     }}
                   >
                     <SelectTrigger id="doctor" className="w-full">
-                      <SelectValue placeholder="Select a doctor (optional)" />
+                      <SelectValue placeholder="Select a therapist (optional)" />
                     </SelectTrigger>
                     <SelectContent>
                       {selectedDoctorId && (

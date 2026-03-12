@@ -126,11 +126,11 @@ export default function CategoriesTable({
           <thead className="bg-muted/50">
             <tr className="bg-[#333333] text-white">
               <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">Slug</th>
+              {/* <th className="px-4 py-3 text-left">Slug</th> */}
               <th className="px-4 py-3 text-left">Description</th>
               <th className="px-4 py-3 text-left">Image</th>
               <th className="px-4 py-3 text-left">Locations</th>
-              <th className="px-4 py-3 text-center">Order</th>
+              {/* <th className="px-4 py-3 text-center">Order</th> */}
               <th className="px-4 py-3 text-center">Active</th>
               <th className="px-4 py-3 text-center">Manage</th>
             </tr>
@@ -156,9 +156,9 @@ export default function CategoriesTable({
                 <td className="px-4 py-3 font-semibold">
                   {cat.name}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                {/* <td className="px-4 py-3 text-sm">
                   {cat.slug}
-                </td>
+                </td> */}
                 <td className="px-4 py-3 text-sm">
                   {cat.description}
                 </td>
@@ -167,8 +167,8 @@ export default function CategoriesTable({
                     <Image
                       src={cat.image_url}
                       alt={cat.name}
-                      width={40}
-                      height={40}
+                      width={80}
+                      height={80}
                       className="rounded object-cover"
                     />
                   ) : (
@@ -184,9 +184,9 @@ export default function CategoriesTable({
                       ))
                     : "-"}
                 </td>
-                <td className="px-4 py-3 text-center">
+                {/* <td className="px-4 py-3 text-center">
                   {cat.display_order}
-                </td>
+                </td> */}
                 <td className="px-4 py-3 text-center">
                   {cat.is_active ? "Yes" : "No"}
                 </td>

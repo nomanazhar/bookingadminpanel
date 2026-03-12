@@ -539,7 +539,7 @@ export default function CreateBookingPage() {
                   <Label htmlFor="doctor">Doctor (Optional)</Label>
                   {loadingDoctors ? (
                     <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
-                      Loading doctors...
+                      Loading Therapists...
                     </div>
                   ) : (
                     <Select
@@ -549,7 +549,7 @@ export default function CreateBookingPage() {
                       }
                     >
                       <SelectTrigger id="doctor">
-                        <SelectValue placeholder="Select a doctor (optional)" />
+                        <SelectValue placeholder="Select a Therapist (optional)" />
                       </SelectTrigger>
                       <SelectContent>
                         {selectedDoctorId && (

@@ -101,7 +101,7 @@ export function DoctorForm({
       try {
         const supabase = createClient();
         const fileExt = imageFile.name.split(".").pop() || "jpg";
-        const fileName = `doctor-${firstName}-${lastName}-${Date.now()}.${fileExt}`;
+        const fileName = `Therapist-${firstName}-${lastName}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("category-images") // ← change to "doctors" bucket if you want
@@ -142,9 +142,9 @@ export function DoctorForm({
           allowed_admin_pages: allowedPages,
           password: password,
         });
-        toast({ title: "Doctor updated successfully!" });
+        toast({ title: "Therapist updated successfully!" });
       } else {
-        // Create new doctor
+        // Create new therapist
         await axios.post("/api/doctors", {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
@@ -158,7 +158,7 @@ export function DoctorForm({
           allowed_admin_pages: allowedPages,
           password: password,
         });
-        toast({ title: "Doctor created successfully!" });
+        toast({ title: "Therapist created successfully!" });
 
         // Reset form only on create
         setFirstName("");
@@ -183,7 +183,7 @@ export function DoctorForm({
         if (msg.includes("does not exist") || msg.includes("table")) {
           toast({
             title: "Database Setup Required",
-            description: "The doctors table needs to be created. Check DOCTORS_TABLE_SETUP.md or contact admin.",
+            description: "The therapists table needs to be created. Check THERAPISTS_TABLE_SETUP.md or contact admin.",
             variant: "destructive",
           });
           console.error("Table setup issue:", err);
@@ -195,7 +195,7 @@ export function DoctorForm({
       }
 
       toast({
-        title: `Error ${initialValues?.id ? "updating" : "creating"} doctor`,
+        title: `Error ${initialValues?.id ? "updating" : "creating"} therapist`,
         description: msg,
         variant: "destructive",
       });
@@ -211,7 +211,7 @@ export function DoctorForm({
       }`}
     >
       <h3 className="text-lg font-semibold mb-4 text-foreground">
-        {initialValues?.id ? "✏️ Edit Doctor" : "➕ Add New Doctor"}
+        {initialValues?.id ? "✏️ Edit Therapist" : "➕ Add New Therapist"}
       </h3>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -223,10 +223,10 @@ export function DoctorForm({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Set password for doctor"
+            placeholder="Set password for therapist"
             autoComplete="new-password"
           />
-          <span className="text-xs text-muted-foreground">Admin can set password and share credentials with doctor.</span>
+          <span className="text-xs text-muted-foreground">Admin can set password and share credentials with therapist.</span>
         </div>
                 {/* Allowed Admin Pages Multi-select */}
                 <div className="md:col-span-2">
@@ -281,7 +281,7 @@ export function DoctorForm({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="doctor@example.com"
+            placeholder="therapist@example.com"
             required
           />
         </div>
@@ -313,7 +313,7 @@ export function DoctorForm({
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Doctor biography (optional)"
+            placeholder="Therapist biography (optional)"
             rows={4}
             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
@@ -333,7 +333,7 @@ export function DoctorForm({
             <div className="mt-3">
               <Image
                 src={imageUrl}
-                alt="Current doctor avatar"
+                alt="Current therapist avatar"
                 width={100}
                 height={100}
                 className="object-cover rounded-full border border-border shadow-sm"
@@ -391,8 +391,8 @@ export function DoctorForm({
             {updating
               ? "Saving..."
               : initialValues?.id
-              ? "Update Doctor"
-              : "Add Doctor"}
+              ? "Update Therapist"
+              : "Add Therapist"}
           </Button>
 
           {initialValues?.id && onCancel && (

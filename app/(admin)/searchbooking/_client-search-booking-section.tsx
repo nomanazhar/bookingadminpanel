@@ -84,7 +84,7 @@ export default function SearchBookingClientSection({ initialDoctors, initialServ
             if (times.length > 0) {
               const doctor = doctors.find(d => d.id === doctorId);
               bookings.push({
-                label: `${doctor ? doctor.name : 'Doctor'} Available`,
+                label: `${doctor ? doctor.name : 'Therapist'} Available`,
                 times,
                 onCreate: () => alert(`Create booking for ${doctor ? doctor.name : doctorId} on ${date} at ${times.join(', ')}`)
               });

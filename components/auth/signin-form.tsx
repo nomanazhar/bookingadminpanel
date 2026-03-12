@@ -21,7 +21,7 @@ export function SignInForm() {
     password: "",
     rememberMe: false,
   })
-  
+
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email')
   const [phone, setPhone] = useState("")
   const [otpSent, setOtpSent] = useState(false)
@@ -34,88 +34,93 @@ export function SignInForm() {
     if (typeof window === 'undefined') return
     try {
       const pre = localStorage.getItem('prefillEmail')
-      if (pre) {
-        localStorage.removeItem('prefillEmail')
-      }
+      if (pre) localStorage.removeItem('prefillEmail')
     } catch {}
   }, [])
 
-  const validatePhone = (phone: string): boolean => {
-    const e164Regex = /^\+[1-9]\d{9,14}$/
-    return e164Regex.test(phone)
+  const validatePhone = (phone: string): boolean => /^\+[1-9]\d{9,14}$/.test(phone)
+
+  /**
+   * ROOT CAUSE FIX — redirect logic:
+   *
+   * Old code: called /api/auth/session THEN did router.push('/') hoping
+   * middleware would redirect to /admin-dashboard. But:
+   *   - /api/auth/session took 600ms
+   *   - router.push('/') fired before the ds_role cookie was written to the
+   *     browser response from that API call
+   *   - So the first GET / had NO cookie yet → middleware saw no role →
+   *     no redirect → admin lands on customer home
+   *
+   * Fix: after sign-in, fetch the role directly from the profiles table
+   * (one small DB call), then navigate to the correct URL immediately.
+   * No dependency on the cookie being present for the redirect decision.
+   */
+  async function getRoleAndRedirect(userId: string) {
+    const supabase = createClient()
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      const role = profile?.role ?? 'customer'
+
+      // Also kick off session cookie refresh in background (non-blocking)
+      fetch('/api/auth/session', { method: 'POST', credentials: 'same-origin' }).catch(() => {})
+
+      // Check for pending booking regardless of role
+      let hasPending = false
+      try {
+        hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
+      } catch {}
+
+      if (hasPending) {
+        router.push('/confirm-booking')
+        return
+      }
+
+      // Navigate to the role-correct destination immediately
+      if (role === 'admin' || role === 'doctor') {
+        router.push('/admin-dashboard')
+      } else {
+        router.push('/')
+      }
+      router.refresh()
+    } catch {
+      // Fallback: go home, middleware will sort it out
+      router.push('/')
+      router.refresh()
+    }
   }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const email = formData.email.trim()
     const password = formData.password.trim()
 
     if (!email || !password) {
-      toast({
-        variant: "destructive",
-        title: "Missing Credentials",
-        description: "Please enter both email and password",
-      })
+      toast({ variant: "destructive", title: "Missing Credentials", description: "Please enter both email and password" })
       return
     }
 
     setLoading(true)
-
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
-        toast({
-         
-          title: "Sign In Failed",
-          description: error.message,
-        })
+        toast({ title: "Sign In Failed", description: error.message })
         return
       }
 
       if (data.user) {
-        toast({
-          title: "Success",
-          description: "Signed in successfully!",
-        })
-
-        // Fetch profile to check role
-        let userRole = 'customer';
-        try {
-          const supabaseProfile = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-          userRole = supabaseProfile?.data?.role || 'customer';
-        } catch {}
-
-        // Check for pending booking
-        let hasPending = false;
-        try {
-          hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking');
-        } catch {}
-
-        if (hasPending) {
-          router.push('/confirm-booking');
-        } else if (userRole === 'admin') {
-          router.push('/admin-dashboard');
-        } else {
-          router.push('/');
-        }
-        router.refresh();
+        toast({ title: "Success", description: "Signed in successfully!" })
+        await getRoleAndRedirect(data.user.id)
       }
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Unexpected Error",
-        description: "Something went wrong during sign in",
-      })
+    } catch {
+      toast({ variant: "destructive", title: "Unexpected Error", description: "Something went wrong during sign in" })
     } finally {
       setLoading(false)
     }
@@ -123,14 +128,9 @@ export function SignInForm() {
 
   const handleSendOtp = async () => {
     setOtpError("")
-    
-    if (otpRateLimit) {
-      setOtpError("Too many attempts. Please wait before retrying.")
-      return
-    }
+    if (otpRateLimit) { setOtpError("Too many attempts. Please wait before retrying."); return }
 
     const phoneNumber = phone.trim()
-    
     if (!validatePhone(phoneNumber)) {
       setOtpError("Please enter a valid phone number in E.164 format (e.g. +923001234567)")
       return
@@ -138,10 +138,8 @@ export function SignInForm() {
 
     setOtpLoading(true)
     const supabase = createClient()
-    
     try {
       const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber })
-      
       if (error) {
         if (error.status === 429) {
           setOtpRateLimit(true)
@@ -154,12 +152,9 @@ export function SignInForm() {
       } else {
         setOtpSent(true)
         setOtpError("")
-        toast({ 
-          title: "OTP Sent", 
-          description: "Check your phone for the verification code." 
-        })
+        toast({ title: "OTP Sent", description: "Check your phone for the verification code." })
       }
-    } catch (err) {
+    } catch {
       setOtpError("Unexpected error. Please try again.")
     } finally {
       setOtpLoading(false)
@@ -170,63 +165,18 @@ export function SignInForm() {
     setOtpError("")
     const phoneNumber = phone.trim()
 
-    if (!otp || otp.length !== 6) {
-      setOtpError("Please enter the 6-digit OTP.")
-      return
-    }
+    if (!otp || otp.length !== 6) { setOtpError("Please enter the 6-digit OTP."); return }
 
     setOtpLoading(true)
     const supabase = createClient()
-    
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ 
-        phone: phoneNumber, 
-        token: otp, 
-        type: "sms" 
-      })
-      
-      if (error) {
-        setOtpError(error.message || "Invalid OTP. Please try again.")
-        return
-      }
-      
-      if (!data?.user) {
-        setOtpError("Verification failed. Please try again.")
-        return
-      }
+      const { data, error } = await supabase.auth.verifyOtp({ phone: phoneNumber, token: otp, type: "sms" })
+      if (error) { setOtpError(error.message || "Invalid OTP. Please try again."); return }
+      if (!data?.user) { setOtpError("Verification failed. Please try again."); return }
 
-      toast({ 
-        title: "Success", 
-        description: "Signed in successfully!" 
-      })
-      
-      // Check for pending booking
-      let hasPending = false
-      try {
-        hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
-      } catch {}
-
-      if (hasPending) {
-        router.push('/confirm-booking');
-      } else {
-        // Fetch profile to check role
-        let userRole = 'customer';
-        try {
-          const supabaseProfile = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-          userRole = supabaseProfile?.data?.role || 'customer';
-        } catch {}
-        if (userRole === 'admin') {
-          router.push('/admin-dashboard');
-        } else {
-          router.push('/');
-        }
-      }
-      router.refresh();
-    } catch (err) {
+      toast({ title: "Success", description: "Signed in successfully!" })
+      await getRoleAndRedirect(data.user.id)
+    } catch {
       setOtpError("Unexpected error. Please try again.")
     } finally {
       setOtpLoading(false)
@@ -237,29 +187,19 @@ export function SignInForm() {
     <div className="space-y-6">
       {/* Login method selector */}
       <div className="flex space-x-2 mb-4">
-        <Button 
-          type="button" 
-          variant={loginMethod === 'email' ? 'default' : 'outline'} 
-          onClick={() => {
-            setLoginMethod('email')
-            setOtpSent(false)
-            setOtp("")
-            setOtpError("")
-          }} 
+        <Button
+          type="button"
+          variant={loginMethod === 'email' ? 'default' : 'outline'}
+          onClick={() => { setLoginMethod('email'); setOtpSent(false); setOtp(""); setOtpError("") }}
           disabled={loading || otpLoading}
           className="flex-1"
         >
           Email
         </Button>
-        <Button 
-          type="button" 
-          variant={loginMethod === 'phone' ? 'default' : 'outline'} 
-          onClick={() => {
-            setLoginMethod('phone')
-            setOtpSent(false)
-            setOtp("")
-            setOtpError("")
-          }} 
+        <Button
+          type="button"
+          variant={loginMethod === 'phone' ? 'default' : 'outline'}
+          onClick={() => { setLoginMethod('phone'); setOtpSent(false); setOtp(""); setOtpError("") }}
           disabled={loading || otpLoading}
           className="flex-1"
         >
@@ -271,34 +211,24 @@ export function SignInForm() {
       {loginMethod === 'email' && (
         <form onSubmit={handleEmailSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">
-              Email <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
+              id="email" type="email" placeholder="your@email.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              disabled={loading}
+              required disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">
-              Password <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
             <div className="relative">
               <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
+                id="password" type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                disabled={loading}
-                className="pr-10"
+                required disabled={loading} className="pr-10"
               />
               <button
                 type="button"
@@ -313,20 +243,14 @@ export function SignInForm() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="remember"
-                checked={formData.rememberMe}
+                id="remember" checked={formData.rememberMe}
                 onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: checked as boolean })}
               />
-              <label
-                htmlFor="remember"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Keep me logged in
               </label>
             </div>
-            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-              Forgot password?
-            </Link>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading} size="lg">
@@ -341,26 +265,16 @@ export function SignInForm() {
           <div className="space-y-2">
             <Label htmlFor="phone">Phone (E.164 format) *</Label>
             <Input
-              id="phone"
-              type="tel"
-              placeholder="+923001234567"
+              id="phone" type="tel" placeholder="+923001234567"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={otpLoading || otpRateLimit || otpSent}
             />
-            <p className="text-xs text-muted-foreground">
-              Include country code (e.g., +92 for Pakistan)
-            </p>
+            <p className="text-xs text-muted-foreground">Include country code (e.g., +92 for Pakistan)</p>
           </div>
 
           {!otpSent ? (
-            <Button 
-              type="button" 
-              className="w-full" 
-              onClick={handleSendOtp} 
-              disabled={otpLoading || otpRateLimit}
-              size="lg"
-            >
+            <Button type="button" className="w-full" onClick={handleSendOtp} disabled={otpLoading || otpRateLimit} size="lg">
               {otpLoading ? "Sending OTP..." : "Send OTP"}
             </Button>
           ) : (
@@ -368,33 +282,18 @@ export function SignInForm() {
               <div className="space-y-2">
                 <Label htmlFor="otp">Enter 6-Digit Code</Label>
                 <Input
-                  id="otp"
-                  type="text"
-                  maxLength={6}
-                  placeholder="123456"
+                  id="otp" type="text" maxLength={6} placeholder="123456"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   disabled={otpLoading}
                 />
               </div>
-              <Button 
-                type="button" 
-                className="w-full" 
-                onClick={handleVerifyOtp} 
-                disabled={otpLoading}
-                size="lg"
-              >
+              <Button type="button" className="w-full" onClick={handleVerifyOtp} disabled={otpLoading} size="lg">
                 {otpLoading ? "Verifying..." : "Verify & Sign In"}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline"
-                className="w-full" 
-                onClick={() => {
-                  setOtpSent(false)
-                  setOtp("")
-                  setOtpError("")
-                }}
+              <Button
+                type="button" variant="outline" className="w-full"
+                onClick={() => { setOtpSent(false); setOtp(""); setOtpError("") }}
                 disabled={otpLoading}
               >
                 Resend OTP
@@ -403,20 +302,10 @@ export function SignInForm() {
           )}
 
           {otpError && (
-            <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">
-              {otpError}
-            </div>
+            <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">{otpError}</div>
           )}
         </div>
       )}
-
-      {/* Sign up link */}
-      {/* <div className="text-center text-sm">
-        Don't have an account?{" "}
-        <Link href="/sign-up" className="text-primary font-medium hover:underline">
-          Sign Up
-        </Link>
-      </div> */}
     </div>
   )
 }

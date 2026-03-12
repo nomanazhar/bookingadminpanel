@@ -1,33 +1,25 @@
-import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { getStats, getRecentOrdersAdmin, getFutureAppointmentsCount } from "@/lib/supabase/queries"
-import { createClient } from "@/lib/supabase/server"
+import { loadAdminDashboardData } from "@/lib/supabase/queries"
+import { getCurrentUserAndRole } from "@/lib/supabase/auth"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
 import { Users, ShoppingCart, FolderTree, Sparkles } from "lucide-react"
+import type { OrderWithDetails } from "@/types"
 
-async function StatsCards() {
-  const [stats, futureAppointments] = await Promise.all([
-    getStats(),
-    getFutureAppointmentsCount(),
-  ])
-
-  // Get user role (server-side)
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  let role = "admin"
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-    if (profile?.role) role = profile.role
+function StatsCards({
+  role,
+  stats,
+  futureAppointments,
+}: {
+  role: "admin" | "doctor"
+  stats: {
+    totalCustomers: number
+    totalOrders: number
+    totalCategories: number
+    totalServices: number
+    totalDoctors: number
   }
-
-  // Define cards for each role
+  futureAppointments: number
+}) {
   const adminCards = [
     {
       title: "Upcoming Appointments",
@@ -60,12 +52,13 @@ async function StatsCards() {
       description: "Active treatments",
     },
     {
-      title: "Total Doctors",
+      title: "Total Therapists",
       value: stats.totalDoctors,
       icon: Users,
-      description: "Active doctors",
+      description: "Active therapists",
     },
   ]
+
   const doctorCards = [
     {
       title: "Upcoming Appointments",
@@ -79,7 +72,6 @@ async function StatsCards() {
       icon: ShoppingCart,
       description: "All your appointments",
     },
-    // Add more doctor-specific cards as needed
   ]
 
   const cards = role === "doctor" ? doctorCards : adminCards
@@ -109,12 +101,17 @@ async function StatsCards() {
   )
 }
 
-async function RecentOrders() {
-  const orders = await getRecentOrdersAdmin(5)
+function RecentOrders({ orders }: { orders: OrderWithDetails[] }) {
   return <RecentOrdersTable orders={orders} />
 }
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const [{ stats, futureAppointments, recentOrders }, { user, role: resolvedRole }] =
+    await Promise.all([loadAdminDashboardData(5), getCurrentUserAndRole()])
+
+  const role: "admin" | "doctor" =
+    user && resolvedRole === "doctor" ? "doctor" : "admin"
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -124,46 +121,20 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Suspense
-          fallback={
-            <>
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-4 w-32" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-16 mb-2" />
-                    <Skeleton className="h-3 w-24" />
-                  </CardContent>
-                </Card>
-              ))}
-            </>
-          }
-        >
-          <StatsCards />
-        </Suspense>
+        <StatsCards
+          role={role}
+          stats={stats}
+          futureAppointments={futureAppointments}
+        />
       </div>
 
-      {/* Recent Orders */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Bookings</CardTitle>
         </CardHeader>
         <CardContent>
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            }
-          >
-            <RecentOrders />
-          </Suspense>
+          <RecentOrders orders={recentOrders} />
         </CardContent>
       </Card>
     </div>

@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserWithProfile } from "@/lib/supabase/auth"
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile, supabase } = await getCurrentUserWithProfile()
   if (!user) {
     return NextResponse.json({ role: null })
   }
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role,email")
-    .eq("id", user.id)
-    .single()
   if (!profile) {
     return NextResponse.json({ role: null })
   }

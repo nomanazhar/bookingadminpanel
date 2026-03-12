@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/auth";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRoleClient";
 import * as XLSX from "xlsx";
 
@@ -9,18 +9,12 @@ import * as XLSX from "xlsx";
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    // Check admin
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    if (adminProfile?.role !== 'admin') {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    const admin = await requireAdmin();
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      );
     }
     // Get fileKey from request
     const body = await req.json();
@@ -52,7 +46,7 @@ export async function POST(req: NextRequest) {
       // Try to match customer by email, but allow null for legacy
       let customerId: string | null = null;
       if (row["Email"]) {
-        const { data: customer } = await supabase
+        const { data: customer } = await serviceRole
           .from('profiles')
           .select('id')
           .eq('email', row["Email"])

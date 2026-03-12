@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { requireAdmin } from "@/lib/supabase/auth"
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
     const body = await req.json()
-    const supabase = await createClient()
-    
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const admin = await requireAdmin()
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      )
     }
-    
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-    
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
-    }
+    const supabase = admin.supabase
     
     const { data, error } = await supabase
       .from("doctors")
@@ -44,23 +36,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const admin = await requireAdmin()
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      )
     }
-    
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-    
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
-    }
+    const supabase = admin.supabase
     
     const { error } = await supabase
       .from("doctors")

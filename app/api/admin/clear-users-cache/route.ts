@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
-import { clearCachePrefix } from '@/lib/supabase/queries'
 
 export async function POST() {
-  try {
-    clearCachePrefix('users:')
-    return NextResponse.json({ ok: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Unknown' }, { status: 500 })
-  }
+  // Server-side in-memory cache has been removed; nothing to clear here.
+  return NextResponse.json({ ok: true })
 }

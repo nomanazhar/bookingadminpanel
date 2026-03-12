@@ -95,7 +95,7 @@ export default async function DoctorOrdersPage({
           <h1 className="text-3xl font-bold font-heading mb-2">
             Bookings - Dr. {doctor.first_name} {doctor.last_name}
           </h1>
-          <p className="text-muted-foreground">View all bookings for this doctor</p>
+          <p className="text-muted-foreground">View all bookings for this Therapist</p>
         </div>
       </div>
 

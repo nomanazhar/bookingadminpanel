@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { requireAdmin } from "@/lib/supabase/auth"
 
 /**
  * Admin API endpoint to check storage bucket status
@@ -10,25 +10,14 @@ import { createClient } from "@/lib/supabase/server"
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    // Check if user is authenticated
-    const { data: userData } = await supabase.auth.getUser()
-    const user = userData?.user
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const admin = await requireAdmin()
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      )
     }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (adminProfile?.role !== 'admin') {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
-    }
+    const supabase = admin.supabase
 
     // Required buckets
     const requiredBuckets = ['category-images', 'service-images', 'doctor-images']

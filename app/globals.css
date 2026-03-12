@@ -5,26 +5,26 @@
   --background: 0 0% 100%; /* White */
   --foreground: 0 0% 20%; /* #333333 */
   /* Slightly darker card/popover colors to increase contrast against white background */
-  --card: 210 24% 98%;
+  --card: 210 24% 90%;
   --card-foreground: 0 0% 20%;
-  --popover: 210 24% 98%;
+  --popover: 210 24% 90%;
   --popover-foreground: 0 0% 20%;
   --primary: 174 72% 56%; /* #42E0CF - Blueish */
   --primary-foreground: 0 0% 100%; /* White text on primary */
-  --secondary: 210 36% 95%;
+  --secondary: 210 36% 90%;
   --secondary-foreground: 0 0% 20%;
   /* Muted panels (used for cards / panels) should be a touch darker for visibility */
-  --muted: 210 24% 95%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 36% 95%;
+  --muted: 210 24% 85%;
+  --muted-foreground: 215.4 16.3% 40.9%;
+  --accent: 210 36% 90%;
   --accent-foreground: 0 0% 20%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 84.2% 50.2%;
+  --destructive-foreground: 210 40% 90%;
   /* Borders and inputs slightly darker so 1px borders remain visible */
   --border: 214.3 24% 86%;
   --input: 214.3 24% 88%;
   --ring: 174 72% 56%; /* #42E0CF */
-  --radius: 0.5rem;
+  --radius: 0.6rem;
   --font-poppins: var(--font-poppins);
   --font-inter: var(--font-inter);
   /* Button colors */

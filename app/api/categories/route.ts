@@ -4,11 +4,13 @@ export async function GET() {
     .from("categories")
     .select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // Ensure locations is always an array
-  const safeData = (data || []).map((cat: any) => ({
-    ...cat,
-    locations: Array.isArray(cat.locations) ? cat.locations : [],
-  }));
+  // Ensure locations is always an array and data is always an array
+  const safeData = Array.isArray(data)
+    ? data.map((cat: any) => ({
+        ...cat,
+        locations: Array.isArray(cat.locations) ? cat.locations : [],
+      }))
+    : [];
   return NextResponse.json(safeData);
 }
 import { NextRequest, NextResponse } from "next/server"

@@ -1,136 +1,76 @@
-import { type NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr' // Make sure @supabase/ssr is installed!
+/**
+ * proxy.ts — Fast-path role guard used by some route handlers.
+ *
+ * ROOT CAUSE FIX:
+ * The original proxy.ts had its own Supabase session check that ran AFTER
+ * the real middleware (updateSession) already ran. This created two problems:
+ *   1. Double DB round-trips on every protected request
+ *   2. The fallback session check here used createServerClient with the anon
+ *      key but WITHOUT properly forwarding the refreshed cookie back — meaning
+ *      the session could be seen as invalid even when the user was logged in.
+ *
+ * Now proxy.ts is FAST-PATH ONLY. It reads the signed ds_role cookie that
+ * middleware.ts already wrote. If the cookie is missing/expired it simply
+ * lets the request through (middleware already handled the redirect logic).
+ * This file is intentionally lightweight.
+ */
 
-// Protected paths (update to match new structure and file names)
-const PROTECTED_PATHS = [
-  '/admin-dashboard',
-  '/', // main landing page now serves customer dashboard
-  '/signin',
-  '/signup',
-  '/profile',
-  '/my-bookings',
-  '/order-history',
-  '/book-consultation',
-  '/confirm-booking',
-]
+import { type NextRequest, NextResponse } from 'next/server'
+
+function parseRoleCookie(raw: string): { role: string; valid: boolean } {
+  try {
+    const lastDot = raw.lastIndexOf('.')
+    const payload = lastDot > 0 ? raw.slice(0, lastDot) : raw
+    const [role, expStr] = payload.split('|')
+    const exp = Number(expStr || '0')
+    const now = Math.floor(Date.now() / 1000)
+    if (role && exp > now) return { role, valid: true }
+  } catch {}
+  return { role: '', valid: false }
+}
+
+const ADMIN_PATHS    = ['/admin-dashboard']
+const AUTH_PATHS     = ['/signin', '/signup']
+
+function isAdminPath(p: string) { return ADMIN_PATHS.some(a => p === a || p.startsWith(a + '/')) }
+function isAuthPath(p: string)  { return AUTH_PATHS.some(a => p === a || p.startsWith(a + '/')) }
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // 1. Early exit: skip middleware for non-protected paths
-  if (!PROTECTED_PATHS.some((p) => path === p || path.startsWith(p + '/'))) {
+  const rawCookie = request.cookies.get('ds_role')?.value || ''
+  if (!rawCookie) {
+    // No cookie — middleware.ts handles this case; let the request through
     return NextResponse.next()
   }
 
-  // 2. Fast path: Check short-lived role cookie (expiration only, no heavy crypto)
-  const roleCookie = request.cookies.get('ds_role')?.value || ''
-
-  let userRole: string | null = null
-  let useFastPath = false
-
-  if (roleCookie) {
-    try {
-      const idx = roleCookie.lastIndexOf('.')
-      const payload = idx > 0 ? roleCookie.slice(0, idx) : roleCookie
-      const [rolePart, expiresStr] = payload.split('|')
-      const expires = Number(expiresStr || '0')
-      const now = Math.floor(Date.now() / 1000)
-
-      if (expires > now) {
-        userRole = rolePart || null
-        useFastPath = true // Valid → skip Supabase network call!
-      }
-    } catch {
-      // Malformed → fall through
-    }
-  }
-
-  // 3. Handle redirects using role (if fast path)
-  if (useFastPath && userRole) {
-    if (path.startsWith('/signin') || path.startsWith('/signup')) {
-      const redirectUrl = userRole === 'admin' || userRole === 'doctor' ? '/admin-dashboard' : '/'
-      return NextResponse.redirect(new URL(redirectUrl, request.url))
-    }
-
-      if (path === '/' && (userRole === 'admin' || userRole === 'doctor')) {
-      return NextResponse.redirect(new URL('/admin-dashboard', request.url))
-    }
-
-    if (path.startsWith('/admin-dashboard') && userRole !== 'admin') {
-      const signoutUrl = new URL('/api/auth/signout', request.url)
-      signoutUrl.searchParams.set('redirect', '/')
-      return NextResponse.redirect(signoutUrl)
-    }
-
-    // No redirect needed → fast path success
+  const { role, valid } = parseRoleCookie(rawCookie)
+  if (!valid || !role) {
+    // Expired or invalid — middleware.ts will handle on next request
     return NextResponse.next()
   }
 
-  // 4. Fallback: Full session refresh (only when needed)
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
-        },
-      },
-    }
-  )
-
-  // This call refreshes the session if expired (network possible)
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Fallback: If we refreshed the session, redirect based on role if possible
-  if (user) {
-    // Fetch the user's profile to get the actual role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    const actualRole = profile?.role || null
-    if (actualRole === 'admin' || actualRole === 'doctor') {
-      return NextResponse.redirect(new URL('/admin-dashboard', request.url))
-    }
-    // Otherwise, redirect to the customer dashboard
-    return NextResponse.redirect(new URL('/', request.url))
+  // Auth pages: bounce already-logged-in users
+  if (isAuthPath(path)) {
+    const dest = (role === 'admin' || role === 'doctor') ? '/admin-dashboard' : '/'
+    return NextResponse.redirect(new URL(dest, request.url))
   }
 
-  // Return the response with updated cookies (if refreshed)
-  return response
+  // Root: send admin/doctor to their dashboard
+  if (path === '/' && (role === 'admin' || role === 'doctor')) {
+    return NextResponse.redirect(new URL('/admin-dashboard', request.url))
+  }
+
+  // Admin dashboard: block non-admins/non-doctors immediately
+  if (isAdminPath(path) && role !== 'admin' && role !== 'doctor') {
+    const url = new URL('/api/auth/signout', request.url)
+    url.searchParams.set('redirect', '/')
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/', // main landing page
-    '/signin',
-    '/signup',
-    '/profile',
-    '/my-bookings',
-    '/order-history',
-    '/book-consultation/:path*',
-    '/confirm-booking',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
 }

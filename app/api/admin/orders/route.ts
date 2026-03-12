@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { getOrdersPaginated } from "@/lib/supabase/queries"
+import { requireAdmin } from "@/lib/supabase/auth"
 
 /**
  * Admin API endpoint to get all bookings
@@ -8,25 +7,14 @@ import { getOrdersPaginated } from "@/lib/supabase/queries"
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    // Check if user is authenticated
-    const { data: userData } = await supabase.auth.getUser()
-    const user = userData?.user
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const admin = await requireAdmin()
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      )
     }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (adminProfile?.role !== 'admin') {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
-    }
+    const supabase = admin.supabase
 
     // Get pagination params
     const url = new URL(req.url)
@@ -72,25 +60,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const supabase = await createClient()
-
-    // Check if user is authenticated
-    const { data: userData } = await supabase.auth.getUser()
-    const user = userData?.user
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const admin = await requireAdmin()
+    if (!admin.ok) {
+      return NextResponse.json(
+        { error: admin.status === 401 ? "Unauthorized" : "Forbidden: Admin access required" },
+        { status: admin.status }
+      )
     }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (adminProfile?.role !== 'admin') {
-      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
-    }
+    const supabase = admin.supabase
 
     // Get customer details from body
     const customerEmail = body.customer_email

@@ -14,7 +14,7 @@ async function getDoctors() {
       // Return error object instead of empty array so client can handle it
       return { error: "Table does not exist", message: error.message } as any
     }
-    console.error("Error fetching doctors:", error)
+    console.error("Error fetching therapists:", error)
     return []
   }
   
@@ -27,8 +27,8 @@ export default async function DoctorsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-heading mb-2">Doctors</h1>
-          <p className="text-muted-foreground">Manage your doctors and medical staff</p>
+          <h1 className="text-3xl font-bold font-heading mb-2">Therapists</h1>
+          <p className="text-muted-foreground">Manage your therapists and medical staff</p>
         </div>
       </div>
       <ClientDoctorsSection initialDoctors={doctorsOrError as any} />

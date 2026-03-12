@@ -31,7 +31,7 @@ export default function ProfileSettingsPage() {
         // fetch profile row
         const { data: prof, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id,email,first_name,last_name,phone,gender,address,role')
           .eq('id', userData.user.id)
           .single()
         if (error) {

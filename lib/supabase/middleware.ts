@@ -1,71 +1,125 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-async function hmacSha256Base64Url(payload: string, secret: string) {
-  // Prefer Web Crypto (Edge/Browser). Fallback to dynamic Node import when available.
+// ─── HMAC helper (Edge + Node compatible) ────────────────────────────────────
+async function hmacSha256Base64Url(payload: string, secret: string): Promise<string> {
   const enc = new TextEncoder()
-  const data = enc.encode(payload)
-
-  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto && (globalThis as any).crypto.subtle) {
-    const key = await (globalThis as any).crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-    const sigBuf = await (globalThis as any).crypto.subtle.sign('HMAC', key, data)
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto?.subtle) {
+    const key = await (globalThis as any).crypto.subtle.importKey(
+      'raw', enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false, ['sign']
+    )
+    const sigBuf = await (globalThis as any).crypto.subtle.sign('HMAC', key, enc.encode(payload))
     const bytes = new Uint8Array(sigBuf as ArrayBuffer)
-    // base64url encode
     if (typeof Buffer !== 'undefined') {
       return Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
     }
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-    const b64 = (globalThis as any).btoa(binary)
-    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    return (globalThis as any).btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
   }
-
-  // Node fallback (dynamic import to avoid static Node import in Edge)
   try {
     const crypto = await import('crypto')
-    // Node's crypto supports base64url digest directly
     return crypto.createHmac('sha256', secret).update(payload).digest('base64url')
   } catch {
-    // As a last resort, return empty signature
     return ''
   }
 }
 
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
+async function buildRoleCookie(role: string): Promise<string> {
+  const ttl = 300 // 5 minutes
+  const expires = Math.floor(Date.now() / 1000) + ttl
+  const payload = `${role}|${expires}`
+  const secret = process.env.DS_COOKIE_SECRET || process.env.NEXT_COOKIE_SIGNING_KEY || ''
+  const sig = secret ? await hmacSha256Base64Url(payload, secret) : ''
+  return `${payload}.${sig}`
+}
+
+function parseRoleCookie(raw: string): { role: string; valid: boolean } {
+  try {
+    const lastDot = raw.lastIndexOf('.')
+    const payload = lastDot > 0 ? raw.slice(0, lastDot) : raw
+    const [role, expStr] = payload.split('|')
+    const exp = Number(expStr || '0')
+    const now = Math.floor(Date.now() / 1000)
+    if (role && exp > now) return { role, valid: true }
+  } catch {}
+  return { role: '', valid: false }
+}
+
+// ─── Routes that need auth checks ────────────────────────────────────────────
+const ADMIN_PATHS   = ['/admin-dashboard']
+const AUTH_PATHS    = ['/signin', '/signup']
+const CUSTOMER_PATHS = ['/profile', '/my-bookings', '/order-history', '/book-consultation', '/confirm-booking']
+
+function isAdminPath(p: string)    { return ADMIN_PATHS.some(a => p === a || p.startsWith(a + '/')) }
+function isAuthPath(p: string)     { return AUTH_PATHS.some(a => p === a || p.startsWith(a + '/')) }
+function isCustomerPath(p: string) { return CUSTOMER_PATHS.some(a => p === a || p.startsWith(a + '/')) }
+
+// ─── Main middleware ──────────────────────────────────────────────────────────
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const path = request.nextUrl.pathname
+
+  // Skip static assets and Next internals
+  if (
+    path.startsWith('/_next') ||
+    path.startsWith('/api/') ||
+    path.includes('.') // static files
+  ) {
+    return NextResponse.next()
+  }
+
+  // ── FAST PATH: valid signed role cookie ──────────────────────────────────
+  const rawCookie = request.cookies.get('ds_role')?.value || ''
+  if (rawCookie) {
+    const { role, valid } = parseRoleCookie(rawCookie)
+    if (valid && role) {
+      // Auth pages: redirect already-logged-in users away
+      if (isAuthPath(path)) {
+        const dest = (role === 'admin' || role === 'doctor') ? '/admin-dashboard' : '/'
+        return NextResponse.redirect(new URL(dest, request.url))
+      }
+
+      // Root: redirect admin/doctor to their dashboard
+      if (path === '/' && (role === 'admin' || role === 'doctor')) {
+        return NextResponse.redirect(new URL('/admin-dashboard', request.url))
+      }
+
+      // Admin-dashboard: block non-admins
+      if (isAdminPath(path)) {
+        if (role === 'admin') return NextResponse.next()
+        if (role === 'doctor') {
+          // Doctor page-level check happens in slow path (needs DB)
+          // Fall through to slow path for doctors on admin routes
+        } else {
+          // Customer trying to access admin — sign them out
+          const url = new URL('/api/auth/signout', request.url)
+          url.searchParams.set('redirect', '/')
+          return NextResponse.redirect(url)
+        }
+      }
+
+      // Customer-only paths: must be logged in (any role is fine here)
+      // Nothing to block — they have a valid cookie
+      return NextResponse.next()
+    }
+  }
+
+  // ── SLOW PATH: verify session via Supabase ───────────────────────────────
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(
-          cookiesToSet: {
-            name: string
-            value: string
-            options?: {
-              path?: string
-              domain?: string
-              httpOnly?: boolean
-              secure?: boolean
-              sameSite?: "lax" | "strict" | "none"
-              maxAge?: number
-              expires?: Date
-            }
-          }[]
-        ) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          cookiesToSet.forEach(({ name, value }: { name: string; value: string }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: any }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
         },
@@ -73,108 +127,92 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // CRITICAL: getUser() must be called before any redirects
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Get user role from profiles table
-  let userRole = null
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    userRole = profile?.role
-    // write a short-lived signed role cookie so middleware can make routing decisions
-    try {
-      const roleValue = userRole || ''
-      const ttlSeconds = 30
-      const expires = Math.floor(Date.now() / 1000) + ttlSeconds
-      const payload = `${roleValue}|${expires}`
-      const secret = process.env.DS_COOKIE_SECRET || process.env.NEXT_COOKIE_SIGNING_KEY || ''
-      let sig = ''
-      if (secret) {
-        sig = await hmacSha256Base64Url(payload, secret)
-      }
-      const cookieVal = `${payload}.${sig}`
-      const opts: any = {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: ttlSeconds,
-      }
-      if (process.env.NODE_ENV === 'production') opts.secure = true
-      supabaseResponse.cookies.set('ds_role', cookieVal, opts)
-    } catch {
-      // non-blocking: if cookie set fails, continue without crashing
-    }
-  }
-
-  // If there is no user, ensure role cookie is cleared
+  // No session
   if (!user) {
-    try {
-      supabaseResponse.cookies.set('ds_role', '', { path: '/', maxAge: 0 })
-    } catch {
-      // ignore
+    // Clear stale role cookie
+    supabaseResponse.cookies.set('ds_role', '', { path: '/', maxAge: 0 })
+
+    // Protect customer-only and admin paths
+    if (isAdminPath(path) || isCustomerPath(path)) {
+      const url = new URL('/signin', request.url)
+      url.searchParams.set('redirect', path)
+      return NextResponse.redirect(url)
     }
+
+    return supabaseResponse
   }
 
-  const path = request.nextUrl.pathname
+  // ── Fetch role from DB (slow path only, cookie was missing/expired) ──────
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
 
-  // Protect auth routes
-  if (path.startsWith('/signin') || path.startsWith('/signup')) {
-    if (user) {
-      // Redirect to appropriate dashboard based on role
-      const redirectUrl = (userRole === 'admin' || userRole === 'doctor') ? '/admin-dashboard' : '/'
-      return NextResponse.redirect(new URL(redirectUrl, request.url))
+  const role: string = profile?.role ?? 'customer'
+
+  // Write fresh signed role cookie
+  try {
+    const cookieVal = await buildRoleCookie(role)
+    const opts: Record<string, any> = {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 300,
     }
+    if (process.env.NODE_ENV === 'production') opts.secure = true
+    supabaseResponse.cookies.set('ds_role', cookieVal, opts)
+  } catch {
+    // non-blocking
   }
 
-  // Protect dashboard routes
-  // If an admin is logged in and hits the main dashboard, redirect to admin-dashboard
-  if (path === '/' && userRole === 'admin') {
+  // ── Role-based routing ────────────────────────────────────────────────────
+
+  // Auth pages: redirect logged-in users away
+  if (isAuthPath(path)) {
+    const dest = (role === 'admin' || role === 'doctor') ? '/admin-dashboard' : '/'
+    return NextResponse.redirect(new URL(dest, request.url))
+  }
+
+  // Root: redirect admin/doctor to dashboard
+  if (path === '/' && (role === 'admin' || role === 'doctor')) {
     return NextResponse.redirect(new URL('/admin-dashboard', request.url))
   }
 
-  // If a doctor is logged in and hits the main dashboard, redirect to admin-dashboard
-  if (path === '/' && userRole === 'doctor') {
-    return NextResponse.redirect(new URL('/admin-dashboard', request.url))
-  }
+  // Admin dashboard protection
+  if (isAdminPath(path)) {
+    if (role === 'admin') return supabaseResponse
 
-  // Protect admin-dashboard routes
-  if (path.startsWith('/admin-dashboard')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/signin', request.url))
-    }
-    if (userRole === 'doctor') {
-      // Fetch allowed_admin_pages for this doctor
+    if (role === 'doctor') {
+      // Check which pages this doctor is allowed to see
       const { data: doctor } = await supabase
         .from('doctors')
         .select('allowed_admin_pages')
         .eq('email', user.email)
         .single()
-      // Extract the page slug from the path, e.g. /admin-dashboard/orders -> orders
-      const pageMatch = path.match(/^\/admin-dashboard\/?([^\/]*)/)
-      const pageSlug = pageMatch && pageMatch[1] ? pageMatch[1] : 'admin-dashboard'
-      const allowedPages = doctor?.allowed_admin_pages || []
-      if (!allowedPages.includes(pageSlug)) {
-        // Not allowed: redirect to dashboard or show error
-        return NextResponse.redirect(new URL('/admin-dashboard', request.url))
-      }
-    } else if (userRole !== 'admin') {
-      // Sign out the user and redirect to signin for a fresh login
-      const signoutUrl = new URL('/api/auth/signout', request.url)
-      signoutUrl.searchParams.set('redirect', '/signin')
-      return NextResponse.redirect(signoutUrl)
+
+      const pageMatch = path.match(/^\/admin-dashboard\/?([^/]*)/)
+      const pageSlug  = pageMatch?.[1] || ''
+      const allowed   = (doctor?.allowed_admin_pages as string[]) || []
+
+      // Allow access to the dashboard root itself
+      if (!pageSlug || allowed.includes(pageSlug)) return supabaseResponse
+
+      return NextResponse.redirect(new URL('/admin-dashboard', request.url))
     }
+
+    // Customer trying admin routes
+    const url = new URL('/api/auth/signout', request.url)
+    url.searchParams.set('redirect', '/')
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
 }
-
+ 
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}

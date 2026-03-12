@@ -297,19 +297,19 @@ export default function OrderEditCard({ order, onSaved }: Props) {
             <div>
               <Label>Doctor (optional)</Label>
               {loadingDoctors ? (
-                <div className="text-sm text-muted-foreground py-2">Loading doctors...</div>
+                <div className="text-sm text-muted-foreground py-2">Loading therapists...</div>
               ) : (
                 <Select
                   value={doctorId || undefined}
                   onValueChange={(val) => setDoctorId(val === "__clear__" ? "" : val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select doctor" />
+                    <SelectValue placeholder="Select therapist" />
                   </SelectTrigger>
                   <SelectContent>
                     {doctorId && (
                       <SelectItem value="__clear__" className="text-muted-foreground italic">
-                        Clear doctor
+                        Clear Therapist
                       </SelectItem>
                     )}
                     {doctors.map((doc) => (

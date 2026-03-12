@@ -55,7 +55,7 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
     { href: "/services", icon: Package, label: "Services" },
     { href: "/categories", icon: FolderTree, label: "Categories" },
     { href: "/orders", icon: ShoppingCart, label: "Orders" },
-    { href: "/doctors", icon: Stethoscope, label: "Doctors" },
+    { href: "/doctors", icon: Stethoscope, label: "Therapists" },
     { href: "/reviews", icon: MessageSquare, label: "Reviews" },
   ]
 

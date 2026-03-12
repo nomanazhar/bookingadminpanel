@@ -212,8 +212,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
 
     if (!selectedDoctorId) {
       toast({
-        title: "Doctor Selection Required",
-        description: "Please select a doctor before booking",
+        title: "Therapist Selection Required",
+        description: "Please select a Therapist before booking",
         variant: "destructive",
       })
       return
@@ -310,14 +310,14 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
 
      <section className="max-w-3xl mx-auto mb-8">
             <div className="mt-6">
-              <Label htmlFor="doctor-select" className="mb-2 block">Select Doctor</Label>
+              <Label htmlFor="doctor-select" className="mb-2 block">Select Therapist</Label>
               <Select
                 value={selectedDoctorId}
                 onValueChange={setSelectedDoctorId}
                 disabled={loadingDoctors || filteredDoctors.length === 0}
               >
                 <SelectTrigger id="doctor-select" className="w-full">
-                  <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : filteredDoctors.length === 0 ? "No doctors available" : "Select a doctor"} />
+                  <SelectValue placeholder={loadingDoctors ? "Loading therapists..." : filteredDoctors.length === 0 ? "No therapists available" : "Select a therapist"} />
                 </SelectTrigger>
                   <SelectContent>
                     {filteredDoctors.map((doctor) => (

@@ -3,21 +3,22 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import ServiceDateSelector from "@/components/services/ServiceDateSelector";
 import BookingPanel from "@/components/services/BookingPanel";
-import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { getCurrentUserWithProfile } from "@/lib/supabase/auth";
 
-export default async function ServiceDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams?: Promise<{ reschedule?: string }> }) {
+export default async function ServiceDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ reschedule?: string }>;
+}) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
   const rescheduleId = resolvedSearchParams?.reschedule;
 
-  const cookieStore = cookies();
-  const supabase = await createClient();
-  // Check authentication
-  const { data: userData } = await supabase.auth.getUser();
-  const isAuthenticated = !!userData?.user;
+  const { user, supabase } = await getCurrentUserWithProfile();
+  const isAuthenticated = !!user;
   // Fetch service and optional reschedule order in parallel to avoid SSR waterfall
   const servicePromise = supabase
     .from("services")
