@@ -71,31 +71,47 @@ export async function getCurrentUserAndRole() {
 }
 
 export async function requireAdmin() {
-  const { user, role, supabase } = await getCurrentUserAndRole();
+
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) {
     return {
-      ok: false as const,
-      status: 401 as const,
+      ok: false,
+      status: 401,
+      supabase,
       user: null,
       role: null,
-      supabase,
-    };
+    }
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  const role = profile?.role ?? null
+
   if (role !== "admin") {
     return {
-      ok: false as const,
-      status: 403 as const,
-      user: null,
-      role,
+      ok: false,
+      status: 403,
       supabase,
-    };
+      user,
+      role,
+    }
   }
+
   return {
-    ok: true as const,
-    status: 200 as const,
+    ok: true,
+    status: 200,
+    supabase,
     user,
     role,
-    supabase,
-  };
+  }
 }
 

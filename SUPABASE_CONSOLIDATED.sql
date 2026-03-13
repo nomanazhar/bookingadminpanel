@@ -208,6 +208,15 @@ CREATE TABLE IF NOT EXISTS public.sessions (
     REFERENCES public.orders(id)
     ON DELETE CASCADE
 );
+-- Add order_id column to sessions if it doesn't exist
+ALTER TABLE public.sessions
+ADD COLUMN IF NOT EXISTS order_id UUID;
+
+-- Add the foreign key constraint
+ALTER TABLE public.sessions
+ADD CONSTRAINT fk_sessions_order
+FOREIGN KEY (order_id) REFERENCES public.orders(id)
+ON DELETE CASCADE;
 
 -- ============================================
 -- STEP 10: REVIEWS

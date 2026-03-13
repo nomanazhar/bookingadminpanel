@@ -29,7 +29,7 @@ async function hmacSha256Base64Url(payload: string, secret: string): Promise<str
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 async function buildRoleCookie(role: string): Promise<string> {
-  const ttl = 300 // 5 minutes
+  const ttl = 3600 // 60 minutes
   const expires = Math.floor(Date.now() / 1000) + ttl
   const payload = `${role}|${expires}`
   const secret = process.env.DS_COOKIE_SECRET || process.env.NEXT_COOKIE_SIGNING_KEY || ''
@@ -161,7 +161,7 @@ export async function updateSession(request: NextRequest) {
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 300,
+      maxAge: 3600,
     }
     if (process.env.NODE_ENV === 'production') opts.secure = true
     supabaseResponse.cookies.set('ds_role', cookieVal, opts)
