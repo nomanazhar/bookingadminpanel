@@ -43,6 +43,7 @@ import type { Profile } from "@/types"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { motion, useAnimation } from "framer-motion"
 import { useLocation } from "../providers/location-provider"
 import { LOCATIONS } from "../providers/locations"
 
@@ -98,8 +99,55 @@ export function Navbar({ user, action }: NavbarProps) {
     return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase()
   }
 
+  // Animated border motion
+  const [navbarWidth, setNavbarWidth] = useState(0);
+  const controls = useAnimation();
+  const lineWidth = 380; // px, width of the moving line
+  const motionSpeed = 9.5; // seconds for one full loop (increase for slower, decrease for faster)
+  useEffect(() => {
+    // Get navbar width for animation
+    const handleResize = () => {
+      const nav = document.getElementById("navbar-animated");
+      if (nav) setNavbarWidth(nav.offsetWidth);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  useEffect(() => {
+    if (navbarWidth > 0) {
+      controls.start({
+        x: [0, navbarWidth - lineWidth, 0],
+        transition: {
+          duration: motionSpeed,
+          repeat: Infinity,
+          ease: "linear",
+        },
+      });
+    }
+  }, [navbarWidth, controls, motionSpeed]);
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav
+      id="navbar-animated"
+      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      style={{ position: "relative" }}
+    >
+      {/* Animated moving border line */}
+      <motion.div
+        style={{
+          position: "absolute",
+          left: 0,
+          bottom: 0,
+          height: 4,
+          width: lineWidth,
+          background: "linear-gradient(90deg, #42E0CF 60%, #fff0 100%)",
+          borderRadius: 3,
+          pointerEvents: "none",
+          zIndex: 60,
+        }}
+        animate={controls}
+      />
       <div className="container px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Left Section - Logo & Mobile Menu */}
@@ -188,7 +236,7 @@ export function Navbar({ user, action }: NavbarProps) {
             {/* Location Dropdown */}
             <LocationDropdownMenu>
               <LocationDropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="relative">
+                <Button variant="outline" size="icon" className="relative bg-[#42E0CF]/70">
                   <MapPin className="h-[1.2rem] w-[1.2rem]" />
                   <span className="sr-only">Select location</span>
                 </Button>
@@ -230,21 +278,21 @@ export function Navbar({ user, action }: NavbarProps) {
               <DropdownMenu >
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     className="relative h-10 gap-2 px-2 "
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={localUser?.avatar_url} alt={localUser?.first_name} />
+                      <AvatarImage src={localUser?.avatar_url} alt={localUser?.first_name + " " + localUser?.last_name} />
                       <AvatarFallback>
                         {getInitials(localUser?.first_name, localUser?.last_name)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-slate-100 px-2">
+                <DropdownMenuContent align="end" className="w-62 bg-slate-100 px-2">
                   <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
+                    <div className="flex flex-col space-y-1 border-b pb-2 ">
+                      <p className="text-sm font-medium leading-none pb-1 capitalize">
                         {localUser?.first_name} {localUser?.last_name}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
@@ -252,26 +300,26 @@ export function Navbar({ user, action }: NavbarProps) {
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => router.push('/')}>
+                  <DropdownMenuItem onClick={() => router.push('/')} className="hover:bg-[#42E0CF]"> 
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">Dashboard</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/book-consultation')}>
+                  <DropdownMenuItem onClick={() => router.push('/book-consultation')} className="hover:bg-[#42E0CF]">
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">My Bookings</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/treatments')}>
+                  <DropdownMenuItem onClick={() => router.push('/treatments')} className="hover:bg-[#42E0CF]">
                     <ShoppingCart className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">My Treatmens</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/profile/settings')}>
+                  <DropdownMenuItem onClick={() => router.push('/profile/settings')} className="hover:bg-[#42E0CF]">
                     <User className="mr-2 h-4 w-4" />
                     <span className="cursor-pointer">Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem onClick={handleSignOut} className="border-t hover:bg-red-600/50 focus:bg-red-600/60 data-[state=open]:bg-red-600/50">
+                    <LogOut className="mr-2 h-4 w-4 " />
                     <span className="cursor-pointer">Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

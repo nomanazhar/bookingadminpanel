@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { motion, useAnimation } from "framer-motion"
 
 import type { Category, Service } from "@/types"
 import { CategoryButtons } from "./category-buttons"
@@ -108,26 +109,33 @@ export function CategoryServices() {
                 {catServices.map((service: Service) => (
                   <div
                     key={service.id}
-                    className="relative rounded-lg overflow-hidden group min-h-[220px] flex items-end"
-                    style={{ minHeight: 220 }}
+                    style={{ perspective: 800 }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={service.thumbnail || "/services/placeholder.jpg"}
-                      alt={service.name}
-                      className="object-cover w-full h-full absolute inset-0 group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
-                    <div className="relative z-10 p-6 flex flex-col justify-end h-full w-full">
-                      <h3 className="text-xl md:text-2xl font-semibold text-white mb-1 drop-shadow-lg capitalize">
-                        {service.name}
-                      </h3>
-                      <a href={`/customer-services/${service.slug}`}>
-                        <button className="bg-white text-black font-semibold rounded-full px-6 py-2 w-fit shadow-lg text-base cursor-pointer">
-                          Book now
-                        </button>
-                      </a>
-                    </div>
+                    <motion.div
+                      className="relative rounded-lg overflow-hidden group min-h-[220px] flex items-end transition-transform duration-300"
+                      style={{ minHeight: 220, transformStyle: 'preserve-3d' }}
+                      whileHover={{ rotateX: 20 }}
+                      whileTap={{ rotateX: 14 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={service.thumbnail || "/services/placeholder.jpg"}
+                        alt={service.name}
+                        className="object-cover w-full h-full absolute inset-0 group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300" />
+                      <div className="relative z-10 p-6 flex flex-col justify-end h-full w-full">
+                        <h3 className="text-xl md:text-2xl font-semibold text-white mb-1 drop-shadow-lg capitalize">
+                          {service.name}
+                        </h3>
+                        <a href={`/customer-services/${service.slug}`}>
+                          <button className="bg-white text-black font-semibold rounded-full px-6 py-2 w-fit shadow-lg text-base cursor-pointer">
+                            Book now
+                          </button>
+                        </a>
+                      </div>
+                    </motion.div>
                   </div>
                 ))}
               </div>
