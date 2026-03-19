@@ -46,7 +46,7 @@ export async function getSessionsByOrder(
   const { data, error } = await supabase
     .from('sessions')
     .select(
-      'id,order_id,session_number,scheduled_date,scheduled_time,status,attended_date,notes,expires_at,created_at,updated_at'
+      'id,order_id,session_number,scheduled_date,scheduled_time,status,attended_date,attended_time,notes,expires_at,created_at,updated_at'
     )
     .eq('order_id', orderId)
     .order('session_number', { ascending: true })

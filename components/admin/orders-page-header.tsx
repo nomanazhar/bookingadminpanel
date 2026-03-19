@@ -51,7 +51,7 @@ export default function OrdersPageHeader() {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
-        <h1 className="text-3xl font-bold font-heading mb-2">Bookings</h1>
+        
         <p className="text-muted-foreground">Manage customer bookings</p>
       </div>
 

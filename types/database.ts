@@ -6,6 +6,7 @@ export interface Session {
   scheduled_time?: string | null
   status: 'pending' | 'scheduled' | 'completed' | 'missed' | 'cancelled' | 'expired'
   attended_date?: string | null
+  attended_time?: string | null
   notes?: string | null
   created_at: string
   updated_at: string

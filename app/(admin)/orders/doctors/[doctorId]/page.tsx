@@ -92,9 +92,9 @@ export default async function DoctorOrdersPage({
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold font-heading mb-2">
+          {/* <h1 className="text-xl font-bold font-heading mb-2">
             Bookings - Dr. {doctor.first_name} {doctor.last_name}
-          </h1>
+          </h1> */}
           <p className="text-muted-foreground">View all bookings for this Therapist</p>
         </div>
       </div>

@@ -58,6 +58,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     'scheduled_time',
     'status',
     'attended_date',
+    'attended_time',
     'notes',
     'expires_at',
   ];

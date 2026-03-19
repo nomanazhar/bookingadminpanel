@@ -16,7 +16,29 @@ import {
 } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { OrderWithDetails, Doctor } from "@/types"
+import type { OrderWithDetails, Doctor, Service } from "@/types"
+
+// Helper: convert 12h time (e.g., "10:15 am") to 24h (e.g., "10:15")
+function time12hTo24h(time12h: string): string {
+  const [time, ampm] = time12h.split(" ");
+  let [h, m] = time.split(":").map(Number);
+  if (ampm === "pm" && h !== 12) h += 12;
+  if (ampm === "am" && h === 12) h = 0;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
+// Helper: generate time slots (all day 08:00-21:00 in 15-min intervals)
+function generateAllTimeSlots(): string[] {
+  const slots: string[] = [];
+  for (let min = 8 * 60; min <= 21 * 60; min += 15) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    const hour = h.toString().padStart(2, "0");
+    const minute = m.toString().padStart(2, "0");
+    slots.push(`${hour}:${minute}`);
+  }
+  return slots;
+}
 
 export default function EditOrderPage() {
   const router = useRouter()
@@ -29,6 +51,9 @@ export default function EditOrderPage() {
   const [order, setOrder] = useState<OrderWithDetails | null>(null)
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loadingDoctors, setLoadingDoctors] = useState(true)
+  const [services, setServices] = useState<Service[]>([])
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>(generateAllTimeSlots())
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false)
 
   // Form fields
   const [customerName, setCustomerName] = useState<string>("")
@@ -36,6 +61,7 @@ export default function EditOrderPage() {
   const [customerPhone, setCustomerPhone] = useState<string>("")
   const [address, setAddress] = useState<string>("")
   const [serviceTitle, setServiceTitle] = useState<string>("")
+  const [serviceId, setServiceId] = useState<string>("")
   const [sessionCount, setSessionCount] = useState<string>("1")
   const [unitPrice, setUnitPrice] = useState<string>("0")
   const [discountPercent, setDiscountPercent] = useState<string>("0")
@@ -79,6 +105,7 @@ export default function EditOrderPage() {
         setBookingTime(orderData.booking_time?.slice(0, 5) || '00:00')
         setNotes(orderData.notes || '')
         setDoctorId(orderData.doctor_id || '')
+        setServiceId(orderData.service_id || '')
       } catch (error: any) {
         toast({
           title: "Error",
@@ -96,6 +123,20 @@ export default function EditOrderPage() {
     }
   }, [orderId, router, toast])
 
+  // Fetch services list
+  useEffect(() => {
+    fetch('/api/services')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setServices(data)
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch services:", err)
+      })
+  }, [])
+
   // Fetch doctors list
   useEffect(() => {
     fetch('/api/doctors')
@@ -110,6 +151,67 @@ export default function EditOrderPage() {
         setLoadingDoctors(false)
       })
   }, [])
+
+  // Fetch available time slots when date, doctor, or service changes
+  useEffect(() => {
+    if (!bookingDate || !serviceId) {
+      setAvailableTimeSlots(generateAllTimeSlots())
+      return
+    }
+
+    let ignore = false
+
+    const fetchAvailableTimes = async () => {
+      try {
+        setLoadingTimeSlots(true)
+
+        if (doctorId) {
+          const res = await fetch(
+            `/api/available-timeslots?date=${bookingDate}&doctorId=${doctorId}&serviceId=${serviceId}`
+          )
+          if (!res.ok) throw new Error("Failed to fetch available times")
+          const data = await res.json()
+
+          if (!ignore) {
+            // Convert 12h format to 24h format
+            const slots24h = (data.slots || []).map((slot: string) => time12hTo24h(slot))
+            // Fallback to all slots if API returns empty
+            const finalSlots = slots24h.length > 0 ? slots24h : generateAllTimeSlots()
+            setAvailableTimeSlots(finalSlots)
+          }
+        } else {
+          // If no doctor selected, show all available slots
+          if (!ignore) {
+            setAvailableTimeSlots(generateAllTimeSlots())
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch time slots:", err)
+        if (!ignore) {
+          // Fallback to all slots
+          setAvailableTimeSlots(generateAllTimeSlots())
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingTimeSlots(false)
+        }
+      }
+    }
+
+    fetchAvailableTimes()
+
+    return () => {
+      ignore = true
+    }
+  }, [bookingDate, doctorId, serviceId])
+
+  // Validate bookingTime against available slots
+  useEffect(() => {
+    if (!bookingTime || availableTimeSlots.length === 0) return
+    if (!availableTimeSlots.includes(bookingTime)) {
+      setBookingTime(availableTimeSlots[0] || "00:00")
+    }
+  }, [availableTimeSlots, bookingTime])
 
   // Calculate total amount when unit price, discount, or session count changes
   useEffect(() => {
@@ -241,7 +343,7 @@ export default function EditOrderPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold font-heading mb-2">Edit Booking</h1>
-          <p className="text-muted-foreground">Update booking information</p>
+         
         </div>
       </div>
 
@@ -344,14 +446,30 @@ export default function EditOrderPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bookingTime">Booking Time *</Label>
-                  <Input
-                    id="bookingTime"
-                    type="time"
-                    value={bookingTime}
-                    onChange={(e) => setBookingTime(e.target.value)}
-                    required
-                    className="w-full"
-                  />
+                  {loadingTimeSlots ? (
+                    <div className="w-full h-10 rounded-md border border-input bg-background flex items-center justify-center text-xs text-muted-foreground">
+                      Loading times...
+                    </div>
+                  ) : (
+                    <Select value={bookingTime || ""} onValueChange={setBookingTime} disabled={!bookingDate}>
+                      <SelectTrigger id="bookingTime" className="w-full bg-white">
+                        <SelectValue placeholder="Select time">
+                          {bookingTime || "Select time"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 bg-white">
+                        {availableTimeSlots.length > 0 ? (
+                          availableTimeSlots.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-xs text-muted-foreground">No slots available</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="doctor">Doctor (Optional)</Label>

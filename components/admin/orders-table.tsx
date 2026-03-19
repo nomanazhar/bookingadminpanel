@@ -1,7 +1,7 @@
 "use client"
 
 import axios from "axios"
-import { memo, useMemo, useState } from "react"
+import { memo, useMemo, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { OrderWithDetails } from "@/types"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,8 @@ import { MoreVertical } from "lucide-react"
 import { format, addMinutes } from "date-fns"
 import { parseBookingDateTime } from "@/lib/utils"
 import TableSearchBar from "./table-search-bar"
+import { SessionsModal } from "./sessions-modal"
+import type { Session } from "@/types/database"
 
 interface OrdersTableProps {
   orders: OrderWithDetails[]
@@ -52,6 +54,24 @@ function OrdersTableComponent({
 }: OrdersTableProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
+  const openSessionsModal = useCallback(async (order: OrderWithDetails) => {
+    setSelectedOrder(order);
+    setLoadingSessions(true);
+    try {
+      const { data } = await axios.get<Session[]>(`/api/orders/${order.id}/sessions`);
+      setSessions(data);
+      setSessionsModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, []);
 
   // Sort orders by most recent booking_date and booking_time (descending)
   const sortedOrders = useMemo(() => {
@@ -102,11 +122,12 @@ function OrdersTableComponent({
   };
 
   // Session check-in logic
-  const handleSessionCheckIn = async (orderId: string, sessionId: string) => {
+  const handleSessionCheckIn = async (orderId: string, sessionId: string, attendedTime?: string) => {
     await axios.patch(`/api/orders/${orderId}/sessions`, {
       sessionId,
       status: 'completed',
       attended_date: new Date().toISOString().slice(0, 10),
+      ...(attendedTime && { attended_time: attendedTime }),
     });
     // After check-in, check if all sessions are completed
     const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
@@ -184,7 +205,7 @@ function OrdersTableComponent({
 
               <TableCell className="font-medium">
                 <div>
-                  <div className="font-semibold">
+                  <div className="font-semibold text-sm">
                     {order.customer_name || "Unknown"}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -238,7 +259,7 @@ function OrdersTableComponent({
                       {nextSession ? (
                         <Button
                           size="sm"
-                          onClick={() => handleSessionCheckIn(order.id, nextSession.id)}
+                          onClick={() => handleSessionCheckIn(order.id, nextSession.id, nextSession.scheduled_time ?? undefined)}
                           disabled={order.status !== 'confirmed'}
                         >
                           Check in
@@ -249,7 +270,7 @@ function OrdersTableComponent({
                 })()}
               </TableCell>
 
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="text-xs text-muted-foreground">
                 {order.doctor ? (
                   <span>
                     {order.doctor.first_name} {order.doctor.last_name}
@@ -306,7 +327,7 @@ function OrdersTableComponent({
 
               <TableCell>
                 {order.notes ? (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {order.notes.length > 40
                       ? `${order.notes.substring(0, 40)}...`
                       : order.notes}
@@ -324,6 +345,13 @@ function OrdersTableComponent({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-white">
+                    <DropdownMenuItem
+                      onSelect={() => openSessionsModal(order)}
+                      className="cursor-pointer"
+                      disabled={loadingSessions}
+                    >
+                      View Sessions
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() =>
                         router.push(`/orders/${order.id}/edit`)
@@ -347,6 +375,16 @@ function OrdersTableComponent({
           ))}
         </TableBody>
       </Table>
+
+      {selectedOrder && (
+        <SessionsModal
+          open={sessionsModalOpen}
+          onOpenChange={setSessionsModalOpen}
+          order={selectedOrder}
+          sessions={sessions}
+          doctorName={selectedOrder.doctor ? `${selectedOrder.doctor.first_name} ${selectedOrder.doctor.last_name}` : undefined}
+        />
+      )}
     </div>
   )
 }
