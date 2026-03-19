@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Service, Order, Doctor } from "@/types"
 import { useLocation } from "@/components/providers/location-provider"
+import { calculateSessionPricing, getSessionPackageLabels } from "@/lib/utils"
 
 export default function BookingPanel({ service, rescheduleOrder }: { service: Service, rescheduleOrder?: Order | null }) {
 
@@ -58,24 +59,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   const router = useRouter()
   const { toast } = useToast();
 
-  const parseSessionOptions = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        if (Array.isArray(parsed.options)) return parsed.options;
-      }
-    } catch {}
-    return [];
-  };
-
-  const servicePackages: string[] = parseSessionOptions(service?.session_options).map(opt => {
-    const n = typeof opt === 'number' ? opt : parseInt(String(opt), 10);
-    if (!isNaN(n)) return `${n} ${n === 1 ? 'session' : 'sessions'}`;
-    return String(opt);
-  });
+  const servicePackages: string[] = getSessionPackageLabels(service?.session_options)
 
   const [selectedPackage, setSelectedPackage] = useState<string>(
     rescheduleOrder?.session_count
@@ -155,21 +139,6 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   const effectivePrice = selectedSubserviceId && subservicePrice !== null
     ? Number(subservicePrice)
     : Number(service.base_price ?? 0);
-
-  const getSessionCount = (label: string) => {
-    const m = String(label).match(/(\d+)/)
-    return m ? parseInt(m[0], 10) : 1
-  }
-
-  const getDiscount = (label: string) => {
-    const n = getSessionCount(label)
-    switch (n) {
-      case 3: return 0.25
-      case 6: return 0.35
-      case 10: return 0.45
-      default: return 0
-    }
-  }
 
   const formatPrice = (v: number) => `£${v.toFixed(2)}`
 
@@ -318,10 +287,11 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
             )}
             <div className="flex flex-col gap-4">
               {servicePackages.map((p) => {
-                const count = getSessionCount(p)
-                const discount = getDiscount(p)
-                const perSession = effectivePrice * (1 - discount)
-                const total = perSession * count
+                const pricing = calculateSessionPricing(effectivePrice, service?.session_options, p)
+                const count = pricing.sessions
+                const discountPercent = pricing.discountPercent
+                const perSession = pricing.unitPrice
+                const total = pricing.totalAmount
                 const totalSave = effectivePrice * count - total
                 return (
                   <div
@@ -335,8 +305,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
                       {selectedSubserviceId && (
                         <div className="text-xs text-blue-600 mt-1">for {subservices.find(s => s.id === selectedSubserviceId)?.name}</div>
                       )}
-                      {discount > 0 && (
-                        <div className="text-xs text-green-700 mt-1">Save {Math.round(discount * 100)}% — you save {formatPrice(totalSave)}</div>
+                      {discountPercent > 0 && (
+                        <div className="text-xs text-green-700 mt-1">Save {Math.round(discountPercent)}% — you save {formatPrice(totalSave)}</div>
                       )}
                     </div>
                     <div className="text-right">

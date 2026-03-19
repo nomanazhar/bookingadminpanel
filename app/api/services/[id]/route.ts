@@ -1,9 +1,35 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { parseServiceSessionOptions } from "@/lib/utils"
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
+
+  if (body.locations && (!Array.isArray(body.locations) || body.locations.length === 0)) {
+    return NextResponse.json({ error: "At least one location is required" }, { status: 400 })
+  }
+
+  if (body.session_options !== undefined) {
+    const parsedSessionOptions = parseServiceSessionOptions(body.session_options)
+    const enabledOptions = parsedSessionOptions.options.filter((option) => option.enabled !== false)
+    if (enabledOptions.length === 0) {
+      return NextResponse.json({ error: "At least one session option is required" }, { status: 400 })
+    }
+
+    body.session_options = {
+      options: enabledOptions.map((option) => ({
+        label: option.label,
+        sessions: option.sessions,
+        discountPercent: option.discountPercent,
+        enabled: true,
+      })),
+      times_of_day: Array.isArray(parsedSessionOptions.times_of_day)
+        ? parsedSessionOptions.times_of_day
+        : [],
+    }
+  }
+
   const supabase = await createClient()
   console.info('PUT /api/services/[id] called', { id })
   try {

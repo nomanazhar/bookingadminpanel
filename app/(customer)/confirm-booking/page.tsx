@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { parseBookingDateTime } from "@/lib/utils";
+import { calculateSessionPricing, parseBookingDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -206,20 +206,6 @@ export default function ConfirmBookingPage() {
     })();
   }, [booking?.doctor_id]);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const getSessionCount = (label: string): number => {
-    const match = String(label).match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 1;
-  };
-
-  const getDiscountRate = (label: string): number => {
-    const count = getSessionCount(label);
-    if (count === 3)  return 0.25;
-    if (count === 6)  return 0.35;
-    if (count === 10) return 0.45;
-    return 0;
-  };
-
   const formatPrice = (v: number) => `£${v.toFixed(2)}`;
 
   // ── handleConfirm — order creation + calendar event ───────────────────────
@@ -238,11 +224,12 @@ export default function ConfirmBookingPage() {
     setLoading(true);
 
     try {
-      const basePrice    = Number(serviceDetails?.base_price ?? 0);
-      const sessionCount = booking.session_count ?? getSessionCount(booking.package);
-      const discountRate = getDiscountRate(booking.package);
-      const unitPrice    = Math.round(basePrice * (1 - discountRate) * 100) / 100;
-      const totalAmount  = Math.round(unitPrice * sessionCount * 100) / 100;
+      const basePrice = Number(serviceDetails?.base_price ?? 0);
+      const pricing = calculateSessionPricing(
+        basePrice,
+        serviceDetails?.session_options,
+        booking.session_count ?? booking.package
+      );
 
       // ── Step 1: Create order in DB via /api/orders ───────────────────────
       // /api/orders POST calls create_customer_order_with_sessions RPC and
@@ -260,10 +247,10 @@ export default function ConfirmBookingPage() {
           address:          address || null,
           phone:            phone   || null,
           notes:            null,
-          unit_price:       unitPrice,
-          session_count:    sessionCount,
-          discount_percent: Math.round(discountRate * 100),
-          total_amount:     totalAmount,
+          unit_price:       pricing.unitPrice,
+          session_count:    pricing.sessions,
+          discount_percent: pricing.discountPercent,
+          total_amount:     pricing.totalAmount,
         }),
       });
 
@@ -458,28 +445,27 @@ export default function ConfirmBookingPage() {
 
                 {/* Pricing summary */}
                 {serviceDetails && (() => {
-                  const basePrice    = Number(serviceDetails.base_price ?? 0);
-                  const count        = booking.session_count ?? getSessionCount(booking.package);
-                  const discountRate = getDiscountRate(booking.package);
-                  const unitPrice    = booking.unit_price !== undefined
-                    ? Number(booking.unit_price)
-                    : basePrice * (1 - discountRate);
-                  const total     = booking.total_amount ?? unitPrice * count;
-                  const totalSave = basePrice * count - total;
+                  const basePrice = Number(serviceDetails.base_price ?? 0);
+                  const pricing = calculateSessionPricing(
+                    basePrice,
+                    serviceDetails.session_options,
+                    booking.session_count ?? booking.package
+                  );
+                  const totalSave = basePrice * pricing.sessions - pricing.totalAmount;
 
                   return (
                     <div className="mt-6">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-sm">
                         <div>
-                          <div className="text-2xl font-bold text-green-800">{formatPrice(total)}</div>
+                          <div className="text-2xl font-bold text-green-800">{formatPrice(pricing.totalAmount)}</div>
                           <div className="text-xs text-muted-foreground">
-                            {count} × {formatPrice(unitPrice)} per session
+                            {pricing.sessions} × {formatPrice(pricing.unitPrice)} per session
                           </div>
                         </div>
                         <div className="text-right mt-2 md:mt-0">
-                          {discountRate > 0 ? (
+                          {pricing.discountPercent > 0 ? (
                             <div className="text-sm text-green-700 font-semibold">
-                              Save {Math.round(discountRate * 100)}% — {formatPrice(totalSave)}
+                              Save {Math.round(pricing.discountPercent)}% — {formatPrice(totalSave)}
                             </div>
                           ) : (
                             <div className="text-sm text-muted-foreground">No discount</div>

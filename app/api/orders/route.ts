@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserWithProfile } from "@/lib/supabase/auth";
-import { parseBookingDateTime } from "@/lib/utils";
+import { calculateSessionPricing, parseBookingDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 
 // Helper to build ISO datetime string
@@ -120,18 +120,37 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
+    const { data: service, error: serviceError } = await supabase
+      .from("services")
+      .select("base_price, session_options")
+      .eq("id", serviceId)
+      .single();
+
+    if (serviceError || !service) {
+      return NextResponse.json(
+        { error: "Service not found" },
+        { status: 404 }
+      );
+    }
+
+    const pricing = calculateSessionPricing(
+      Number(service.base_price ?? 0),
+      service.session_options,
+      body.session_count ?? body.sessions ?? body.package ?? 1
+    );
+
     const { data, error } = await supabase.rpc("create_customer_order_with_sessions", {
       p_service_id: serviceId,
       p_subservice_id: body.subservice_id ?? null,
       p_doctor_id: body.doctor_id ?? null,
       p_booking_date: bookingDateRaw,
       p_booking_time: bookingTimeRaw,
-      p_package: body.package ?? null,
-      p_sessions: body.sessions ?? null,
-      p_session_count: body.session_count ?? null,
-      p_unit_price: body.unit_price ?? null,
-      p_discount_percent: body.discount_percent ?? null,
-      p_total_amount: body.total_amount ?? null,
+      p_package: pricing.packageLabel,
+      p_sessions: pricing.sessions,
+      p_session_count: pricing.sessions,
+      p_unit_price: pricing.unitPrice,
+      p_discount_percent: pricing.discountPercent,
+      p_total_amount: pricing.totalAmount,
       p_customer_phone: body.customer_phone ?? null,
       p_address: body.address ?? null,
       p_notes: body.notes ?? null,

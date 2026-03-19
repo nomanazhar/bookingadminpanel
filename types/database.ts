@@ -49,6 +49,18 @@ export interface Category {
   updated_at: string
 }
 
+export interface ServiceSessionPackage {
+  label: string
+  sessions: number
+  discountPercent: number
+  enabled?: boolean
+}
+
+export interface ServiceSessionOptions {
+  options: ServiceSessionPackage[]
+  times_of_day?: string[]
+}
+
 export interface Service {
   id: string
   category_id: string
@@ -58,7 +70,7 @@ export interface Service {
   images?: Json // JSON array of image URLs
   thumbnail?: string
   base_price: number
-  session_options?: Json // JSON array of session options
+  session_options?: ServiceSessionOptions | Json
   duration_minutes?: number
   is_popular: boolean
   locations: string[]

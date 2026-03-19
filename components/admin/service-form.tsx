@@ -7,7 +7,12 @@ import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import type { Service, Category } from "@/types/database";
+import {
+  buildSessionOptionsPayload,
+  parseServiceSessionOptions,
+  toEditableSessionPackages,
+} from "@/lib/utils";
+import type { Service, Category, ServiceSessionPackage } from "@/types/database";
 
 interface ServiceFormProps {
   onServiceSaved?: () => void;
@@ -16,7 +21,6 @@ interface ServiceFormProps {
   onCancel?: () => void;
 }
 
-const defaultSessionOptions = ["1 session", "3 sessions", "6 sessions", "10 sessions"];
 const defaultTimeOptions = ["morning", "afternoon", "evening"];
 
 export function ServiceForm({
@@ -43,10 +47,8 @@ export function ServiceForm({
   const [thumbnail, setThumbnail] = useState(initialValues?.thumbnail || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const [sessionOptions, setSessionOptions] = useState<string[]>(
-    Array.isArray(initialValues?.session_options)
-      ? (initialValues.session_options as string[])
-      : []
+  const [sessionPackages, setSessionPackages] = useState<ServiceSessionPackage[]>(() =>
+    toEditableSessionPackages(initialValues?.session_options)
   );
   const [timeOptions, setTimeOptions] = useState<string[]>([]);
 
@@ -89,11 +91,11 @@ export function ServiceForm({
         .then((res) => {
           let loaded = Array.isArray(res.data)
             ? res.data.map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                price: s.price?.toString() || "",
-                slug: s.slug,
-              }))
+              id: s.id,
+              name: s.name,
+              price: s.price?.toString() || "",
+              slug: s.slug,
+            }))
             : [];
           // Remove free consultation from UI
           const filtered = loaded.filter(s => s.name.trim().toLowerCase() !== HARDCODED_SUBSERVICE_NAME);
@@ -106,20 +108,9 @@ export function ServiceForm({
   }, [initialValues?.id]);
 
   useEffect(() => {
-    // Parse complex session_options format
-    if (initialValues?.session_options) {
-      try {
-        const parsed = JSON.parse(String(initialValues.session_options));
-        if (typeof parsed === "object" && parsed !== null) {
-          setSessionOptions(Array.isArray(parsed.options) ? parsed.options : []);
-          setTimeOptions(Array.isArray(parsed.times_of_day) ? parsed.times_of_day : []);
-        } else if (Array.isArray(parsed)) {
-          setSessionOptions(parsed);
-        }
-      } catch {
-        // silent fail → keep empty
-      }
-    }
+    const parsedSessionOptions = parseServiceSessionOptions(initialValues?.session_options);
+    setSessionPackages(toEditableSessionPackages(initialValues?.session_options));
+    setTimeOptions(Array.isArray(parsedSessionOptions.times_of_day) ? parsedSessionOptions.times_of_day : []);
 
     // Reset form values when initialValues change
     setName(initialValues?.name || "");
@@ -155,6 +146,20 @@ export function ServiceForm({
     }
     if (!locations.length) {
       toast({ title: "At least one location must be selected", variant: "destructive" });
+      return;
+    }
+
+    const enabledSessionPackages = sessionPackages.filter((pkg) => pkg.enabled);
+    if (!enabledSessionPackages.length) {
+      toast({ title: "Select at least one session option", variant: "destructive" });
+      return;
+    }
+
+    const invalidDiscount = enabledSessionPackages.find(
+      (pkg) => !Number.isFinite(Number(pkg.discountPercent)) || Number(pkg.discountPercent) < 0 || Number(pkg.discountPercent) > 100
+    );
+    if (invalidDiscount) {
+      toast({ title: "Discount must be between 0 and 100", variant: "destructive" });
       return;
     }
 
@@ -208,10 +213,7 @@ export function ServiceForm({
       }
 
       // 3. Prepare payload
-      const sessionPayload =
-        timeOptions.length > 0
-          ? JSON.stringify({ options: sessionOptions, times_of_day: timeOptions })
-          : sessionOptions;
+      const sessionPayload = buildSessionOptionsPayload(sessionPackages, timeOptions);
 
       const payload = {
         name,
@@ -353,7 +355,7 @@ export function ServiceForm({
     setIsActive(true);
     setThumbnail("");
     setImageFile(null);
-    setSessionOptions([]);
+    setSessionPackages(toEditableSessionPackages(null));
     setTimeOptions([]);
     setSubservices([]);
     setSubserviceTouched(false);
@@ -366,15 +368,22 @@ export function ServiceForm({
   // ── Render ─────────────────────────────────────────────
   return (
     <div
-      className={`rounded-lg border p-6 ${
-        initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
-      }`}
+      className={`rounded-lg border p-6 ${initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
+        }`}
     >
       <h3 className="text-lg font-semibold mb-5 text-foreground">
         {initialValues?.id ? "✏️ Edit Treatment" : "➕ Add New Treatment"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+
+  {/* Top main container - full width, flex row */}
+  <div className="flex flex-col md:flex-row gap-6 w-full">
+
+    {/* Left column - ~70% width - main fields in 2-column grid */}
+    <div className="flex-1 md:w-[70%]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
         {/* Name */}
         <div>
           <label className="block mb-1.5 text-md font-bold font-medium">Name *</label>
@@ -408,7 +417,6 @@ export function ServiceForm({
           </select>
         </div>
 
-
         {/* Base Price */}
         <div>
           <label className="block mb-1.5 text-md font-bold font-medium">Base Price*</label>
@@ -428,8 +436,8 @@ export function ServiceForm({
           <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
         </div>
 
-        {/* Locations Multi-select */}
-        <div>
+        {/* Locations - spans both columns because it's wider */}
+        <div className="md:col-span-2">
           <label className="block mb-1.5 text-md font-bold font-medium">Locations *</label>
           <div className="flex flex-row gap-8 border p-2 rounded-md">
             {availableLocations.map((loc) => (
@@ -453,32 +461,10 @@ export function ServiceForm({
           </div>
         </div>
 
-        {/* Session Options */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Session options</label>
-          <div className="flex flex-wrap gap-3 border p-2 rounded-md">
-            {defaultSessionOptions.map((opt) => (
-              <label key={opt} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={sessionOptions.includes(opt)}
-                  onChange={(e) =>
-                    setSessionOptions((prev) =>
-                      e.target.checked ? [...prev, opt] : prev.filter((x) => x !== opt)
-                    )
-                  }
-                  className="h-4 w-4 rounded"
-                />
-                {opt}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Time Options */}
+        {/* Available times */}
         <div>
           <label className="block mb-1.5 text-md font-bold font-medium">Available times</label>
-          <div className="flex flex-wrap gap-3 border-1 p-2 rounded-md">
+          <div className="flex flex-wrap gap-3 border p-2 rounded-md">
             {defaultTimeOptions.map((t) => (
               <label key={t} className="flex items-center gap-2 text-sm">
                 <input
@@ -497,7 +483,7 @@ export function ServiceForm({
           </div>
         </div>
 
-       {/* Thumbnail */}
+        {/* Thumbnail */}
         <div>
           <label className="block mb-1.5 text-md font-bold font-medium">Thumbnail</label>
           <input
@@ -513,115 +499,177 @@ export function ServiceForm({
           )}
         </div>
 
-         {/* Description */}
-        <div >
+        {/* Description + toggles - spans both columns */}
+        <div className="md:col-span-2">
           <label className="block mb-1.5 text-md font-bold font-medium">Description</label>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
 
-          {/* Toggles */}
-        <div className="flex items-center gap-8 col-span-full">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
-            <span className="text-sm font-medium">Active</span>
-          </label>
+          <div className="flex items-center gap-8 mt-4">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
+              <span className="text-sm font-medium">Active</span>
+            </label>
 
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
-            <span className="text-sm font-medium">Popular</span>
-          </label>
-        </div>
-
-        </div>
-
-        {/* Subservices */}
-        <div className="col-span-full">
-          <label className="block mb-1.5 text-md font-bold font-medium">Subservices (optional)</label>
-          <div className="overflow-x-auto border rounded">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-left">Price</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {subservices.map((row, idx) => (
-                  <tr key={row.id || idx}>
-                    <td className="px-3 py-2">
-                      <Input
-                        value={row.name}
-                        onChange={(e) =>
-                          setSubservices((prev) =>
-                            prev.map((r, i) =>
-                              i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
-                            )
-                          )
-                        }
-                        placeholder="Subservice name"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Input
-                        type="number"
-                        value={row.price}
-                        onChange={(e) =>
-                          setSubservices((prev) =>
-                            prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
-                          )
-                        }
-                        placeholder="Price"
-                        min={0}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-destructive text-2xl text-red-500 h-10 w-10 p-2 border border-1 rounded-md"
-                      >
-                        ×
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={3} className="px-3 py-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSubservices((prev) => [...prev, { name: "", price: "" }])}
-                    >
-                      + Add Subservice
-                    </Button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
+              <span className="text-sm font-medium">Popular</span>
+            </label>
           </div>
-          {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
         </div>
 
-        
+      
+      </div>
+          {/* Subservices */}
+    <div>
+      <label className="mt-4 block mb-1.5 text-md font-bold font-medium">Subservices (optional)</label>
+      <div className="overflow-x-auto border rounded">
+        <table className="min-w-full text-sm">
+          <thead className="bg-muted">
+            <tr>
+              <th className="px-3 py-2 text-left">Name</th>
+              <th className="px-3 py-2 text-left">Price</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {subservices.map((row, idx) => (
+              <tr key={row.id || idx}>
+                <td className="px-3 py-2">
+                  <Input
+                    value={row.name}
+                    onChange={(e) =>
+                      setSubservices((prev) =>
+                        prev.map((r, i) =>
+                          i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
+                        )
+                      )
+                    }
+                    placeholder="Subservice name"
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <Input
+                    type="number"
+                    value={row.price}
+                    onChange={(e) =>
+                      setSubservices((prev) =>
+                        prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                      )
+                    }
+                    placeholder="Price"
+                    min={0}
+                  />
+                </td>
+                <td className="px-2 py-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
+                    className="text-destructive text-2xl text-red-500 h-10 w-10 p-2 border border-1 rounded-md"
+                  >
+                    ×
+                  </Button>
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={3} className="px-3 py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSubservices((prev) => [...prev, { name: "", price: "" }])}
+                >
+                  + Add Subservice
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
+    </div>
 
-        
+    </div>
 
-        {/* Actions */}
-        <div className="col-span-full flex gap-4 mt-6">
-          <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? "Saving..." : initialValues?.id ? "Update Treatment" : "Add Treatment"}
-          </Button>
+    {/* Right column - ~30% width - Session options */}
+    <div className="w-full md:w-[30%]">
+      <label className="block mb-1.5 text-md font-bold font-medium">Session options</label>
+      <div className="space-y-2 border p-2 rounded-md">
+        {sessionPackages.map((pkg, index) => (
+          <div
+            key={pkg.sessions}
+            className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+          >
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={Boolean(pkg.enabled)}
+                onChange={(e) =>
+                  setSessionPackages((prev) =>
+                    prev.map((item, i) =>
+                      i === index ? { ...item, enabled: e.target.checked } : item
+                    )
+                  )
+                }
+                className="h-4 w-4 rounded"
+              />
+              {pkg.label}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Discount</span>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={pkg.discountPercent === 0 ? "" : pkg.discountPercent}
+                onChange={(e) => {
+                  const nextDiscount = Number(e.target.value);
+                  setSessionPackages((prev) =>
+                    prev.map((item, i) =>
+                      i === index
+                        ? {
+                            ...item,
+                            discountPercent: Number.isFinite(nextDiscount) ? nextDiscount : 0,
+                          }
+                        : item
+                    )
+                  );
+                }}
+                className="h-8 w-20"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
 
-          {initialValues?.id && onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-          )}
-        </div>
-      </form>
+  </div>
+
+  {/* Bottom full-width container */}
+  <div className="w-full space-y-6">
+
+    
+
+    {/* Actions */}
+    <div className="flex gap-4 mt-6">
+      <Button type="submit" disabled={loading} className="flex-1">
+        {loading ? "Saving..." : initialValues?.id ? "Update Treatment" : "Add Treatment"}
+      </Button>
+
+      {initialValues?.id && onCancel && (
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      )}
+    </div>
+
+  </div>
+
+</form>
     </div>
   );
 }

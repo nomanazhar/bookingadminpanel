@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import type { Service, Doctor } from "@/types"
+import { calculateSessionPricing, extractSessionCount, getSessionPackageLabels } from "@/lib/utils"
 
 interface NewBookingDialogProps {
   open: boolean
@@ -95,51 +96,20 @@ export function NewBookingDialog({
   // Load selected service details
   const selectedService = services.find((s) => s.id === selectedServiceId)
 
-  // Parse session_options from service to determine max sessions
-  const parseSessionOptions = (raw: any): string[] => {
-    if (!raw) return []
-    if (Array.isArray(raw)) return raw
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-      if (Array.isArray(parsed)) return parsed
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        if (Array.isArray(parsed.options)) return parsed.options
-      }
-    } catch { }
-    return []
-  }
-
-  // Extract maximum session count from session_options
-  const getMaxSessions = (): number => {
-    if (!selectedService) return 10 // Default to 10 if no service selected
-    const sessionOptions = parseSessionOptions(selectedService?.session_options)
-    if (sessionOptions.length === 0) return 10 // Default to 10 if no options
-
-    let maxSession = 1
-    sessionOptions.forEach((opt: string) => {
-      const match = String(opt).match(/(\d+)/)
-      if (match) {
-        const num = parseInt(match[1], 10)
-        if (num > maxSession) maxSession = num
-      }
-    })
-    return Math.max(1, Math.min(10, maxSession)) // Clamp between 1 and 10
-  }
-
-  const maxSessions = getMaxSessions()
-  // Generate sessions options dynamically based on selected service
-  const sessionsOptions = Array.from({ length: maxSessions }, (_, i) => (i + 1).toString())
+  const sessionPackageLabels = getSessionPackageLabels(selectedService?.session_options)
+  const sessionsOptions = Array.from(
+    new Set(sessionPackageLabels.map((label) => String(extractSessionCount(label))))
+  ).sort((a, b) => Number(a) - Number(b))
 
   // Reset selectedSessions if it exceeds max when service changes
   useEffect(() => {
     if (selectedServiceId) {
-      const currentSessions = parseInt(selectedSessions, 10)
-      if (currentSessions > maxSessions || currentSessions < 1) {
-        setSelectedSessions("1")
+      if (!sessionsOptions.includes(selectedSessions)) {
+        setSelectedSessions(sessionsOptions[0] || "1")
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedServiceId, maxSessions])
+  }, [selectedServiceId, sessionsOptions, selectedSessions])
 
   const loadServices = async () => {
     setLoadingServices(true)
@@ -201,11 +171,8 @@ export function NewBookingDialog({
     try {
       const selectedServiceData = services.find((s) => s.id === selectedServiceId)
 
-      const sessionsNum = parseInt(selectedSessions, 10)
-      const discount = getDiscount(sessionsNum)
       const basePrice = Number(selectedServiceData?.base_price ?? 0)
-      const unitPrice = Math.round((basePrice * (1 - discount)) * 100) / 100
-      const calculatedTotal = unitPrice * sessionsNum
+      const pricing = calculateSessionPricing(basePrice, selectedServiceData?.session_options, selectedSessions)
 
       const payload = {
         customer_name: customerName,
@@ -214,11 +181,11 @@ export function NewBookingDialog({
         service_id: selectedServiceId,
         doctor_id: selectedDoctorId || null,
         service_title: selectedServiceData?.name || "",
-        package: `${selectedSessions} session${selectedSessions !== "1" ? "s" : ""}`,
-        sessions: sessionsNum,
-        unit_price: unitPrice,
-        discount_percent: Math.round(discount * 100),
-        total_amount: calculatedTotal,
+        package: pricing.packageLabel,
+        sessions: pricing.sessions,
+        unit_price: pricing.unitPrice,
+        discount_percent: pricing.discountPercent,
+        total_amount: pricing.totalAmount,
         booking_date: bookingDate,
         booking_time: bookingTime,
         address: address || null,
@@ -260,28 +227,12 @@ export function NewBookingDialog({
     }
   }
 
-  // Get discount based on number of sessions
-  const getDiscount = (sessions: number): number => {
-    switch (sessions) {
-      case 3:
-        return 0.25
-      case 6:
-        return 0.35
-      case 10:
-        return 0.45
-      default:
-        return 0
-    }
-  }
-
   // Calculate price
   const calculatePrice = () => {
     if (!selectedService) return 0
     const basePrice = Number(selectedService.base_price ?? 0)
-    const sessionCount = parseInt(selectedSessions, 10)
-    const discount = getDiscount(sessionCount)
-    const perSession = basePrice * (1 - discount)
-    return perSession * sessionCount
+    const pricing = calculateSessionPricing(basePrice, selectedService.session_options, selectedSessions)
+    return pricing.totalAmount
   }
 
   const totalPrice = calculatePrice()

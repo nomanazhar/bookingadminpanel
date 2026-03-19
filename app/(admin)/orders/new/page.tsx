@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import type { Service, Doctor } from "@/types";
+import { calculateSessionPricing, extractSessionCount, getSessionPackageLabels } from "@/lib/utils";
 
 export default function CreateBookingPage() {
   const router = useRouter();
@@ -250,65 +251,24 @@ export default function CreateBookingPage() {
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
 
-  // Parse session options safely
-  const parseSessionOptions = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed?.options && Array.isArray(parsed.options)) return parsed.options;
-    } catch {}
-    return [];
-  };
-
-  const getMaxSessions = (): number => {
-    if (!selectedService) return 10;
-    const opts = parseSessionOptions(selectedService.session_options);
-    if (opts.length === 0) return 10;
-
-    let max = 1;
-    opts.forEach((opt: string) => {
-      const match = String(opt).match(/(\d+)/);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num > max) max = num;
-      }
-    });
-    return Math.max(1, Math.min(10, max));
-  };
-
-  const maxSessions = getMaxSessions();
-  const sessionsOptions = Array.from({ length: maxSessions }, (_, i) => String(i + 1));
+  const sessionPackageLabels = getSessionPackageLabels(selectedService?.session_options);
+  const sessionsOptions = Array.from(
+    new Set(sessionPackageLabels.map((label) => String(extractSessionCount(label))))
+  ).sort((a, b) => Number(a) - Number(b));
 
   // Reset sessions if service changes and current value is invalid
   useEffect(() => {
     if (!selectedServiceId) return;
-    const current = parseInt(selectedSessions, 10);
-    if (current > maxSessions || current < 1) {
-      setSelectedSessions("1");
+    if (!sessionsOptions.includes(selectedSessions)) {
+      setSelectedSessions(sessionsOptions[0] || "1");
     }
-  }, [selectedServiceId, maxSessions, selectedSessions]);
-
-  const getDiscount = (sessions: number): number => {
-    switch (sessions) {
-      case 3:
-        return 0.25;
-      case 6:
-        return 0.35;
-      case 10:
-        return 0.45;
-      default:
-        return 0;
-    }
-  };
+  }, [selectedServiceId, selectedSessions, sessionsOptions]);
 
   const calculatePrice = () => {
     if (!selectedService) return 0;
     const base = Number(selectedService.base_price ?? 0);
-    const count = parseInt(selectedSessions, 10);
-    const discount = getDiscount(count);
-    return Math.round((base * (1 - discount) * count) * 100) / 100;
+    const pricing = calculateSessionPricing(base, selectedService.session_options, selectedSessions);
+    return pricing.totalAmount;
   };
 
   const totalPrice = calculatePrice();
@@ -348,11 +308,8 @@ export default function CreateBookingPage() {
     try {
       const service = services.find((s) => s.id === selectedServiceId)!;
 
-      const sessionsNum = parseInt(selectedSessions, 10);
-      const discount = getDiscount(sessionsNum);
       const basePrice = Number(service.base_price ?? 0);
-      const unitPrice = Math.round((basePrice * (1 - discount)) * 100) / 100;
-      const totalAmount = unitPrice * sessionsNum;
+      const pricing = calculateSessionPricing(basePrice, service.session_options, selectedSessions);
 
       const payload = {
         customer_name: customerName,
@@ -361,11 +318,11 @@ export default function CreateBookingPage() {
         service_id: selectedServiceId,
         doctor_id: selectedDoctorId || null,
         service_title: service.name || "",
-        package: `${selectedSessions} session${selectedSessions !== "1" ? "s" : ""}`,
-        sessions: sessionsNum,
-        unit_price: unitPrice,
-        discount_percent: Math.round(discount * 100),
-        total_amount: totalAmount,
+        package: pricing.packageLabel,
+        sessions: pricing.sessions,
+        unit_price: pricing.unitPrice,
+        discount_percent: pricing.discountPercent,
+        total_amount: pricing.totalAmount,
         booking_date: bookingDate,
         booking_time: bookingTime,
         address: address || null,

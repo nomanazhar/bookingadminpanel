@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/supabase/auth"
+import { calculateSessionPricing } from "@/lib/utils"
 
 /**
  * Admin API endpoint to get all bookings
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
     // Fetch service details
     const { data: service } = await supabase
       .from('services')
-      .select('base_price, name')
+      .select('base_price, name, session_options')
       .eq('id', serviceId)
       .single()
 
@@ -153,37 +154,16 @@ export async function POST(req: NextRequest) {
     // Ensure session count is between 1 and 10
     sessionCount = Math.max(1, Math.min(10, sessionCount))
 
-    // Calculate pricing
-    const suppliedUnitPrice = body.unit_price !== undefined ? Number(body.unit_price) : undefined
-    const suppliedDiscountPercent = body.discount_percent !== undefined ? Number(body.discount_percent) : 0
+    const pricing = calculateSessionPricing(
+      Number(service.base_price ?? 0),
+      service.session_options,
+      sessionCount
+    )
 
-    const basePriceNum = Number(service.base_price ?? 0)
-    
-    // Calculate discount based on package if not provided
-    let discountPercent = suppliedDiscountPercent
-    if (!suppliedDiscountPercent && sessionCount > 1) {
-      switch (sessionCount) {
-        case 3:
-          discountPercent = 25
-          break
-        case 6:
-          discountPercent = 35
-          break
-        case 10:
-          discountPercent = 45
-          break
-        default:
-          discountPercent = 0
-      }
-    }
-
-    const unitPrice = suppliedUnitPrice !== undefined 
-      ? suppliedUnitPrice 
-      : Math.round((basePriceNum * (1 - discountPercent / 100)) * 100) / 100
-
-    const totalAmount = body.total_amount !== undefined 
-      ? Number(body.total_amount) 
-      : Number(unitPrice) * sessionCount
+    sessionCount = pricing.sessions
+    const discountPercent = pricing.discountPercent
+    const unitPrice = pricing.unitPrice
+    const totalAmount = pricing.totalAmount
 
     // Parse booking date and time
     const bookingDateRaw = body.date || body.booking_date

@@ -114,7 +114,7 @@ export default async function AdminDashboard() {
     user && resolvedRole === "doctor" ? "doctor" : "admin"
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-2">
       <DashboardHeader role={role} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -623,9 +623,9 @@ BEGIN
 
     IF p_discount_percent IS NOT NULL THEN
         v_discount_percent := p_discount_percent;
-    ELSIF v_session_count = 3  THEN v_discount_percent := 25;
-    ELSIF v_session_count = 6  THEN v_discount_percent := 35;
-    ELSIF v_session_count = 10 THEN v_discount_percent := 45;
+    ELSIF v_session_count = 3  THEN v_discount_percent := 20;
+    ELSIF v_session_count = 6  THEN v_discount_percent := 30;
+    ELSIF v_session_count = 10 THEN v_discount_percent := 40;
     ELSE                            v_discount_percent := 0;
     END IF;
 

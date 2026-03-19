@@ -5,6 +5,7 @@ import TableSearchBar from './table-search-bar'
 import Image from 'next/image'
 import type { ServiceWithCategory } from "@/types"
 import { Badge } from "@/components/ui/badge"
+import { parseServiceSessionOptions } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -88,13 +89,14 @@ function ServicesTableComponent({ services }: ServicesTableProps) {
               let times = "-";
               if (service.session_options) {
                 try {
-                  const parsed = typeof service.session_options === "string" ? JSON.parse(service.session_options) : service.session_options;
-                  if (Array.isArray(parsed)) {
-                    sessions = parsed.join(", ");
-                  } else if (parsed && typeof parsed === "object") {
-                    sessions = Array.isArray(parsed.options) ? parsed.options.join(", ") : "-";
-                    times = Array.isArray(parsed.times_of_day) ? parsed.times_of_day.join(", ") : "-";
-                  }
+                  const parsed = parseServiceSessionOptions(service.session_options)
+                  const enabled = parsed.options.filter((option) => option.enabled !== false)
+                  sessions = enabled.length
+                    ? enabled.map((option) => `${option.label} (${option.discountPercent}%)`).join(", ")
+                    : "-"
+                  times = Array.isArray(parsed.times_of_day) && parsed.times_of_day.length
+                    ? parsed.times_of_day.join(", ")
+                    : "-"
                 } catch {}
               }
               return (
