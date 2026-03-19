@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check admin role
@@ -32,7 +33,7 @@ export async function DELETE(
       )
     }
 
-    const locationId = params.id
+    const locationId = id
 
     // Soft delete: set is_active to false
     const { data, error } = await supabase
