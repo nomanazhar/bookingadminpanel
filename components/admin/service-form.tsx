@@ -368,14 +368,14 @@ export function ServiceForm({
   // ── Render ─────────────────────────────────────────────
   return (
     <div
-      className={`rounded-lg border p-6 ${initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
+      className={` rounded-lg border p-4 ${initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
         }`}
     >
-      <h3 className="text-lg font-semibold mb-5 text-foreground">
+      <h3 className="text-lg font-semibold mb-2 text-foreground">
         {initialValues?.id ? "✏️ Edit Treatment" : "➕ Add New Treatment"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
   {/* Top main container - full width, flex row */}
   <div className="flex flex-col md:flex-row gap-6 w-full">

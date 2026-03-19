@@ -113,7 +113,7 @@ export default function ClientServicesSection({
   /* ------------------ RENDER ------------------ */
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <ServiceForm
           onServiceSaved={handleServiceSaved}
           initialValues={editService}
@@ -122,7 +122,7 @@ export default function ClientServicesSection({
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-2">
         <TableSearchBar
           value={search}
           onChange={setSearch}
@@ -136,23 +136,23 @@ export default function ClientServicesSection({
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
             <tr className="bg-[#333333] text-white">
-              <th className="px-4 py-3 text-left uppercase">Name</th>
-              <th className="px-4 py-3 text-left uppercase">Category</th>
-              <th className="px-4 py-3 text-left uppercase">Image</th>
-              <th className="px-4 py-3 text-left uppercase">Price</th>
-              <th className="px-4 py-3 text-left uppercase">Description</th>
-              <th className="px-4 py-3 text-left uppercase">Duration</th>
-              <th className="px-4 py-3 text-left uppercase">Locations</th>
-              <th className="px-4 py-3 text-left uppercase">Subtreatments</th>
-              <th className="px-4 py-3 text-center uppercase">Active</th>
-              <th className="px-4 py-3 text-center uppercase">Manage</th>
+              <th className="px-4 py-2 text-left uppercase">Name</th>
+              <th className="px-4 py-2 text-left uppercase">Category</th>
+              <th className="px-4 py-2 text-left uppercase">Image</th>
+              <th className="px-4 py-2 text-left uppercase">Price</th>
+              <th className="px-4 py-2 text-left uppercase">Description</th>
+              <th className="px-4 py-2 text-left uppercase">Duration</th>
+              <th className="px-4 py-2 text-left uppercase">Locations</th>
+              <th className="px-4 py-2 text-left uppercase">Subtreatments</th>
+              <th className="px-4 py-2 text-center uppercase">Active</th>
+              <th className="px-4 py-2 text-center uppercase">Manage</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredServices.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-6 text-center text-muted-foreground">
+                <td colSpan={8} className="py-4 text-center text-muted-foreground">
                   No services found.
                 </td>
               </tr>
@@ -163,20 +163,20 @@ export default function ClientServicesSection({
                 key={service.id}
                 className="border-b hover:bg-muted/30 transition"
               >
-                <td className="px-4 py-3 font-semibold">
+                <td className="px-4 py-2 text-sm font-semibold">
                   {service.name}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2">
                   {categories.find((c) => c.id === service.category_id)?.name ||
                     "-"}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2">
                   {service.thumbnail ? (
                     <Image
                       src={service.thumbnail}
                       alt={service.name}
-                      width={60}
-                      height={60}
+                      width={40}
+                      height={40}
                       className="rounded object-cover"
                     />
                   ) : (

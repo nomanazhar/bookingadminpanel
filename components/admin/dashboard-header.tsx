@@ -21,9 +21,9 @@ export function DashboardHeader({ role }: DashboardHeaderProps) {
           variant="outline"
           size="sm"
           onClick={() => setLocationsManagerOpen(true)}
-          className="gap-2"
+          className="gap-2 p-4"
         >
-          <MapPin className="h-4 w-4" />
+          <MapPin className="h-4 w-4 " />
           Manage Locations
         </Button>
       </div>

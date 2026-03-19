@@ -23,6 +23,15 @@ interface Props {
   initialDoctors: Doctor[] | DoctorsError;
 }
 
+function getBioPreview(bio?: string | null, words: number = 8): string {
+  if (!bio) return "-";
+  const normalized = bio.replace(/\s+/g, " ").trim();
+  if (!normalized) return "-";
+  const parts = normalized.split(" ");
+  if (parts.length <= words) return normalized;
+  return `${parts.slice(0, words).join(" ")}...`;
+}
+
 export default function ClientDoctorsSection({ initialDoctors }: Props) {
   const router = useRouter();
 
@@ -163,8 +172,8 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   /* ------------------ RENDER ------------------ */
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="mb-4 flex flex-col">
+      <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex flex-col">
           <TableSearchBar
             value={search}
             onChange={setSearch}
@@ -196,22 +205,23 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         <table className="min-w-full bg-card">
           <thead className="bg-[#333333] text-white">
             <tr>
-              <th className="px-4 py-3 text-left uppercase">Avatar</th>
-              <th className="px-4 py-3 text-left uppercase">Name</th>
-              <th className="px-4 py-3 text-left uppercase">Email</th>
-              <th className="px-4 py-3 text-left uppercase">Phone</th>
-              <th className="px-4 py-3 text-left uppercase">Specialization</th>
-              <th className="px-4 py-3 text-left uppercase">Bio</th>
-              <th className="px-4 py-3 text-left uppercase">Locations</th>
-              <th className="px-4 py-3 text-center uppercase">Active</th>
-              <th className="px-4 py-3 text-center uppercase">Manage</th>
+               <th className="px-4 py-2 text-left uppercase">Avatar</th>
+              <th className="px-4 py-2 text-left uppercase">Name</th>
+             
+              <th className="px-4 py-2 text-left uppercase">Email</th>
+              <th className="px-4 py-2 text-left uppercase">Phone</th>
+              <th className="px-4 py-2 text-left uppercase">Specialization</th>
+              <th className="px-4 py-2 text-left uppercase">Bio</th>
+              <th className="px-4 py-2 text-left uppercase">Locations</th>
+              <th className="px-4 py-2 text-center uppercase">Active</th>
+              <th className="px-4 py-2 text-center uppercase">Manage</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredDoctors.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-6 text-center text-muted-foreground">
+                <td colSpan={8} className="py-4 text-center text-muted-foreground">
                   No therapists found.
                 </td>
               </tr>
@@ -222,18 +232,18 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                 key={doctor.id}
                 className="border-b hover:bg-muted/30 transition"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-2">
                   {doctor.avatar_url ? (
                     <Image
                       src={doctor.avatar_url}
                       alt="avatar"
-                      width={48}
-                      height={48}
+                      width={40}
+                      height={40}
                       className="rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                      <span className="font-semibold text-muted-foreground">
+                    <div className="w-12 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <span className="font-semibold text-sm text-muted-foreground">
                         {doctor.first_name[0]}
                         {doctor.last_name[0]}
                       </span>
@@ -241,41 +251,51 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                   )}
                 </td>
 
-                <td className="px-4 py-3 font-semibold">
+                <td className="px-4 py-2 text-sm font-semibold">
                   {doctor.first_name} {doctor.last_name}
                 </td>
 
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-2 text-sm text-muted-foreground">
                   {doctor.email}
                 </td>
 
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-2 text-sm text-muted-foreground">
                   {doctor.phone || "-"}
                 </td>
 
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-2 text-sm text-muted-foreground">
                   {doctor.specialization || "-"}
                 </td>
 
-                <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
-                  {doctor.bio || "-"}
+                <td className="px-4 py-2 max-w-xs align-top">
+                  <p
+                    className="text-xs text-muted-foreground leading-relaxed"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {getBioPreview(doctor.bio, 8)}
+                  </p>
                 </td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-2">
                   {Array.isArray(doctor.locations) && doctor.locations.length > 0
                     ? doctor.locations.map((loc) => (
-                      <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                      <span key={loc} className="inline-block bg-muted px-2  rounded text-xs mr-1 capitalize">
                         {loc}
                       </span>
                     ))
                     : "-"}
                 </td>
 
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-2 text-sm text-center">
                   {doctor.is_active ? "Yes" : "No"}
                 </td>
 
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-2 text-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="text-gray-500 hover:text-black">

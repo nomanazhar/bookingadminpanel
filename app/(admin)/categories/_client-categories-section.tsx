@@ -100,7 +100,7 @@ export default function CategoriesTable({
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <AddCategoryForm
           onCategoryAdded={handleCategoryAdded}
           initialValues={editCategory}
@@ -108,7 +108,7 @@ export default function CategoriesTable({
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-2">
         <TableSearchBar
           value={search}
           onChange={setSearch}
@@ -126,14 +126,14 @@ export default function CategoriesTable({
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
             <tr className="bg-[#333333] text-white">
-              <th className="px-4 py-3 text-left uppercase">Name</th>
+              <th className="px-4 py-2 text-left uppercase">Name</th>
               {/* <th className="px-4 py-3 text-left">Slug</th> */}
-              <th className="px-4 py-3 text-left uppercase">Description</th>
-              <th className="px-4 py-3 text-left uppercase">Image</th>
-              <th className="px-4 py-3 text-left uppercase">Locations</th>
+              <th className="px-4 py-2 text-left uppercase">Description</th>
+              <th className="px-4 py-2 text-left uppercase">Image</th>
+              <th className="px-4 py-2 text-left uppercase">Locations</th>
               {/* <th className="px-4 py-3 text-center">Order</th> */}
-              <th className="px-4 py-3 text-center uppercase">Active</th>
-              <th className="px-4 py-3 text-center uppercase">Manage</th>
+              <th className="px-4 py-2 text-center uppercase">Active</th>
+              <th className="px-4 py-2 text-center uppercase">Manage</th>
             </tr>
           </thead>
 

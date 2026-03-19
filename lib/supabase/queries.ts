@@ -579,6 +579,111 @@ export async function getTodayOrdersAdmin(
   return data as OrderWithDetails[]
 }
 
+export interface DoctorBookingChartDatum {
+  doctorId: string
+  doctorName: string
+  bookings: number
+}
+
+/**
+ * Doctor booking counts for admin dashboard charts (top 10 doctors only).
+ * Optimized for performance: limits to top 10 by booking count.
+ */
+export async function getDoctorBookingsChartData(
+  limit: number = 10
+): Promise<{
+  totalBookingsByDoctor: DoctorBookingChartDatum[]
+  thisMonthBookingsByDoctor: DoctorBookingChartDatum[]
+}> {
+  const supabase = createServiceRoleClient()
+  const [{ data: doctors, error: doctorsError }, { data: orders, error: ordersError }] =
+    await Promise.all([
+      supabase
+        .from('doctors')
+        .select('id,first_name,last_name')
+        .eq('is_active', true)
+        .limit(100),
+      supabase
+        .from('orders')
+        .select('doctor_id,booking_date')
+        .not('doctor_id', 'is', null),
+    ])
+
+  if (doctorsError) throw doctorsError
+  if (ordersError) throw ordersError
+
+  type DoctorRow = {
+    id: string
+    first_name?: string | null
+    last_name?: string | null
+  }
+
+  type OrderRow = {
+    doctor_id: string | null
+    booking_date: string | null
+  }
+
+  const doctorRows = (doctors ?? []) as DoctorRow[]
+  const orderRows = (orders ?? []) as OrderRow[]
+
+  const toDoctorName = (first?: string | null, last?: string | null): string => {
+    const full = `${first?.trim() || ''} ${last?.trim() || ''}`.trim()
+    return full || 'Unknown Therapist'
+  }
+
+  const totalMap = new Map<string, DoctorBookingChartDatum>()
+  const monthMap = new Map<string, DoctorBookingChartDatum>()
+
+  // Seed maps so doctors with zero bookings are always present.
+  for (const doctor of doctorRows) {
+    const doctorName = toDoctorName(doctor.first_name, doctor.last_name)
+    totalMap.set(doctor.id, { doctorId: doctor.id, doctorName, bookings: 0 })
+    monthMap.set(doctor.id, { doctorId: doctor.id, doctorName, bookings: 0 })
+  }
+
+  const now = new Date()
+  const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
+
+  for (const row of orderRows) {
+    if (!row.doctor_id) continue
+
+    const existingTotal = totalMap.get(row.doctor_id)
+    if (existingTotal) {
+      existingTotal.bookings += 1
+    } else {
+      // Defensive fallback if an order references a doctor row missing from query.
+      totalMap.set(row.doctor_id, {
+        doctorId: row.doctor_id,
+        doctorName: 'Unknown Therapist',
+        bookings: 1,
+      })
+    }
+
+    if (row.booking_date?.startsWith(thisMonthPrefix)) {
+      const existingMonth = monthMap.get(row.doctor_id)
+      if (existingMonth) {
+        existingMonth.bookings += 1
+      } else {
+        monthMap.set(row.doctor_id, {
+          doctorId: row.doctor_id,
+          doctorName: 'Unknown Therapist',
+          bookings: 1,
+        })
+      }
+    }
+  }
+
+  const sortByBookingsDesc = (a: DoctorBookingChartDatum, b: DoctorBookingChartDatum) => {
+    if (b.bookings !== a.bookings) return b.bookings - a.bookings
+    return a.doctorName.localeCompare(b.doctorName)
+  }
+
+  return {
+    totalBookingsByDoctor: Array.from(totalMap.values()).sort(sortByBookingsDesc).slice(0, limit),
+    thisMonthBookingsByDoctor: Array.from(monthMap.values()).sort(sortByBookingsDesc).slice(0, limit),
+  }
+}
+
 /**
  * Primary admin dashboard loader — calls the get_dashboard_data RPC which
  * reads from the dashboard_stats materialized view (refreshed every 5 min).
