@@ -196,15 +196,15 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
         <table className="min-w-full bg-card">
           <thead className="bg-[#333333] text-white">
             <tr>
-              <th className="px-4 py-3 text-left">Avatar</th>
-              <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">Email</th>
-              <th className="px-4 py-3 text-left">Phone</th>
-              <th className="px-4 py-3 text-left">Specialization</th>
-              <th className="px-4 py-3 text-left">Bio</th>
-              <th className="px-4 py-3 text-left">Locations</th>
-              <th className="px-4 py-3 text-center">Active</th>
-              <th className="px-4 py-3 text-center">Manage</th>
+              <th className="px-4 py-3 text-left uppercase">Avatar</th>
+              <th className="px-4 py-3 text-left uppercase">Name</th>
+              <th className="px-4 py-3 text-left uppercase">Email</th>
+              <th className="px-4 py-3 text-left uppercase">Phone</th>
+              <th className="px-4 py-3 text-left uppercase">Specialization</th>
+              <th className="px-4 py-3 text-left uppercase">Bio</th>
+              <th className="px-4 py-3 text-left uppercase">Locations</th>
+              <th className="px-4 py-3 text-center uppercase">Active</th>
+              <th className="px-4 py-3 text-center uppercase">Manage</th>
             </tr>
           </thead>
 

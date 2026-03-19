@@ -41,9 +41,11 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setSubservices(data);
-          setSelectedSubserviceId(data[0].id);
-          setSubservicePrice(Number(data[0].price));
+          // Filter out free consultation, only show paid subservices
+          const filteredData = data.filter(s => s.name && s.name.trim().toLowerCase() !== 'free consultation');
+          setSubservices(filteredData);
+          setSelectedSubserviceId("");
+          setSubservicePrice(null);
         } else {
           setSubservices([]);
           setSelectedSubserviceId("");
@@ -149,8 +151,10 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     );
   }, [doctors, selectedLocation]);
 
-  // Use service base price for session calculations
-  const effectivePrice = Number(service.base_price ?? 0);
+  // Use subservice price if selected, otherwise use service base price for session calculations
+  const effectivePrice = selectedSubserviceId && subservicePrice !== null
+    ? Number(subservicePrice)
+    : Number(service.base_price ?? 0);
 
   const getSessionCount = (label: string) => {
     const m = String(label).match(/(\d+)/)
@@ -168,7 +172,6 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
   }
 
   const formatPrice = (v: number) => `£${v.toFixed(2)}`
-
 
   // Helper to convert 12h time (e.g., "10:15 am") to 24h
   function to24h(time12h: string) {
@@ -264,6 +267,44 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
     <div>
 
       {isAuthenticated && (
+        <>
+        {/* Subservices Selection */}
+        {subservices.length > 0 && (
+          <section className="max-w-3xl mx-auto mb-8">
+            <div className="bg-muted rounded-xl shadow p-4">
+              <div className="text-xl font-semibold mb-4">Select Treatment Option</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+                {subservices.map((subservice) => {
+                  const isSelected = selectedSubserviceId === subservice.id;
+                  return (
+                    <button
+                      key={subservice.id}
+                      onClick={() => {
+                        setSelectedSubserviceId(subservice.id);
+                        setSubservicePrice(Number(subservice.price));
+                      }}
+                      className={`px-4 py-3 rounded-lg font-medium transition text-left border-2 ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-50 text-blue-900 shadow-lg"
+                          : "border-gray-300 bg-white text-black hover:border-blue-600 hover:shadow-md"
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className="capitalize font-semibold">{subservice.name}</span>
+                        {Number(subservice.price) > 0 && (
+                          <span className="text-sm text-gray-600 mt-1">{formatPrice(Number(subservice.price))}</span>
+                        )}
+                        {Number(subservice.price) === 0 && (
+                          <span className="text-sm text-green-600 mt-1 font-semibold">Free</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
         <section className="max-w-3xl mx-auto mb-8">
           <div className="bg-muted rounded-xl shadow p-4">
             <div className="flex items-center justify-between mb-2">
@@ -291,6 +332,9 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
                     <div>
                       <div className="text-lg font-semibold">{p}</div>
                       <div className="text-sm text-muted-foreground">{count} × {formatPrice(perSession)} per session</div>
+                      {selectedSubserviceId && (
+                        <div className="text-xs text-blue-600 mt-1">for {subservices.find(s => s.id === selectedSubserviceId)?.name}</div>
+                      )}
                       {discount > 0 && (
                         <div className="text-xs text-green-700 mt-1">Save {Math.round(discount * 100)}% — you save {formatPrice(totalSave)}</div>
                       )}
@@ -306,6 +350,7 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
 
           </div>
         </section>
+        </>
       )}
 
      <section className="max-w-3xl mx-auto mb-8">

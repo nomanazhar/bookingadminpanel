@@ -154,20 +154,43 @@ function SearchBookingSlots({ doctors, services, onSearch, loading }: SearchBook
           </div>
         </div>
         <div className="flex flex-col mt-8 ml-12 gap-2 min-w-[220px]">
-          {doctors.map((doctor: Doctor) => (
-            <label key={doctor.id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedDoctors.includes(doctor.id)}
-                onChange={() => handleDoctorChange(doctor.id)}
-              />
-              {doctor.name}
-            </label>
-          ))}
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={allChecked} onChange={handleAllChange} />
-            All
-          </label>
+          <label className="font-medium mb-1">Doctors</label>
+          <Select open={undefined} onOpenChange={undefined}>
+            <SelectTrigger className="w-full min-w-[220px]">
+              <SelectValue>
+                {selectedDoctors.length === 0
+                  ? "Select doctors"
+                  : selectedDoctors.length === doctors.length
+                  ? "All doctors selected"
+                  : doctors
+                      .filter((d) => selectedDoctors.includes(d.id))
+                      .map((d) => d.name)
+                      .join(", ")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <div className="max-h-60 overflow-y-auto px-2 py-1">
+                <label className="flex items-center gap-2 mb-1">
+                  <input
+                    type="checkbox"
+                    checked={allChecked}
+                    onChange={handleAllChange}
+                  />
+                  <span className="font-medium">All</span>
+                </label>
+                {doctors.map((doctor) => (
+                  <label key={doctor.id} className="flex items-center gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedDoctors.includes(doctor.id)}
+                      onChange={() => handleDoctorChange(doctor.id)}
+                    />
+                    {doctor.name}
+                  </label>
+                ))}
+              </div>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div>

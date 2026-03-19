@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LOCATIONS } from "../providers/locations";
+import { useLocations } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ export function AddCategoryForm({
   initialValues,
   onCancel,
 }: AddCategoryFormProps) {
+  // ── Hooks ──────────────────────────────────────────────
+  const { locations: availableLocations } = useLocations()
+
+  // ── Form States ───────────────────────────────────────
   const [name, setName] = useState(initialValues?.name || "");
   const [description, setDescription] = useState(initialValues?.description || "");
   const [slug, setSlug] = useState(initialValues?.slug || "");
@@ -206,7 +210,7 @@ export function AddCategoryForm({
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Name */}
         <div>
-          <label className="block mb-1 font-medium text-foreground">Name *</label>
+          <label className="block mb-1 font-bold font-medium text-foreground">Name *</label>
           <Input
             value={name}
             onChange={(e) => {
@@ -251,7 +255,7 @@ export function AddCategoryForm({
             type="file"
             accept="image/*"
             onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            className="w-full text-sm border rounded-md  text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
           {uploading && <span className="text-xs text-muted-foreground mt-1 block">Uploading...</span>}
           {imageUrl && !imageFile && (
@@ -268,7 +272,7 @@ export function AddCategoryForm({
         </div>
 
         {/* Display Order */}
-        <div>
+        {/* <div>
           <label className="block mb-1 font-medium text-foreground">Display Order</label>
           <Input
             type="number"
@@ -276,14 +280,14 @@ export function AddCategoryForm({
             onChange={(e) => setDisplayOrder(Number(e.target.value))}
             min={0}
           />
-        </div>
+        </div> */}
 
 
         {/* Locations Multi-select */}
         <div>
           <label className="block mb-1 font-medium text-foreground">Locations *</label>
-          <div className="flex flex-col gap-1">
-            {LOCATIONS.map((loc) => (
+          <div className="flex flex-row gap-8 border p-2 rounded-md">
+            {availableLocations.map((loc) => (
               <label key={loc} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -305,7 +309,7 @@ export function AddCategoryForm({
         </div>
 
         {/* Active Checkbox */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-6">
           <input
             type="checkbox"
             checked={isActive}
@@ -313,7 +317,7 @@ export function AddCategoryForm({
             id="isActive"
             className="h-4 w-4 rounded border-input"
           />
-          <label htmlFor="isActive" className="font-medium text-foreground">
+          <label htmlFor="isActive" className="font-medium text-foreground ">
             Active
           </label>
         </div>

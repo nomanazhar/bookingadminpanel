@@ -15,7 +15,7 @@ export default async function CategoriesPage() {
   }
   return (
     <div className="p-6 space-y-6">
-      <div>
+      <div className="flex items-center justify-start gap-8">
         <h1 className="text-3xl font-bold font-heading mb-2">Categories</h1>
         <p className="text-muted-foreground">Manage service categories</p>
       </div>

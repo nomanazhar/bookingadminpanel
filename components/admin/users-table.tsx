@@ -75,14 +75,14 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
         <Table>
           <TableHeader className="bg-[#333333] text-white">
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Gender</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="uppercase">Name</TableHead>
+              <TableHead className="uppercase">Email</TableHead>
+              <TableHead className="uppercase">Phone</TableHead>
+              <TableHead className="uppercase">Gender</TableHead>
+              <TableHead className="uppercase">Address</TableHead>
+              <TableHead className="uppercase">Role</TableHead>
+              <TableHead className="uppercase">Joined</TableHead>
+              <TableHead className="text-right uppercase">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

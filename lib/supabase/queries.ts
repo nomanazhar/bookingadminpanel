@@ -568,6 +568,7 @@ export async function loadAdminDashboardData(limit: number = 5): Promise<{
     totalCategories: number
     totalServices: number
     totalDoctors: number
+    totalLocations: number
   }
   futureAppointments: number
   recentOrders: OrderWithDetails[]
@@ -586,6 +587,7 @@ export async function loadAdminDashboardData(limit: number = 5): Promise<{
       totalCategories: number
       totalServices: number
       totalDoctors: number
+      totalLocations: number
     }
     futureAppointments: number
     recentOrders: OrderWithDetails[]

@@ -45,7 +45,7 @@ function CategoriesTableComponent({ categories }: CategoriesTableProps) {
       <TableSearchBar
         value={search}
         onChange={setSearch}
-        onSearch={() => {}}
+        onSearch={() => { }}
         placeholder="Search categories..."
       />
       <div className="rounded-md border">
@@ -76,10 +76,10 @@ function CategoriesTableComponent({ categories }: CategoriesTableProps) {
                 <TableCell>
                   {Array.isArray(category.locations) && category.locations.length > 0
                     ? category.locations.map((loc) => (
-                        <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
-                          {loc}
-                        </span>
-                      ))
+                      <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                        {loc}
+                      </span>
+                    ))
                     : '—'}
                 </TableCell>
                 <TableCell className="text-right">

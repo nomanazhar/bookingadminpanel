@@ -101,48 +101,47 @@ function OrdersTableComponent({
     router.refresh();
   };
 
-    // Session check-in logic
-    const handleSessionCheckIn = async (orderId: string, sessionId: string) => {
-      await axios.patch(`/api/orders/${orderId}/sessions`, {
-        sessionId,
-        status: 'completed',
-        attended_date: new Date().toISOString().slice(0, 10),
-      });
-      // After check-in, check if all sessions are completed
-      const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
-      const allCompleted = sessions.every((s: any) => s.status === 'completed');
-      if (allCompleted) {
-        await axios.patch(`/api/orders/${orderId}`, { status: 'completed' });
-      }
-      router.refresh();
-    };
+  // Session check-in logic
+  const handleSessionCheckIn = async (orderId: string, sessionId: string) => {
+    await axios.patch(`/api/orders/${orderId}/sessions`, {
+      sessionId,
+      status: 'completed',
+      attended_date: new Date().toISOString().slice(0, 10),
+    });
+    // After check-in, check if all sessions are completed
+    const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
+    const allCompleted = sessions.every((s: any) => s.status === 'completed');
+    if (allCompleted) {
+      await axios.patch(`/api/orders/${orderId}`, { status: 'completed' });
+    }
+    router.refresh();
+  };
 
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   return (
     <div className="space-y-4">
-      <TableSearchBar 
-      value={search} 
-      onChange={setSearch}
-      onSearch={() => {}}
-       />
+      <TableSearchBar
+        value={search}
+        onChange={setSearch}
+        onSearch={() => { }}
+      />
 
       <Table>
         <TableHeader className="bg-[#333333] text-white">
           <TableRow>
-             <TableHead>Booking Date</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Service</TableHead>
-            {/* <TableHead>Locations</TableHead> */}
-            <TableHead>Sessions</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Phone</TableHead>
-           
-            <TableHead>Booking Time</TableHead>
-            {/* <TableHead>Amount</TableHead> */}
-            <TableHead>Status</TableHead>
-             <TableHead>Comments</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="uppercase">Booking Date</TableHead>
+            <TableHead className="uppercase">Booking Time</TableHead>
+            <TableHead className="uppercase">Customer</TableHead>
+            <TableHead className="uppercase">Service</TableHead>
+            {/* <TableHead className="uppercase">Locations</TableHead> */}
+            <TableHead className="uppercase">Sessions</TableHead>
+            <TableHead className="uppercase">Doctor</TableHead>
+            {/* <TableHead className="uppercase">Phone</TableHead> */}
+            {/* <TableHead className="uppercase">Amount</TableHead> */}
+            <TableHead className="uppercase">Status</TableHead>
+            <TableHead className="uppercase">Comments</TableHead>
+            <TableHead className="text-right uppercase">Actions</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -156,15 +155,41 @@ function OrdersTableComponent({
                     order.booking_time || "00:00:00"
                   ),
                   "MMM dd, yyyy"
-                )}
+                )} <br />
+                {Array.isArray(order.service?.locations) && order.service.locations.length > 0
+                  ? order.service.locations.length === 2
+                    ? null
+                    : order.service.locations.map((loc) => (
+                      <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
+                        {loc}
+                      </span>
+                    ))
+                  : "-"}
               </TableCell>
+              <TableCell>
+                {(() => {
+                  const startDate = parseBookingDateTime(
+                    order.booking_date,
+                    order.booking_time || "00:00:00"
+                  );
+                  const duration = order.service?.duration_minutes;
+                  if (typeof duration === 'number' && !isNaN(duration)) {
+                    const endDate = addMinutes(startDate, duration);
+                    return `${format(startDate, "HH:mm")} - ${format(endDate, "HH:mm")}`;
+                  } else {
+                    return format(startDate, "p");
+                  }
+                })()}
+              </TableCell>
+
               <TableCell className="font-medium">
                 <div>
-                  <div>
+                  <div className="font-semibold">
                     {order.customer_name || "Unknown"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {order.customer_email || ""}
+                    {order.customer_email || ""} <br />
+                    {order.address || "-"} <br />
                     {order.customer_phone ? ` • ${order.customer_phone}` : ""}
                   </div>
                 </div>
@@ -225,29 +250,17 @@ function OrdersTableComponent({
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
-                {order.address || "-"}
+                {order.doctor ? (
+                  <span>
+                    {order.doctor.first_name} {order.doctor.last_name}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              {/* <TableCell className="text-sm text-muted-foreground">
                 {order.customer_phone || "-"}
-              </TableCell>
-
-              
-
-              <TableCell>
-                  {(() => {
-                    const startDate = parseBookingDateTime(
-                      order.booking_date,
-                      order.booking_time || "00:00:00"
-                    );
-                    const duration = order.service?.duration_minutes;
-                    if (typeof duration === 'number' && !isNaN(duration)) {
-                      const endDate = addMinutes(startDate, duration);
-                      return `${format(startDate, "HH:mm")} - ${format(endDate, "HH:mm")}`;
-                    } else {
-                      return format(startDate, "p");
-                    }
-                  })()}
-              </TableCell>
+              </TableCell> */}
 
               {/* <TableCell>£{order.total_amount.toFixed(2)}</TableCell> */}
 
@@ -284,7 +297,7 @@ function OrdersTableComponent({
                   }
                   // Otherwise, show normal status
                   return (
-                    <Badge variant={getStatusVariant(order.status)}>
+                    <Badge  variant={getStatusVariant(order.status)}>
                       {order.status}
                     </Badge>
                   );

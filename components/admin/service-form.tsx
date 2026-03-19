@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LOCATIONS } from "../providers/locations";
+import { useLocations } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,9 @@ export function ServiceForm({
   categories,
   onCancel,
 }: ServiceFormProps) {
+  // ── Hooks ──────────────────────────────────────────────
+  const { locations: availableLocations } = useLocations()
+
   // ── Form States ───────────────────────────────────────
   const [name, setName] = useState(initialValues?.name || "");
   const [slug, setSlug] = useState(initialValues?.slug?.trim() || "");
@@ -59,12 +62,7 @@ export function ServiceForm({
   const HARDCODED_SUBSERVICE_NAME = "free consultation";
   const HARDCODED_SUBSERVICE_SLUG = "free-consultation";
   const HARDCODED_SUBSERVICE_PRICE = "0";
-  const [subservices, setSubservices] = useState<SubserviceRow[]>([{
-    id: undefined,
-    name: HARDCODED_SUBSERVICE_NAME,
-    price: HARDCODED_SUBSERVICE_PRICE,
-    slug: HARDCODED_SUBSERVICE_SLUG,
-  }]);
+  const [subservices, setSubservices] = useState<SubserviceRow[]>([]);
   const [subserviceTouched, setSubserviceTouched] = useState(false);
   const [subserviceError, setSubserviceError] = useState<string | null>(null);
 
@@ -97,34 +95,13 @@ export function ServiceForm({
                 slug: s.slug,
               }))
             : [];
-          // Find the free consultation subservice in DB (if any)
-          const freeRow = loaded.find(s => s.name.trim().toLowerCase() === HARDCODED_SUBSERVICE_NAME);
-          // Remove any other free consultation rows from loaded
+          // Remove free consultation from UI
           const filtered = loaded.filter(s => s.name.trim().toLowerCase() !== HARDCODED_SUBSERVICE_NAME);
-          // Always ensure the free consultation row is present at index 0, using DB id if available
-          setSubservices([
-            freeRow ? { ...freeRow, name: HARDCODED_SUBSERVICE_NAME, price: HARDCODED_SUBSERVICE_PRICE, slug: HARDCODED_SUBSERVICE_SLUG } : {
-              id: undefined,
-              name: HARDCODED_SUBSERVICE_NAME,
-              price: HARDCODED_SUBSERVICE_PRICE,
-              slug: HARDCODED_SUBSERVICE_SLUG,
-            },
-            ...filtered
-          ]);
+          setSubservices(filtered);
         })
-        .catch(() => setSubservices([{
-          id: undefined,
-          name: HARDCODED_SUBSERVICE_NAME,
-          price: HARDCODED_SUBSERVICE_PRICE,
-          slug: HARDCODED_SUBSERVICE_SLUG,
-        }]));
+        .catch(() => setSubservices([]));
     } else {
-      setSubservices([{
-        id: undefined,
-        name: HARDCODED_SUBSERVICE_NAME,
-        price: HARDCODED_SUBSERVICE_PRICE,
-        slug: HARDCODED_SUBSERVICE_SLUG,
-      }]);
+      setSubservices([]);
     }
   }, [initialValues?.id]);
 
@@ -378,12 +355,7 @@ export function ServiceForm({
     setImageFile(null);
     setSessionOptions([]);
     setTimeOptions([]);
-    setSubservices([{
-      id: undefined,
-      name: HARDCODED_SUBSERVICE_NAME,
-      price: HARDCODED_SUBSERVICE_PRICE,
-      slug: HARDCODED_SUBSERVICE_SLUG,
-    }]);
+    setSubservices([]);
     setSubserviceTouched(false);
     setSubserviceError(null);
     setLocations([]);
@@ -405,7 +377,7 @@ export function ServiceForm({
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Name */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Name *</label>
+          <label className="block mb-1.5 text-md font-bold font-medium">Name *</label>
           <Input
             value={name}
             onChange={(e) => {
@@ -420,7 +392,7 @@ export function ServiceForm({
 
         {/* Category */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Category *</label>
+          <label className="block mb-1.5 text-md font-bold font-medium">Category *</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
@@ -439,7 +411,7 @@ export function ServiceForm({
 
         {/* Base Price */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Base Price*</label>
+          <label className="block mb-1.5 text-md font-bold font-medium">Base Price*</label>
           <Input
             type="number"
             min={0}
@@ -452,15 +424,15 @@ export function ServiceForm({
 
         {/* Duration */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Duration (min)</label>
+          <label className="block mb-1.5 text-md font-bold font-medium">Duration (min)</label>
           <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
         </div>
 
         {/* Locations Multi-select */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Locations *</label>
-          <div className="flex flex-col gap-1">
-            {LOCATIONS.map((loc) => (
+          <label className="block mb-1.5 text-md font-bold font-medium">Locations *</label>
+          <div className="flex flex-row gap-8 border p-2 rounded-md">
+            {availableLocations.map((loc) => (
               <label key={loc} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -483,8 +455,8 @@ export function ServiceForm({
 
         {/* Session Options */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Session options</label>
-          <div className="flex flex-wrap gap-3">
+          <label className="block mb-1.5 text-md font-bold font-medium">Session options</label>
+          <div className="flex flex-wrap gap-3 border p-2 rounded-md">
             {defaultSessionOptions.map((opt) => (
               <label key={opt} className="flex items-center gap-2 text-sm">
                 <input
@@ -505,8 +477,8 @@ export function ServiceForm({
 
         {/* Time Options */}
         <div>
-          <label className="block mb-1.5 text-sm font-medium">Available times</label>
-          <div className="flex flex-wrap gap-3">
+          <label className="block mb-1.5 text-md font-bold font-medium">Available times</label>
+          <div className="flex flex-wrap gap-3 border-1 p-2 rounded-md">
             {defaultTimeOptions.map((t) => (
               <label key={t} className="flex items-center gap-2 text-sm">
                 <input
@@ -525,11 +497,45 @@ export function ServiceForm({
           </div>
         </div>
 
-       
+       {/* Thumbnail */}
+        <div>
+          <label className="block mb-1.5 text-md font-bold font-medium">Thumbnail</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="block border-1 rounded-md w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+          />
+          {thumbnail && !imageFile && (
+            <div className="mt-3">
+              <Image src={thumbnail} alt="Thumbnail preview" width={100} height={100} className="rounded object-cover" />
+            </div>
+          )}
+        </div>
+
+         {/* Description */}
+        <div >
+          <label className="block mb-1.5 text-md font-bold font-medium">Description</label>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+
+          {/* Toggles */}
+        <div className="flex items-center gap-8 col-span-full">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
+            <span className="text-sm font-medium">Active</span>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
+            <span className="text-sm font-medium">Popular</span>
+          </label>
+        </div>
+
+        </div>
 
         {/* Subservices */}
-        {/* <div className="col-span-full">
-          <label className="block mb-1.5 text-sm font-medium">Subservices (optional)</label>
+        <div className="col-span-full">
+          <label className="block mb-1.5 text-md font-bold font-medium">Subservices (optional)</label>
           <div className="overflow-x-auto border rounded">
             <table className="min-w-full text-sm">
               <thead className="bg-muted">
@@ -543,51 +549,41 @@ export function ServiceForm({
                 {subservices.map((row, idx) => (
                   <tr key={row.id || idx}>
                     <td className="px-3 py-2">
-                      {idx === 0 ? (
-                        <Input value={row.name} disabled className="bg-muted text-black" />
-                      ) : (
-                        <Input
-                          value={row.name}
-                          onChange={(e) =>
-                            setSubservices((prev) =>
-                              prev.map((r, i) =>
-                                i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
-                              )
+                      <Input
+                        value={row.name}
+                        onChange={(e) =>
+                          setSubservices((prev) =>
+                            prev.map((r, i) =>
+                              i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
                             )
-                          }
-                          placeholder="Subservice name"
-                        />
-                      )}
+                          )
+                        }
+                        placeholder="Subservice name"
+                      />
                     </td>
                     <td className="px-3 py-2">
-                      {idx === 0 ? (
-                        <Input value={row.price} disabled className="bg-muted" />
-                      ) : (
-                        <Input
-                          type="number"
-                          value={row.price}
-                          onChange={(e) =>
-                            setSubservices((prev) =>
-                              prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
-                            )
-                          }
-                          placeholder="Price"
-                          min={0}
-                        />
-                      )}
+                      <Input
+                        type="number"
+                        value={row.price}
+                        onChange={(e) =>
+                          setSubservices((prev) =>
+                            prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                          )
+                        }
+                        placeholder="Price"
+                        min={0}
+                      />
                     </td>
                     <td className="px-2 py-2">
-                      {idx === 0 ? null : (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-destructive h-8 w-8 p-0"
-                        >
-                          ×
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-destructive text-2xl text-red-500 h-10 w-10 p-2 border border-1 rounded-md"
+                      >
+                        ×
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -607,43 +603,9 @@ export function ServiceForm({
             </table>
           </div>
           {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
-        </div> */}
-
-        {/* Thumbnail */}
-        <div>
-          <label className="block mb-1.5 text-sm font-medium">Thumbnail</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="block w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-          />
-          {thumbnail && !imageFile && (
-            <div className="mt-3">
-              <Image src={thumbnail} alt="Thumbnail preview" width={100} height={100} className="rounded object-cover" />
-            </div>
-          )}
         </div>
 
-         {/* Description */}
-        <div >
-          <label className="block mb-1.5 text-sm font-medium">Description</label>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
-
-{/* Toggles */}
-        <div className="flex items-center gap-8 col-span-full">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
-            <span className="text-sm font-medium">Active</span>
-          </label>
-
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
-            <span className="text-sm font-medium">Popular</span>
-          </label>
-        </div>
-
-        </div>
+        
 
         
 

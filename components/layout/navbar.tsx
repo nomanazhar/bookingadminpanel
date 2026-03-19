@@ -45,7 +45,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { motion, useAnimation } from "framer-motion"
 import { useLocation } from "../providers/location-provider"
-import { LOCATIONS } from "../providers/locations"
+import { useLocations } from "../providers/locations"
 
 interface NavbarProps {
   user: Profile | null
@@ -54,6 +54,8 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, action }: NavbarProps) {
+  // ── Hooks ──────────────────────────────────────────────
+  const { locations: availableLocations } = useLocations()
   const { location: selectedLocation, setLocation: setSelectedLocation } = useLocation();
   const router = useRouter();
   const { toast } = useToast();
@@ -242,7 +244,7 @@ export function Navbar({ user, action }: NavbarProps) {
                 </Button>
               </LocationDropdownMenuTrigger>
               <LocationDropdownMenuContent align="end">
-                {LOCATIONS.map((loc) => {
+                {availableLocations.map((loc) => {
                   const isSelected = selectedLocation && loc.toLowerCase() === selectedLocation.toLowerCase();
                   return (
                     <LocationDropdownMenuItem

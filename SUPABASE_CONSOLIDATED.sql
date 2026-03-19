@@ -1,6 +1,10 @@
 -- ============================================
 -- SUPABASE COMPLETE PRODUCTION SCHEMA
 -- Fully idempotent — safe to re-run at any time
+-- LOCATION APPROACH:
+--   • Single `locations` table as master list of valid location names
+--   • TEXT[] columns kept on categories, services, doctors — store location names
+--   • No join tables — simple, fast, easy to query
 -- ============================================
 
 -- ============================================
@@ -40,6 +44,19 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     address     TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Master list of valid locations.
+-- categories/services/doctors store location names as TEXT[] referencing these names.
+CREATE TABLE IF NOT EXISTS public.locations (
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       TEXT        NOT NULL UNIQUE,
+    address    TEXT,
+    city       TEXT,
+    country    TEXT        NOT NULL DEFAULT 'UK',
+    is_active  BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -137,12 +154,10 @@ CREATE TABLE IF NOT EXISTS public.orders (
         FOREIGN KEY (doctor_id)     REFERENCES public.doctors(id)     ON DELETE SET NULL
 );
 
--- Safe to run on existing DB — adds column only if missing
+-- Safe on existing DB
 ALTER TABLE public.orders
     ADD COLUMN IF NOT EXISTS google_calendar_event_id TEXT;
 
--- Sessions: order_id + fk_sessions_order defined ONCE here in CREATE TABLE.
--- Do NOT add ALTER TABLE statements for these below — that caused error 42710.
 CREATE TABLE IF NOT EXISTS public.sessions (
     id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id       UUID        NOT NULL,
@@ -184,6 +199,7 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 -- ============================================
 
 ALTER TABLE public.profiles    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.locations   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.services    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subservices ENABLE ROW LEVEL SECURITY;
@@ -230,60 +246,64 @@ CREATE POLICY "Admins manage profiles"
 CREATE POLICY "Service role can update profiles"
     ON public.profiles FOR UPDATE TO service_role USING (true);
 
--- orders
-DROP POLICY IF EXISTS "Users manage own orders" ON public.orders;
-DROP POLICY IF EXISTS "Admins manage orders"    ON public.orders;
-CREATE POLICY "Users manage own orders"
-    ON public.orders FOR ALL USING (auth.uid() = customer_id);
-CREATE POLICY "Admins manage orders"
-    ON public.orders FOR ALL USING (public.is_admin());
+-- locations
+DROP POLICY IF EXISTS "Public read locations"   ON public.locations;
+DROP POLICY IF EXISTS "Admins manage locations" ON public.locations;
 
--- services
-DROP POLICY IF EXISTS "Public read services"   ON public.services;
-DROP POLICY IF EXISTS "Admins manage services" ON public.services;
-CREATE POLICY "Public read services"
-    ON public.services FOR SELECT USING (is_active = true);
-CREATE POLICY "Admins manage services"
-    ON public.services FOR ALL USING (public.is_admin());
-
--- doctors
-DROP POLICY IF EXISTS "Public read doctors"   ON public.doctors;
-DROP POLICY IF EXISTS "Admins manage doctors" ON public.doctors;
-CREATE POLICY "Public read doctors"
-    ON public.doctors FOR SELECT USING (is_active = true);
-CREATE POLICY "Admins manage doctors"
-    ON public.doctors FOR ALL USING (public.is_admin());
-
--- subservices
-DROP POLICY IF EXISTS "Public read subservices"   ON public.subservices;
-DROP POLICY IF EXISTS "Admins manage subservices" ON public.subservices;
-CREATE POLICY "Public read subservices"
-    ON public.subservices FOR SELECT USING (true);
-CREATE POLICY "Admins manage subservices"
-    ON public.subservices FOR ALL USING (public.is_admin());
+CREATE POLICY "Public read locations"
+    ON public.locations FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins manage locations"
+    ON public.locations FOR ALL USING (public.is_admin());
 
 -- categories
 DROP POLICY IF EXISTS "Public read categories"   ON public.categories;
 DROP POLICY IF EXISTS "Admins manage categories" ON public.categories;
+
 CREATE POLICY "Public read categories"
     ON public.categories FOR SELECT USING (is_active = true);
 CREATE POLICY "Admins manage categories"
     ON public.categories FOR ALL USING (public.is_admin());
 
--- reviews
-DROP POLICY IF EXISTS "Public read reviews"      ON public.reviews;
-DROP POLICY IF EXISTS "Users manage own reviews" ON public.reviews;
-DROP POLICY IF EXISTS "Admins manage reviews"    ON public.reviews;
-CREATE POLICY "Public read reviews"
-    ON public.reviews FOR SELECT USING (true);
-CREATE POLICY "Users manage own reviews"
-    ON public.reviews FOR ALL USING (auth.uid() = customer_id);
-CREATE POLICY "Admins manage reviews"
-    ON public.reviews FOR ALL USING (public.is_admin());
+-- services
+DROP POLICY IF EXISTS "Public read services"   ON public.services;
+DROP POLICY IF EXISTS "Admins manage services" ON public.services;
+
+CREATE POLICY "Public read services"
+    ON public.services FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins manage services"
+    ON public.services FOR ALL USING (public.is_admin());
+
+-- subservices
+DROP POLICY IF EXISTS "Public read subservices"   ON public.subservices;
+DROP POLICY IF EXISTS "Admins manage subservices" ON public.subservices;
+
+CREATE POLICY "Public read subservices"
+    ON public.subservices FOR SELECT USING (true);
+CREATE POLICY "Admins manage subservices"
+    ON public.subservices FOR ALL USING (public.is_admin());
+
+-- doctors
+DROP POLICY IF EXISTS "Public read doctors"   ON public.doctors;
+DROP POLICY IF EXISTS "Admins manage doctors" ON public.doctors;
+
+CREATE POLICY "Public read doctors"
+    ON public.doctors FOR SELECT USING (is_active = true);
+CREATE POLICY "Admins manage doctors"
+    ON public.doctors FOR ALL USING (public.is_admin());
+
+-- orders
+DROP POLICY IF EXISTS "Users manage own orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins manage orders"    ON public.orders;
+
+CREATE POLICY "Users manage own orders"
+    ON public.orders FOR ALL USING (auth.uid() = customer_id);
+CREATE POLICY "Admins manage orders"
+    ON public.orders FOR ALL USING (public.is_admin());
 
 -- sessions
 DROP POLICY IF EXISTS "Users manage own sessions" ON public.sessions;
 DROP POLICY IF EXISTS "Admins manage sessions"    ON public.sessions;
+
 CREATE POLICY "Users manage own sessions"
     ON public.sessions FOR ALL
     USING (
@@ -295,6 +315,18 @@ CREATE POLICY "Users manage own sessions"
     );
 CREATE POLICY "Admins manage sessions"
     ON public.sessions FOR ALL USING (public.is_admin());
+
+-- reviews
+DROP POLICY IF EXISTS "Public read reviews"      ON public.reviews;
+DROP POLICY IF EXISTS "Users manage own reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Admins manage reviews"    ON public.reviews;
+
+CREATE POLICY "Public read reviews"
+    ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Users manage own reviews"
+    ON public.reviews FOR ALL USING (auth.uid() = customer_id);
+CREATE POLICY "Admins manage reviews"
+    ON public.reviews FOR ALL USING (public.is_admin());
 
 -- ============================================
 -- STEP 7: USER CREATION TRIGGER
@@ -349,6 +381,11 @@ CREATE TRIGGER update_profiles_updated_at
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_locations_updated_at   ON public.locations;
+CREATE TRIGGER update_locations_updated_at
+    BEFORE UPDATE ON public.locations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 DROP TRIGGER IF EXISTS update_categories_updated_at  ON public.categories;
 CREATE TRIGGER update_categories_updated_at
     BEFORE UPDATE ON public.categories
@@ -386,7 +423,6 @@ CREATE TRIGGER update_reviews_updated_at
 
 -- ============================================
 -- STEP 9: ORDERS WITH SESSIONS VIEW
--- security_invoker=true respects caller RLS (not owner's)
 -- ============================================
 
 DROP VIEW IF EXISTS public.orders_with_sessions;
@@ -414,9 +450,8 @@ GRANT SELECT ON public.orders_with_sessions TO anon, authenticated;
 
 -- ============================================
 -- STEP 10: DASHBOARD MATERIALIZED VIEW
--- Unique index created immediately — required before CONCURRENTLY refresh
 -- ============================================
-
+DROP MATERIALIZED VIEW IF EXISTS public.dashboard_stats CASCADE;
 CREATE MATERIALIZED VIEW IF NOT EXISTS public.dashboard_stats AS
 SELECT
     (SELECT COUNT(*) FROM public.profiles  WHERE role = 'customer') AS total_customers,
@@ -424,6 +459,7 @@ SELECT
     (SELECT COUNT(*) FROM public.categories WHERE is_active = true) AS total_categories,
     (SELECT COUNT(*) FROM public.services   WHERE is_active = true) AS total_services,
     (SELECT COUNT(*) FROM public.doctors    WHERE is_active = true) AS total_doctors,
+    (SELECT COUNT(*) FROM public.locations  WHERE is_active = true) AS total_locations,
     (SELECT COUNT(*) FROM public.orders
         WHERE status IN ('pending','confirmed')
           AND (
@@ -438,7 +474,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_stats_unique
 
 -- ============================================
 -- STEP 11: REFRESH FUNCTION
--- Defined after view + index so CONCURRENTLY is safe
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.refresh_dashboard_stats()
@@ -453,9 +488,6 @@ GRANT EXECUTE ON FUNCTION public.refresh_dashboard_stats() TO service_role;
 
 -- ============================================
 -- STEP 12: GET DASHBOARD DATA RPC
--- Called only via service role key from server-side admin code.
--- auth.uid() is NULL under service role — is_admin() cannot guard here.
--- Security enforced at application layer via requireAdmin() in auth.ts.
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.get_dashboard_data(p_limit integer DEFAULT 5)
@@ -469,15 +501,16 @@ DECLARE
     v_total_categories    bigint := 0;
     v_total_services      bigint := 0;
     v_total_doctors       bigint := 0;
+    v_total_locations     bigint := 0;
     v_future_appointments bigint := 0;
     v_recent_orders       jsonb  := '[]'::jsonb;
 BEGIN
     SELECT
         total_customers, total_orders, total_categories,
-        total_services,  total_doctors, future_appointments
+        total_services,  total_doctors, total_locations, future_appointments
     INTO
         v_total_customers, v_total_orders, v_total_categories,
-        v_total_services,  v_total_doctors, v_future_appointments
+        v_total_services,  v_total_doctors, v_total_locations, v_future_appointments
     FROM public.dashboard_stats
     LIMIT 1;
 
@@ -487,6 +520,7 @@ BEGIN
         SELECT COUNT(*) INTO v_total_categories FROM public.categories  WHERE is_active = true;
         SELECT COUNT(*) INTO v_total_services   FROM public.services    WHERE is_active = true;
         SELECT COUNT(*) INTO v_total_doctors    FROM public.doctors     WHERE is_active = true;
+        SELECT COUNT(*) INTO v_total_locations  FROM public.locations   WHERE is_active = true;
         SELECT COUNT(*) INTO v_future_appointments
         FROM public.orders
         WHERE status IN ('pending','confirmed')
@@ -519,7 +553,8 @@ BEGIN
             'totalOrders',     v_total_orders,
             'totalCategories', v_total_categories,
             'totalServices',   v_total_services,
-            'totalDoctors',    v_total_doctors
+            'totalDoctors',    v_total_doctors,
+            'totalLocations',  v_total_locations
         ),
         'futureAppointments', v_future_appointments,
         'recentOrders',       v_recent_orders
@@ -531,7 +566,6 @@ GRANT EXECUTE ON FUNCTION public.get_dashboard_data(integer) TO service_role;
 
 -- ============================================
 -- STEP 13: CUSTOMER ORDER CREATION RPC
--- Required params (no defaults) MUST precede optional params — PostgreSQL rule.
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.create_customer_order_with_sessions(
@@ -655,51 +689,61 @@ GRANT EXECUTE ON FUNCTION public.create_customer_order_with_sessions(
 
 -- ============================================
 -- STEP 14: PERFORMANCE INDEXES
--- All use IF NOT EXISTS — fully safe to re-run
 -- ============================================
 
-CREATE INDEX IF NOT EXISTS idx_profiles_role                    ON public.profiles(role);
-CREATE INDEX IF NOT EXISTS idx_profiles_email                   ON public.profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_created_at              ON public.profiles(created_at DESC);
+-- profiles
+CREATE INDEX IF NOT EXISTS idx_profiles_role                      ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_email                     ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at                ON public.profiles(created_at DESC);
 
+-- locations
+CREATE INDEX IF NOT EXISTS idx_locations_is_active                ON public.locations(is_active);
+CREATE INDEX IF NOT EXISTS idx_locations_name                     ON public.locations(name);
+
+-- categories
 CREATE INDEX IF NOT EXISTS idx_categories_is_active_display_order ON public.categories(is_active, display_order);
-CREATE INDEX IF NOT EXISTS idx_categories_slug                  ON public.categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_slug                    ON public.categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_locations               ON public.categories USING GIN(locations);
 
-CREATE INDEX IF NOT EXISTS idx_services_category_id             ON public.services(category_id);
-CREATE INDEX IF NOT EXISTS idx_services_is_active_created_at    ON public.services(is_active, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_services_is_popular_is_active    ON public.services(is_popular, is_active);
-CREATE INDEX IF NOT EXISTS idx_services_slug                    ON public.services(slug);
+-- services
+CREATE INDEX IF NOT EXISTS idx_services_category_id               ON public.services(category_id);
+CREATE INDEX IF NOT EXISTS idx_services_is_active_created_at      ON public.services(is_active, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_services_is_popular_is_active      ON public.services(is_popular, is_active);
+CREATE INDEX IF NOT EXISTS idx_services_slug                      ON public.services(slug);
+CREATE INDEX IF NOT EXISTS idx_services_locations                 ON public.services USING GIN(locations);
 
-CREATE INDEX IF NOT EXISTS idx_doctors_is_active                ON public.doctors(is_active);
-CREATE INDEX IF NOT EXISTS idx_doctors_email                    ON public.doctors(email);
+-- doctors
+CREATE INDEX IF NOT EXISTS idx_doctors_is_active                  ON public.doctors(is_active);
+CREATE INDEX IF NOT EXISTS idx_doctors_email                      ON public.doctors(email);
+CREATE INDEX IF NOT EXISTS idx_doctors_locations                  ON public.doctors USING GIN(locations);
 
-CREATE INDEX IF NOT EXISTS idx_orders_customer_id               ON public.orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_doctor_id                 ON public.orders(doctor_id);
-CREATE INDEX IF NOT EXISTS idx_orders_service_id                ON public.orders(service_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status                    ON public.orders(status);
-CREATE INDEX IF NOT EXISTS idx_orders_booking_date_time         ON public.orders(booking_date, booking_time);
-CREATE INDEX IF NOT EXISTS idx_orders_created_at                ON public.orders(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_orders_customer_email_date_time  ON public.orders(customer_email, booking_date, booking_time);
+-- orders
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id                 ON public.orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_doctor_id                   ON public.orders(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_orders_service_id                  ON public.orders(service_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status                      ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_booking_date_time           ON public.orders(booking_date, booking_time);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at                  ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email_date_time    ON public.orders(customer_email, booking_date, booking_time);
 
-CREATE INDEX IF NOT EXISTS idx_sessions_order_id                ON public.sessions(order_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_order_id_session_number ON public.sessions(order_id, session_number);
-CREATE INDEX IF NOT EXISTS idx_sessions_status                  ON public.sessions(status);
+-- sessions
+CREATE INDEX IF NOT EXISTS idx_sessions_order_id                  ON public.sessions(order_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_order_id_session_number   ON public.sessions(order_id, session_number);
+CREATE INDEX IF NOT EXISTS idx_sessions_status                    ON public.sessions(status);
 
 -- ============================================
 -- STEP 15: PG_CRON SCHEDULE
--- Defined last — after refresh_dashboard_stats() exists.
--- INSERT ... WHERE NOT EXISTS prevents duplicate job error on re-run.
 -- ============================================
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM cron.job WHERE jobname = 'refresh_dashboard_stats_5min'
-  ) THEN
-    PERFORM cron.schedule(
-      'refresh_dashboard_stats_5min',
-      '*/5 * * * *',
-      'SELECT public.refresh_dashboard_stats();'
-    );
-  END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM cron.job WHERE jobname = 'refresh_dashboard_stats_5min'
+    ) THEN
+        PERFORM cron.schedule(
+            'refresh_dashboard_stats_5min',
+            '*/5 * * * *',
+            'SELECT public.refresh_dashboard_stats();'
+        );
+    END IF;
 END $$;

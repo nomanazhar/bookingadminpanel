@@ -114,6 +114,7 @@ export default function CategoriesTable({
           onChange={setSearch}
           onSearch={() => {}}
           placeholder="Search categories..."
+          className="border-2 rounded-xl"
         />
       </div>
 
@@ -125,14 +126,14 @@ export default function CategoriesTable({
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
             <tr className="bg-[#333333] text-white">
-              <th className="px-4 py-3 text-left">Name</th>
+              <th className="px-4 py-3 text-left uppercase">Name</th>
               {/* <th className="px-4 py-3 text-left">Slug</th> */}
-              <th className="px-4 py-3 text-left">Description</th>
-              <th className="px-4 py-3 text-left">Image</th>
-              <th className="px-4 py-3 text-left">Locations</th>
+              <th className="px-4 py-3 text-left uppercase">Description</th>
+              <th className="px-4 py-3 text-left uppercase">Image</th>
+              <th className="px-4 py-3 text-left uppercase">Locations</th>
               {/* <th className="px-4 py-3 text-center">Order</th> */}
-              <th className="px-4 py-3 text-center">Active</th>
-              <th className="px-4 py-3 text-center">Manage</th>
+              <th className="px-4 py-3 text-center uppercase">Active</th>
+              <th className="px-4 py-3 text-center uppercase">Manage</th>
             </tr>
           </thead>
 
@@ -167,8 +168,8 @@ export default function CategoriesTable({
                     <Image
                       src={cat.image_url}
                       alt={cat.name}
-                      width={80}
-                      height={80}
+                      width={70}
+                      height={70}
                       className="rounded object-cover"
                     />
                   ) : (

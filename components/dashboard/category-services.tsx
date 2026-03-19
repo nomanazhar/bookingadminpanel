@@ -100,7 +100,7 @@ export function CategoryServices() {
             <section
               key={category.id}
               id={`category-${category.id}`}
-              className="container py-12"
+              className="container pt-8 pb-2"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center capitalize">
                 {category.name}

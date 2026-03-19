@@ -94,7 +94,7 @@ export function NewBookingDialog({
 
   // Load selected service details
   const selectedService = services.find((s) => s.id === selectedServiceId)
-  
+
   // Parse session_options from service to determine max sessions
   const parseSessionOptions = (raw: any): string[] => {
     if (!raw) return []
@@ -105,16 +105,16 @@ export function NewBookingDialog({
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         if (Array.isArray(parsed.options)) return parsed.options
       }
-    } catch {}
+    } catch { }
     return []
   }
-  
+
   // Extract maximum session count from session_options
   const getMaxSessions = (): number => {
     if (!selectedService) return 10 // Default to 10 if no service selected
     const sessionOptions = parseSessionOptions(selectedService?.session_options)
     if (sessionOptions.length === 0) return 10 // Default to 10 if no options
-    
+
     let maxSession = 1
     sessionOptions.forEach((opt: string) => {
       const match = String(opt).match(/(\d+)/)
@@ -125,11 +125,11 @@ export function NewBookingDialog({
     })
     return Math.max(1, Math.min(10, maxSession)) // Clamp between 1 and 10
   }
-  
+
   const maxSessions = getMaxSessions()
   // Generate sessions options dynamically based on selected service
   const sessionsOptions = Array.from({ length: maxSessions }, (_, i) => (i + 1).toString())
-  
+
   // Reset selectedSessions if it exceeds max when service changes
   useEffect(() => {
     if (selectedServiceId) {
@@ -200,7 +200,7 @@ export function NewBookingDialog({
 
     try {
       const selectedServiceData = services.find((s) => s.id === selectedServiceId)
-      
+
       const sessionsNum = parseInt(selectedSessions, 10)
       const discount = getDiscount(sessionsNum)
       const basePrice = Number(selectedServiceData?.base_price ?? 0)
@@ -506,8 +506,8 @@ export function NewBookingDialog({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading || !customerName || !customerEmail || !selectedServiceId || !bookingDate || !bookingTime}
               className="w-full sm:w-auto"
             >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LOCATIONS } from "../providers/locations";
+import { useLocations } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,10 @@ export function DoctorForm({
   initialValues,
   onCancel,
 }: DoctorFormProps) {
+  // ── Hooks ──────────────────────────────────────────────
+  const { locations: availableLocations } = useLocations()
+
+  // ── Form States ───────────────────────────────────────
   const [firstName, setFirstName] = useState(initialValues?.first_name || "");
   const [lastName, setLastName] = useState(initialValues?.last_name || "");
   const [email, setEmail] = useState(initialValues?.email || "");
@@ -206,52 +210,16 @@ export function DoctorForm({
 
   return (
     <div
-      className={`rounded-lg border p-6 ${
-        initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
-      }`}
+      className={`rounded-lg border p-6 ${initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
+        }`}
     >
       <h3 className="text-lg font-semibold mb-4 text-foreground">
         {initialValues?.id ? "✏️ Edit Therapist" : "➕ Add New Therapist"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Password field for admin to set password */}
-        <div className="md:col-span-2">
-          <Label htmlFor="password">Set Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Set password for therapist"
-            autoComplete="new-password"
-          />
-          <span className="text-xs text-muted-foreground">Admin can set password and share credentials with therapist.</span>
-        </div>
-                {/* Allowed Admin Pages Multi-select */}
-                <div className="md:col-span-2">
-                  <Label className="block mb-1 font-medium text-foreground">Allowed Pages</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {ADMIN_PAGES.map((page) => (
-                      <label key={page.value} className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          value={page.value}
-                          checked={allowedPages.includes(page.value)}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              setAllowedPages(prev => [...prev, page.value]);
-                            } else {
-                              setAllowedPages(prev => prev.filter(p => p !== page.value));
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-input"
-                        />
-                        <span>{page.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       
+
         <div>
           <Label htmlFor="firstName">First Name *</Label>
           <Input
@@ -297,7 +265,7 @@ export function DoctorForm({
           />
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 lg:col-span-1">
           <Label htmlFor="specialization">Specialization</Label>
           <Input
             id="specialization"
@@ -307,26 +275,66 @@ export function DoctorForm({
           />
         </div>
 
-        <div className="md:col-span-2">
-          <Label htmlFor="bio">Bio</Label>
-          <textarea
-            id="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Therapist biography (optional)"
-            rows={4}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+         {/* Password field for admin to set password */}
+        <div className="md:col-span-2 lg:col-span-1">
+          <Label htmlFor="password">Set Password</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Set password for therapist"
+            autoComplete="new-password"
           />
+          <span className="text-xs text-muted-foreground">Admin can set password and share credentials with therapist.</span>
         </div>
 
-        <div className="md:col-span-2">
+         {/* Locations Multi-select */}
+        <div className="md:col-span-2 lg:col-span-1">
+          <Label className="block mb-1 font-medium text-foreground">Locations *</Label>
+          <div className="flex flex-row gap-8 border rounded-md  p-2">
+            {availableLocations.map((loc) => (
+              <label key={loc} className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value={loc}
+                  checked={locations.includes(loc)}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLocations(prev => [...prev, loc]);
+                    } else {
+                      setLocations(prev => prev.filter(l => l !== loc));
+                    }
+                  }}
+                  className="h-4 w-4 rounded-md p-2 border border-input"
+                />
+                <span className="capitalize">{loc}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:col-span-2 lg:col-span-1 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            id="isActive"
+            className="h-4 w-4 rounded border-input"
+          />
+          <Label htmlFor="isActive" className="font-medium">
+            Active
+          </Label>
+        </div>
+        
+         <div className="md:col-span-2 lg:col-span-1">
           <Label htmlFor="avatar">Profile Image</Label>
           <input
             id="avatar"
             type="file"
             accept="image/*"
             onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            className="w-full border p-1 rounded-md text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
           {uploading && <span className="text-xs text-muted-foreground mt-1 block">Uploading...</span>}
           {imageUrl && !imageFile && (
@@ -342,46 +350,50 @@ export function DoctorForm({
           )}
         </div>
 
+        <div className="md:col-span-2 lg:col-span-1">
+          <Label htmlFor="bio">Bio</Label>
+          <textarea
+            id="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Therapist biography (optional)"
+            rows={4}
+            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
 
-        {/* Locations Multi-select */}
+       
+
+
+       
+
+        
+        {/* Allowed Admin Pages Multi-select */}
         <div className="md:col-span-2">
-          <Label className="block mb-1 font-medium text-foreground">Locations *</Label>
-          <div className="flex flex-col gap-1">
-            {LOCATIONS.map((loc) => (
-              <label key={loc} className="inline-flex items-center gap-2">
+          <Label className="block mb-1 font-medium text-foreground">Allowed Pages</Label>
+          <div className="flex flex-row gap-4 border rounded-md p-1">
+            {ADMIN_PAGES.map((page) => (
+              <label key={page.value} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
-                  value={loc}
-                  checked={locations.includes(loc)}
+                  value={page.value}
+                  checked={allowedPages.includes(page.value)}
                   onChange={e => {
                     if (e.target.checked) {
-                      setLocations(prev => [...prev, loc]);
+                      setAllowedPages(prev => [...prev, page.value]);
                     } else {
-                      setLocations(prev => prev.filter(l => l !== loc));
+                      setAllowedPages(prev => prev.filter(p => p !== page.value));
                     }
                   }}
                   className="h-4 w-4 rounded border-input"
                 />
-                <span className="capitalize">{loc}</span>
+                <span>{page.label}</span>
               </label>
             ))}
           </div>
         </div>
 
-        <div className="md:col-span-2 flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-            id="isActive"
-            className="h-4 w-4 rounded border-input"
-          />
-          <Label htmlFor="isActive" className="font-medium">
-            Active
-          </Label>
-        </div>
-
-        <div className="md:col-span-2 flex gap-4 mt-4">
+        <div className="md:col-span-2 lg:col-span-3 flex gap-4 mt-4">
           <Button
             type="submit"
             disabled={updating || uploading}
@@ -391,8 +403,8 @@ export function DoctorForm({
             {updating
               ? "Saving..."
               : initialValues?.id
-              ? "Update Therapist"
-              : "Add Therapist"}
+                ? "Update Therapist"
+                : "Add Therapist"}
           </Button>
 
           {initialValues?.id && onCancel && (

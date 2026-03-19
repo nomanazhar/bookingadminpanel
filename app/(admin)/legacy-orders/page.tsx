@@ -38,10 +38,10 @@ export default function LegacyOrdersPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Legacy Orders</h1>
       <OrdersTable orders={orders} currentPage={page} pageSize={pageSize} totalCount={totalCount} />
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-6 mt-4">
+        <button disabled={page === 1} onClick={() => setPage(page - 1)} className="btn btn-outline border border-2 px-4 rounded-xl">Previous</button>
         <span>Page {page} of {totalPages}</span>
-        <button disabled={page === 1} onClick={() => setPage(page - 1)} className="btn btn-outline border border-2">Previous</button>
-        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="btn btn-outline border border-2">Next</button>
+        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="btn btn-outline border border-2 px-4 rounded-xl">Next</button>
       </div>
     </div>
   );

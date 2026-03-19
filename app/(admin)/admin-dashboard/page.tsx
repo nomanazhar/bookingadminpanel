@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { loadAdminDashboardData } from "@/lib/supabase/queries"
 import { getCurrentUserAndRole } from "@/lib/supabase/auth"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
+import { DashboardHeader } from "@/components/admin/dashboard-header"
 import { Users, ShoppingCart, FolderTree, Sparkles } from "lucide-react"
 import type { OrderWithDetails } from "@/types"
 
@@ -114,14 +115,9 @@ export default async function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold font-heading mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome to your admin dashboard
-        </p>
-      </div>
+      <DashboardHeader role={role} />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCards
           role={role}
           stats={stats}

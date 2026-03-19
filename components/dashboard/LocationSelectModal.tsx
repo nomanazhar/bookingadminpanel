@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useLocation } from "../providers/location-provider"
-import { LOCATIONS } from "../providers/locations"
+import { useLocations } from "../providers/locations"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 
 export default function LocationSelectModal() {
+  // ── Hooks ──────────────────────────────────────────────
+  const { locations: availableLocations } = useLocations()
 
   const [open, setOpen] = useState(false);
   const { location, setLocation } = useLocation();
@@ -44,7 +46,7 @@ export default function LocationSelectModal() {
         <CardContent>
           <div className="mb-4 text-muted-foreground text-center">Select your preferred region below.</div>
           <div className="flex flex-col gap-4">
-            {LOCATIONS.map((loc) => (
+            {availableLocations.map((loc) => (
               <Button key={loc} variant="outline" className="rounded-full py-6 text-base font-semibold" onClick={() => handleSelect(loc)}>
                 {loc}
               </Button>

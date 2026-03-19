@@ -128,6 +128,7 @@ export default function ClientServicesSection({
           onChange={setSearch}
           onSearch={() => {}}
           placeholder="Search services..."
+           className="border-2 rounded-xl"
         />
       </div>
 
@@ -135,16 +136,16 @@ export default function ClientServicesSection({
         <table className="min-w-full bg-card">
           <thead className="bg-muted/50">
             <tr className="bg-[#333333] text-white">
-              <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">Category</th>
-              <th className="px-4 py-3 text-left">Image</th>
-              <th className="px-4 py-3 text-left">Price</th>
-              <th className="px-4 py-3 text-left">Description</th>
-              <th className="px-4 py-3 text-left">Duration</th>
-              <th className="px-4 py-3 text-left">Locations</th>
-              <th className="px-4 py-3 text-left">Subtreatments</th>
-              <th className="px-4 py-3 text-center">Active</th>
-              <th className="px-4 py-3 text-center">Manage</th>
+              <th className="px-4 py-3 text-left uppercase">Name</th>
+              <th className="px-4 py-3 text-left uppercase">Category</th>
+              <th className="px-4 py-3 text-left uppercase">Image</th>
+              <th className="px-4 py-3 text-left uppercase">Price</th>
+              <th className="px-4 py-3 text-left uppercase">Description</th>
+              <th className="px-4 py-3 text-left uppercase">Duration</th>
+              <th className="px-4 py-3 text-left uppercase">Locations</th>
+              <th className="px-4 py-3 text-left uppercase">Subtreatments</th>
+              <th className="px-4 py-3 text-center uppercase">Active</th>
+              <th className="px-4 py-3 text-center uppercase">Manage</th>
             </tr>
           </thead>
 
@@ -189,7 +190,7 @@ export default function ClientServicesSection({
                 <td className="px-4 py-3">
                   {service.duration_minutes || "-"} min
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 ">
                   {Array.isArray(service.locations) && service.locations.length > 0
                     ? service.locations.map((loc) => (
                         <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
@@ -198,7 +199,7 @@ export default function ClientServicesSection({
                       ))
                     : "-"}
                 </td>
-                <td className="px-2 py-3 text-sm">
+                <td className="px-2 py-3 text-sm flex flex-col gap-1">
                   {Array.isArray(subservicesMap[service.id]) && subservicesMap[service.id].length > 0
                     ? subservicesMap[service.id].map((sub) => sub.name).join(", ")
                     : "-"}
