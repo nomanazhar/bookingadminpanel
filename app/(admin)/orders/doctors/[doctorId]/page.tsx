@@ -103,7 +103,7 @@ export default async function DoctorOrdersPage({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>All Bookings for Dr. {doctor.first_name} {doctor.last_name}</CardTitle>
-            <Link href={`/admin/orders/new?doctor_id=${doctorId}`}>
+            <Link href={`/orders/new?doctor_id=${doctorId}`}>
               <Button size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Booking

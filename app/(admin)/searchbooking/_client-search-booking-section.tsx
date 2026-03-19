@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import SearchBookingSlots from "@/components/admin/search-booking-slots";
 import SearchBookingResults from "@/components/admin/search-booking-results";
 
@@ -18,7 +19,16 @@ interface SearchBookingClientSectionProps {
   initialServices: Service[];
 }
 
+function to24HourTime(label: string): string {
+  const [time, ampm] = label.split(" ");
+  let [h, m] = time.split(":").map(Number);
+  if (ampm === "pm" && h !== 12) h += 12;
+  if (ampm === "am" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export default function SearchBookingClientSection({ initialDoctors, initialServices }: SearchBookingClientSectionProps) {
+  const router = useRouter();
   const [doctors] = useState<Doctor[]>(initialDoctors);
   const [services] = useState<Service[]>(initialServices);
   const [loading, setLoading] = useState(false);
@@ -83,10 +93,19 @@ export default function SearchBookingClientSection({ initialDoctors, initialServ
             }
             if (times.length > 0) {
               const doctor = doctors.find(d => d.id === doctorId);
+              const firstAvailableTime = to24HourTime(times[0]);
               bookings.push({
                 label: `${doctor ? doctor.name : 'Therapist'} Available`,
                 times,
-                onCreate: () => alert(`Create booking for ${doctor ? doctor.name : doctorId} on ${date} at ${times.join(', ')}`)
+                onCreate: () => {
+                  const queryParams = new URLSearchParams({
+                    doctor_id: doctorId,
+                    service_id: params.serviceId || "",
+                    booking_date: date,
+                    booking_time: firstAvailableTime,
+                  });
+                  router.push(`/orders/new?${queryParams.toString()}`);
+                }
               });
             }
           }

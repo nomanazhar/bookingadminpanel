@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { loadAdminDashboardData } from "@/lib/supabase/queries"
+import { getTodayOrdersAdmin, loadAdminDashboardData } from "@/lib/supabase/queries"
 import { getCurrentUserAndRole } from "@/lib/supabase/auth"
 import { RecentOrdersTable } from "@/components/admin/recent-orders-table"
 import { DashboardHeader } from "@/components/admin/dashboard-header"
@@ -107,8 +107,12 @@ function RecentOrders({ orders }: { orders: OrderWithDetails[] }) {
 }
 
 export default async function AdminDashboard() {
-  const [{ stats, futureAppointments, recentOrders }, { user, role: resolvedRole }] =
-    await Promise.all([loadAdminDashboardData(5), getCurrentUserAndRole()])
+  const [{ stats, futureAppointments }, { user, role: resolvedRole }, recentOrders] =
+    await Promise.all([
+      loadAdminDashboardData(5),
+      getCurrentUserAndRole(),
+      getTodayOrdersAdmin(10),
+    ])
 
   const role: "admin" | "doctor" =
     user && resolvedRole === "doctor" ? "doctor" : "admin"
@@ -127,7 +131,7 @@ export default async function AdminDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Bookings</CardTitle>
+          <CardTitle>Today's Bookings</CardTitle>
         </CardHeader>
         <CardContent>
           <RecentOrders orders={recentOrders} />

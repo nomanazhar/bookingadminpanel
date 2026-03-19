@@ -557,6 +557,28 @@ export async function getRecentOrdersAdmin(
   return data as OrderWithDetails[]
 }
 
+/** Today's bookings for admin dashboard table */
+export async function getTodayOrdersAdmin(
+  limit: number = 10,
+  date: string = new Date().toISOString().split('T')[0]
+): Promise<OrderWithDetails[]> {
+  const supabase = createServiceRoleClient()
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      service:services(*, category:categories(*)),
+      customer:profiles(*),
+      doctor:doctors(*)
+    `)
+    .eq('booking_date', date)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data as OrderWithDetails[]
+}
+
 /**
  * Primary admin dashboard loader — calls the get_dashboard_data RPC which
  * reads from the dashboard_stats materialized view (refreshed every 5 min).
