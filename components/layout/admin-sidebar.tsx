@@ -134,7 +134,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
   return (
     <>
       <div className={cn(
-        "flex h-16 items-center justify-center border-b transition-all",
+        "flex h-12 items-center justify-center border-b transition-all",
         isCollapsed ? "px-2" : "px-6"
       )}>
         <Link href="/admin-dashboard" onClick={onLinkClick}>

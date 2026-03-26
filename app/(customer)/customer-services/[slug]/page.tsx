@@ -37,20 +37,20 @@ export default async function ServiceDetailPage({
   if (error || !service) return notFound();
   return (
     <>
-      <main className="container mx-auto py-6">
+      <main className="container mx-auto py-4">
         {/* Book Consultation Heading Section */}
-        <section className="max-w-3xl mx-auto mb-6">
+        <section className="max-w-3xl mx-auto mb-2">
           <div className="mb-2">
             <Link href="/">
               <Button variant="ghost">← Back to Dashboard</Button>
             </Link>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">Book consultation</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Book consultation</h1>
         </section>
         {/* Service Card Section */}
-        <section className="max-w-3xl mx-auto mb-6">
-          <div className="bg-muted rounded-xl shadow p-6">
-            <div className="text-2xl font-semibold mb-6">Service</div>
+        <section className="max-w-3xl mx-auto mb-4">
+          <div className="bg-muted rounded-xl shadow p-4">
+            <div className="text-xl font-semibold mb-2">Service</div>
             <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Image

@@ -81,7 +81,7 @@ export function AdminNavbar({ user }: AdminNavbarProps) {
   }, []);
   return (
     <nav className=" sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="relative flex h-16 items-center justify-between px-4">
+      <div className="relative flex h-12 items-center justify-between px-4">
         {/* Mobile Hamburger Menu */}
         <div className="md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>

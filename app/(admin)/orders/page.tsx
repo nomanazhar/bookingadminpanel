@@ -21,7 +21,7 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Prom
   const status = resolvedSearchParams?.status || 'all';
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       <OrdersPageHeader />
 
       <Card>
@@ -33,7 +33,7 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Prom
             fallback={
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
             }

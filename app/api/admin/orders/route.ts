@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
 /**
  * Admin API endpoint to create bookings with customer details
  * Allows admins to create bookings for any customer
+ * Supports both single service (legacy) and multiple services (new)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -117,26 +118,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate service
-    const serviceId = body.service_id
-    if (!serviceId) {
-      return NextResponse.json({ error: "Service ID is required" }, { status: 400 })
+    // MULTI-SERVICE SUPPORT: Accept either single service_id or multiple service_ids
+    let serviceIds: string[] = []
+    const singleServiceId = body.service_id
+    const multiServiceIds = body.service_ids
+
+    if (multiServiceIds && Array.isArray(multiServiceIds) && multiServiceIds.length > 0) {
+      serviceIds = multiServiceIds
+    } else if (singleServiceId) {
+      serviceIds = [singleServiceId]
+    } else {
+      return NextResponse.json({ error: "At least one service is required (service_id or service_ids)" }, { status: 400 })
     }
 
-    // Fetch service details
-    const { data: service } = await supabase
+    // Fetch all service details
+    const { data: services } = await supabase
       .from('services')
-      .select('base_price, name, session_options')
-      .eq('id', serviceId)
-      .single()
+      .select('id, base_price, name, session_options, duration_minutes')
+      .in('id', serviceIds)
 
-    if (!service) {
-      return NextResponse.json({ error: "Service not found" }, { status: 404 })
+    if (!services || services.length === 0) {
+      return NextResponse.json({ error: "One or more services not found" }, { status: 404 })
     }
 
-    const serviceTitle = body.service_title || service.name || ''
-    
-    // Parse session count - prioritize sessions field, then session_count, then package
+    if (services.length !== serviceIds.length) {
+      return NextResponse.json({ error: "Some service IDs are invalid" }, { status: 404 })
+    }
+
+    // Build service titles array
+    const serviceTitles = services.map(s => s.name)
+    const serviceTitle = serviceTitles.join(' + ')
+
+    // Parse session count - applies to all services uniformly
     let sessionCount = 1
     if (body.sessions !== undefined) {
       sessionCount = typeof body.sessions === 'number' ? body.sessions : parseInt(String(body.sessions), 10) || 1
@@ -154,16 +167,25 @@ export async function POST(req: NextRequest) {
     // Ensure session count is between 1 and 10
     sessionCount = Math.max(1, Math.min(10, sessionCount))
 
-    const pricing = calculateSessionPricing(
-      Number(service.base_price ?? 0),
-      service.session_options,
-      sessionCount
-    )
+    // Calculate aggregate pricing for all services
+    let totalUnitPrice = 0
+    let totalDiscount = 0
+    let aggregateDiscount = 0
 
-    sessionCount = pricing.sessions
-    const discountPercent = pricing.discountPercent
-    const unitPrice = pricing.unitPrice
-    const totalAmount = pricing.totalAmount
+    services.forEach(service => {
+      const pricing = calculateSessionPricing(
+        Number(service.base_price ?? 0),
+        service.session_options,
+        sessionCount
+      )
+      totalUnitPrice += pricing.unitPrice
+      totalDiscount += (pricing.unitPrice * pricing.discountPercent) / 100
+      aggregateDiscount = Math.max(aggregateDiscount, pricing.discountPercent) // Use highest discount
+    })
+
+    const unitPrice = totalUnitPrice
+    const discountPercent = aggregateDiscount
+    const totalAmount = totalUnitPrice - (totalUnitPrice * discountPercent / 100)
 
     // Parse booking date and time
     const bookingDateRaw = body.date || body.booking_date
@@ -221,22 +243,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid booking date or time' }, { status: 400 })
     }
 
-    // Fetch service duration for overlap check
-    const { data: serviceDetails } = await supabase
-      .from('services')
-      .select('duration_minutes')
-      .eq('id', serviceId)
-      .single();
-
-    const durationMinutes = serviceDetails?.duration_minutes || 0;
-    // Calculate booking end time
-    let booking_end_time = null;
-    if (durationMinutes && bookingTime) {
-      const [h, m, s] = bookingTime.split(":").map(Number);
-      const start = new Date(`${bookingDate}T${bookingTime}`);
+    // Calculate total booking end time based on total duration of all services
+    const totalDurationMinutes = services.reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+    let booking_end_time = null
+    if (totalDurationMinutes && bookingTime) {
+      const [h, m, s] = bookingTime.split(":").map(Number)
+      const start = new Date(`${bookingDate}T${bookingTime}`)
       if (!isNaN(start.getTime())) {
-        const end = new Date(start.getTime() + durationMinutes * 60000);
-        booking_end_time = `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}:${end.getSeconds().toString().padStart(2, "0")}`;
+        const end = new Date(start.getTime() + totalDurationMinutes * 60000)
+        booking_end_time = `${end.getHours().toString().padStart(2, "0")}:${end.getMinutes().toString().padStart(2, "0")}:${end.getSeconds().toString().padStart(2, "0")}`
       }
     }
 
@@ -248,32 +263,34 @@ export async function POST(req: NextRequest) {
         .eq('doctor_id', doctorId)
         .eq('booking_date', bookingDate)
         .in('status', ['pending', 'confirmed'])
-        .neq('id', null); // Defensive: skip null ids
+        .neq('id', null)
 
       const toMinutes = (t: string | null) => {
-        if (!t) return 0;
-        const [h, m, s] = t.split(":").map(Number);
-        return h * 60 + m + (s ? s / 60 : 0);
-      };
-      const newStart = toMinutes(bookingTime);
-      const newEnd = toMinutes(booking_end_time);
+        if (!t) return 0
+        const [h, m, s] = t.split(":").map(Number)
+        return h * 60 + m + (s ? s / 60 : 0)
+      }
+      const newStart = toMinutes(bookingTime)
+      const newEnd = toMinutes(booking_end_time)
       const hasOverlap = (overlapping || []).some((b) => {
-        const existStart = toMinutes(b.booking_time);
-        const existEnd = toMinutes(b.booking_end_time);
+        const existStart = toMinutes(b.booking_time)
+        const existEnd = toMinutes(b.booking_end_time)
         // Overlap if start < existEnd and end > existStart
-        return newStart < existEnd && newEnd > existStart;
-      });
+        return newStart < existEnd && newEnd > existStart
+      })
       if (hasOverlap) {
-        return NextResponse.json({ error: 'Doctor already has a booking in this time slot.' }, { status: 409 });
+        return NextResponse.json({ error: 'Doctor already has a booking in this time slot.' }, { status: 409 })
       }
     }
 
-    // Create the order
+    // Create the order with multi-service support
     const insertObj = {
       customer_id: targetCustomerId,
-      service_id: serviceId,
+      service_id: serviceIds[0] || null, // Keep for backwards compatibility
+      service_ids: serviceIds, // New array field
       doctor_id: doctorId || null,
       service_title: serviceTitle,
+      service_titles: serviceTitles, // New array field
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
@@ -286,7 +303,7 @@ export async function POST(req: NextRequest) {
       booking_time: bookingTime,
       booking_end_time,
       notes: body.notes || null,
-      status: 'pending', // Default to pending
+      status: 'pending',
       customer_type: customerType,
     }
 

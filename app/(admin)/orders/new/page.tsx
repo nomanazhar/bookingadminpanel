@@ -68,8 +68,9 @@ export default function CreateBookingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState(
-    searchParams?.get("service_id") || ""
+  // MULTI-SERVICE: Support both selectedServiceId (legacy) and selectedServiceIds (new)
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    searchParams?.get("service_id") ? [searchParams.get("service_id")!] : []
   );
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(
     searchParams?.get("doctor_id") || ""
@@ -96,9 +97,9 @@ export default function CreateBookingPage() {
 
   const duplicateOrderId = searchParams?.get("duplicate") || null;
 
-  // Fetch available time slots when date + service are selected
+  // Fetch available time slots when date + service(s) are selected
   useEffect(() => {
-    if (!bookingDate || !selectedServiceId) {
+    if (!bookingDate || selectedServiceIds.length === 0) {
       setAvailableTimeSlots([]);
       return;
     }
@@ -111,8 +112,10 @@ export default function CreateBookingPage() {
         
         // If doctor is selected, fetch filtered availability from API
         if (selectedDoctorId) {
+          // Use first service for API call (for backward compat), but calculate total duration
+          const serviceId = selectedServiceIds[0];
           const res = await fetch(
-            `/api/available-timeslots?date=${bookingDate}&doctorId=${selectedDoctorId}&serviceId=${selectedServiceId}`
+            `/api/available-timeslots?date=${bookingDate}&doctorId=${selectedDoctorId}&serviceId=${serviceId}`
           );
           if (!res.ok) throw new Error("Failed to fetch available times");
           const data = await res.json();
@@ -123,10 +126,10 @@ export default function CreateBookingPage() {
             setAvailableTimeSlots(slots24h);
           }
         } else {
-          // If no doctor selected, generate all possible slots based on service duration
-          const service = services.find(s => s.id === selectedServiceId);
-          const duration = service?.duration_minutes || 50;
-          const slots = generateTimeSlots(duration);
+          // If no doctor selected, generate all possible slots based on total duration of selected services
+          const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+          const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 50), 0);
+          const slots = generateTimeSlots(totalDuration);
           
           if (!ignore) {
             setAvailableTimeSlots(slots);
@@ -135,10 +138,10 @@ export default function CreateBookingPage() {
       } catch (err) {
         console.error("Failed to fetch time slots:", err);
         if (!ignore) {
-          // Fallback: generate all slots
-          const service = services.find(s => s.id === selectedServiceId);
-          const duration = service?.duration_minutes || 50;
-          setAvailableTimeSlots(generateTimeSlots(duration));
+          // Fallback: generate all slots based on total duration
+          const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+          const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 50), 0);
+          setAvailableTimeSlots(generateTimeSlots(totalDuration));
         }
       } finally {
         if (!ignore) {
@@ -152,7 +155,7 @@ export default function CreateBookingPage() {
     return () => {
       ignore = true;
     };
-  }, [bookingDate, selectedServiceId, selectedDoctorId, services]);
+  }, [bookingDate, selectedServiceIds, selectedDoctorId, services]);
 
   // User search debounce + fetch
   useEffect(() => {
@@ -269,7 +272,11 @@ export default function CreateBookingPage() {
         setCustomerEmail(order.customer_email || "");
         setCustomerPhone(order.customer_phone || "");
         setAddress(order.address || "");
-        setSelectedServiceId(order.service_id || "");
+        // Support both legacy service_id and new service_ids
+        const serviceIds = order.service_ids && order.service_ids.length > 0 
+          ? order.service_ids 
+          : (order.service_id ? [order.service_id] : []);
+        setSelectedServiceIds(serviceIds);
         setSelectedDoctorId(order.doctor_id || "");
         setSelectedSessions(String(order.session_count || 1));
         setBookingDate(order.booking_date || "");
@@ -329,20 +336,22 @@ export default function CreateBookingPage() {
     }
   }, [searchParams]);
 
-  const selectedService = services.find((s) => s.id === selectedServiceId);
+  const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
 
-  const sessionPackageLabels = getSessionPackageLabels(selectedService?.session_options);
+  // For session packages: use the first service for now (can be extended for multi-service packages)
+  const primaryService = selectedServices.length > 0 ? selectedServices[0] : undefined;
+  const sessionPackageLabels = getSessionPackageLabels(primaryService?.session_options);
   const sessionsOptions = Array.from(
     new Set(sessionPackageLabels.map((label) => String(extractSessionCount(label))))
   ).sort((a, b) => Number(a) - Number(b));
 
   // Reset sessions if service changes and current value is invalid
   useEffect(() => {
-    if (!selectedServiceId) return;
+    if (selectedServiceIds.length === 0) return;
     if (!sessionsOptions.includes(selectedSessions)) {
       setSelectedSessions(sessionsOptions[0] || "1");
     }
-  }, [selectedServiceId, selectedSessions, sessionsOptions]);
+  }, [selectedServiceIds, selectedSessions, sessionsOptions]);
 
   useEffect(() => {
     if (!bookingTime) return;
@@ -352,10 +361,17 @@ export default function CreateBookingPage() {
   }, [availableTimeSlots, bookingTime]);
 
   const calculatePrice = () => {
-    if (!selectedService) return 0;
-    const base = Number(selectedService.base_price ?? 0);
-    const pricing = calculateSessionPricing(base, selectedService.session_options, selectedSessions);
-    return pricing.totalAmount;
+    if (selectedServices.length === 0) return 0;
+    
+    // Calculate aggregate price for all selected services
+    let totalPrice = 0;
+    selectedServices.forEach(service => {
+      const base = Number(service.base_price ?? 0);
+      const pricing = calculateSessionPricing(base, service.session_options, selectedSessions);
+      totalPrice += pricing.totalAmount;
+    });
+    
+    return totalPrice;
   };
 
   const totalPrice = calculatePrice();
@@ -372,10 +388,10 @@ export default function CreateBookingPage() {
       return;
     }
 
-    if (!selectedServiceId) {
+    if (selectedServiceIds.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please select a service",
+        description: "Please select at least one service",
         variant: "destructive",
       });
       return;
@@ -393,23 +409,33 @@ export default function CreateBookingPage() {
     setLoading(true);
 
     try {
-      const service = services.find((s) => s.id === selectedServiceId)!;
+      // Calculate aggregate pricing for all selected services
+      let totalUnitPrice = 0;
+      let totalDiscount = 0;
+      let aggregateDiscount = 0;
 
-      const basePrice = Number(service.base_price ?? 0);
-      const pricing = calculateSessionPricing(basePrice, service.session_options, selectedSessions);
+      selectedServices.forEach(service => {
+        const basePrice = Number(service.base_price ?? 0);
+        const pricing = calculateSessionPricing(basePrice, service.session_options, selectedSessions);
+        totalUnitPrice += pricing.unitPrice;
+        totalDiscount += (pricing.unitPrice * pricing.discountPercent) / 100;
+        aggregateDiscount = Math.max(aggregateDiscount, pricing.discountPercent);
+      });
+
+      const totalAmount = totalUnitPrice - (totalUnitPrice * aggregateDiscount / 100);
+      const primaryServiceName = selectedServices.map(s => s.name).join(" + ");
 
       const payload = {
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone || null,
-        service_id: selectedServiceId,
+        service_ids: selectedServiceIds, // Send multiple service IDs
         doctor_id: selectedDoctorId || null,
-        service_title: service.name || "",
-        package: pricing.packageLabel,
-        sessions: pricing.sessions,
-        unit_price: pricing.unitPrice,
-        discount_percent: pricing.discountPercent,
-        total_amount: pricing.totalAmount,
+        service_title: primaryServiceName,
+        sessions: parseInt(selectedSessions, 10),
+        unit_price: totalUnitPrice,
+        discount_percent: aggregateDiscount,
+        total_amount: totalAmount,
         booking_date: bookingDate,
         booking_time: bookingTime,
         address: address || null,
@@ -558,26 +584,53 @@ export default function CreateBookingPage() {
     </h3>
 
     <div className="grid gap-4 md:grid-cols-3">
-      {/* Service */}
-      <div className="space-y-2">
-        <Label htmlFor="service">Service *</Label>
+      {/* Services - Multi-select */}
+      <div className="space-y-2 md:col-span-2">
+        <Label>Services * (Select one or more)</Label>
         {loadingServices ? (
           <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
             Loading services...
           </div>
         ) : (
-          <Select value={selectedServiceId} onValueChange={setSelectedServiceId} required>
-            <SelectTrigger id="service">
-              <SelectValue placeholder="Select a service" />
-            </SelectTrigger>
-            <SelectContent>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name} - £{Number(service.base_price || 0).toFixed(2)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="border rounded-md p-3 space-y-2 max-h-64 overflow-y-auto bg-background">
+            {services.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No services available</div>
+            ) : (
+              services.map((service) => (
+                <label
+                  key={service.id}
+                  className="flex items-start gap-3 p-2 hover:bg-muted rounded cursor-pointer transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedServiceIds.includes(service.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedServiceIds([...selectedServiceIds, service.id]);
+                      } else {
+                        setSelectedServiceIds(
+                          selectedServiceIds.filter((id) => id !== service.id)
+                        );
+                      }
+                    }}
+                    className="mt-1 w-4 h-4 rounded border-input"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{service.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      £{Number(service.base_price || 0).toFixed(2)}
+                      {service.duration_minutes && ` • ${service.duration_minutes} min`}
+                    </div>
+                  </div>
+                </label>
+              ))
+            )}
+          </div>
+        )}
+        {selectedServiceIds.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            {selectedServiceIds.length} service{selectedServiceIds.length !== 1 ? "s" : ""} selected
+          </div>
         )}
       </div>
 
@@ -614,7 +667,7 @@ export default function CreateBookingPage() {
       </div>
 
       {/* Sessions */}
-      {selectedService && (
+      {selectedServices.length > 0 && (
         <div className="space-y-2">
           <Label htmlFor="sessions">Sessions *</Label>
           <Select value={selectedSessions} onValueChange={setSelectedSessions} required>
@@ -633,12 +686,18 @@ export default function CreateBookingPage() {
       )}
 
       {/* Total Amount - full width */}
-      {selectedSessions && totalPrice > 0 && (
+      {selectedSessions && selectedServices.length > 0 && totalPrice > 0 && (
         <div className="md:col-span-3">
           <div className="p-4 bg-muted rounded-md border">
-            <div className="flex items-center justify-between">
-              <span className="text-base font-medium">Total Amount:</span>
-              <span className="text-2xl font-bold">£{totalPrice.toFixed(2)}</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-medium">Selected Services:</span>
+                <span className="text-sm">{selectedServices.map(s => s.name).join(", ")}</span>
+              </div>
+              <div className="flex items-center justify-between text-lg">
+                <span className="font-medium">Total Amount:</span>
+                <span className="text-2xl font-bold">£{totalPrice.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -671,9 +730,9 @@ export default function CreateBookingPage() {
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
             Select a date first
           </div>
-        ) : !selectedServiceId ? (
+        ) : selectedServiceIds.length === 0 ? (
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
-            Select a service first
+            Select service(s) first
           </div>
         ) : loadingTimeSlots ? (
           <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
@@ -699,7 +758,7 @@ export default function CreateBookingPage() {
         )}
       </div>
 
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="customerType">Customer Type *</Label>
         <Select value={customerType} onValueChange={setCustomerType} required>
           <SelectTrigger id="customerType">
@@ -710,7 +769,7 @@ export default function CreateBookingPage() {
             <SelectItem value="returning">Returning Customer</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
     </div>
   </div>
 
@@ -760,7 +819,7 @@ export default function CreateBookingPage() {
         loading ||
         !customerName ||
         !customerEmail ||
-        !selectedServiceId ||
+        selectedServiceIds.length === 0 ||
         !bookingDate ||
         !bookingTime
       }

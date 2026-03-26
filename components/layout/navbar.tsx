@@ -151,7 +151,7 @@ export function Navbar({ user, action }: NavbarProps) {
         animate={controls}
       />
       <div className="container px-4">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-12 items-center justify-between">
           {/* Left Section - Logo & Mobile Menu */}
           <div className="flex items-center gap-4">
             {/* Mobile Menu */}
@@ -205,7 +205,7 @@ export function Navbar({ user, action }: NavbarProps) {
                   src="/logos/logo.webp"
                   alt="Derma Solution"
                   width={120}
-                  height={40}
+                  height={35}
                   className="object-contain"
                 />
               </div>
@@ -238,8 +238,8 @@ export function Navbar({ user, action }: NavbarProps) {
             {/* Location Dropdown */}
             <LocationDropdownMenu>
               <LocationDropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="relative bg-[#42E0CF]/70">
-                  <MapPin className="h-[1.2rem] w-[1.2rem]" />
+                <Button variant="outline" size="icon" className="relative bg-[#42E0CF]/70 h-8">
+                  <MapPin className="h-[0.8rem] w-[1.2rem]" />
                   <span className="sr-only">Select location</span>
                 </Button>
               </LocationDropdownMenuTrigger>
@@ -281,7 +281,7 @@ export function Navbar({ user, action }: NavbarProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="relative h-10 gap-2 px-2 "
+                    className="relative h-8 gap-2 px-2 "
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={localUser?.avatar_url} alt={localUser?.first_name + " " + localUser?.last_name} />

@@ -113,7 +113,7 @@ export default function ClientServicesSection({
   /* ------------------ RENDER ------------------ */
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-2">
         <ServiceForm
           onServiceSaved={handleServiceSaved}
           initialValues={editService}

@@ -141,7 +141,7 @@ function OrdersTableComponent({
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <TableSearchBar
         value={search}
         onChange={setSearch}
@@ -149,9 +149,9 @@ function OrdersTableComponent({
       />
 
       <Table>
-        <TableHeader className="bg-[#333333] text-white">
+        <TableHeader className="bg-[#333333] text-white ">
           <TableRow>
-            <TableHead className="uppercase">Booking Date</TableHead>
+            <TableHead className="uppercase ">Booking Date</TableHead>
             <TableHead className="uppercase">Booking Time</TableHead>
             <TableHead className="uppercase">Customer</TableHead>
             <TableHead className="uppercase">Service</TableHead>
@@ -218,7 +218,7 @@ function OrdersTableComponent({
 
               <TableCell>
                 {order.service ? (
-                  order.service.name
+                  order.service_title
                 ) : (
                   <span className="text-muted-foreground">(no service)</span>
                 )}

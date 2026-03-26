@@ -239,9 +239,9 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
         <>
         {/* Subservices Selection */}
         {subservices.length > 0 && (
-          <section className="max-w-3xl mx-auto mb-8">
+          <section className="max-w-3xl mx-auto mb-4">
             <div className="bg-muted rounded-xl shadow p-4">
-              <div className="text-xl font-semibold mb-4">Select Treatment Option</div>
+              <div className="text-lg font-semibold mb-4">Select Treatment Option</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                 {subservices.map((subservice) => {
                   const isSelected = selectedSubserviceId === subservice.id;
@@ -249,10 +249,15 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
                     <button
                       key={subservice.id}
                       onClick={() => {
-                        setSelectedSubserviceId(subservice.id);
-                        setSubservicePrice(Number(subservice.price));
+                        if (isSelected) {
+                          setSelectedSubserviceId("");
+                          setSubservicePrice(null);
+                        } else {
+                          setSelectedSubserviceId(subservice.id);
+                          setSubservicePrice(Number(subservice.price));
+                        }
                       }}
-                      className={`px-4 py-3 rounded-lg font-medium transition text-left border-2 ${
+                      className={`px-4 py-1 rounded-lg font-medium transition text-left border-2 ${
                         isSelected
                           ? "border-blue-600 bg-blue-50 text-blue-900 shadow-lg"
                           : "border-gray-300 bg-white text-black hover:border-blue-600 hover:shadow-md"
@@ -274,10 +279,10 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
             </div>
           </section>
         )}
-        <section className="max-w-3xl mx-auto mb-8">
+        <section className="max-w-3xl mx-auto mb-4">
           <div className="bg-muted rounded-xl shadow p-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xl font-semibold">Select Package</div>
+              <div className="text-lg font-semibold">Select Package</div>
             </div>
 
             {service.description && (
@@ -323,8 +328,8 @@ export default function BookingPanel({ service, rescheduleOrder }: { service: Se
         </>
       )}
 
-     <section className="max-w-3xl mx-auto mb-8">
-            <div className="mt-6">
+     <section className="max-w-3xl mx-auto mb-4">
+            <div className="mt-2">
               <Label htmlFor="doctor-select" className="mb-2 block">Select Therapist</Label>
               <Select
                 value={selectedDoctorId}

@@ -100,7 +100,7 @@ export default function CategoriesTable({
 
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-2">
         <AddCategoryForm
           onCategoryAdded={handleCategoryAdded}
           initialValues={editCategory}

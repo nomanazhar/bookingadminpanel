@@ -1,6 +1,7 @@
 export interface Session {
   id: string
   order_id: string
+  service_id?: string | null
   session_number: number
   scheduled_date?: string | null
   scheduled_time?: string | null
@@ -86,8 +87,10 @@ export interface Order {
   id: string
   customer_id: string
   service_id: string | null
+  service_ids?: string[]  // Multiple services support
   doctor_id?: string | null
   service_title: string
+  service_titles?: string[]  // Multiple service titles
   customer_name: string
   customer_email: string
   customer_phone?: string
