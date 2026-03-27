@@ -33,7 +33,7 @@ function ServiceCardComponent({ service, featured = false }: ServiceCardProps) {
         </div>
       )}
 
-      <CardContent className="p-6 space-y-3">
+      <CardContent className="p-4 space-y-1">
         <div>
           <p className="text-sm text-muted-foreground mb-1 capitalize">
             {service.category.name}

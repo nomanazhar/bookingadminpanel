@@ -2,6 +2,7 @@
 
 
 
+
 :root {
   /* Light Theme */
   --background: 0 0% 100%; /* White */
@@ -122,11 +123,29 @@
   border-color: hsl(var(--border));
 }
 
+html {
+  overflow: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(--font-inter), sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
+  /* Hide scrollbar globally */
+  overflow: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 /* Container styles */

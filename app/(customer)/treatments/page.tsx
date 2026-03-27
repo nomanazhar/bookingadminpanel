@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import { CategoryButtons } from '@/components/dashboard/category-buttons';
 import { ServiceCard } from '@/components/dashboard/service-card';
+import { StaggerReveal } from '@/components/dynamic/StaggerReveal';
+import { ScrollReveal } from '@/components/dynamic/ScrollReveal';
 import type { Category, Service } from '@/types';
 
 export default function AllTreatmentsPage() {
@@ -39,9 +41,9 @@ export default function AllTreatmentsPage() {
   };
 
   return (
-    <main className="container mx-auto py-8 ">
-      <section className="max-w-3xl mx-auto mb-10 ">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">
+    <main className="container mx-auto py-6 ">
+      <section className="max-w-3xl mx-auto mb-4 ">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
           All Treatments
         </h1>
         <p className="text-lg text-muted-foreground mb-6">
@@ -51,7 +53,7 @@ export default function AllTreatmentsPage() {
       </section>
 
       {/* Services Section */}
-      <section className="max-w-7xl mx-auto mb-10">
+      <section className="max-w-7xl mx-auto mb-2 ">
         {loading ? (
           <div className="text-center py-10">Loading...</div>
         ) : error ? (
@@ -61,13 +63,21 @@ export default function AllTreatmentsPage() {
             const catServices = services.filter((s: Service) => s.category_id === category.id);
             if (!catServices.length) return null;
             return (
-              <div key={category.id} className="mb-12" id={`category-${category.id}`}>
-                <h2 className="text-2xl font-semibold mb-6 capitalize">{category.name}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div
+                key={category.id}
+                className="mb-6 bg-[#e8fffc] rounded-t-[3rem] shadow-xl py-4 px-4"
+                id={`category-${category.id}`}
+              >
+                <h2 className="text-2xl md:text-2xl lg:text-3xl font-bold mb-8 text-center capitalize text-charcoal">
+                  {category.name}
+                </h2>
+                <StaggerReveal className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {catServices.map((service: Service) => (
-                      <ServiceCard key={service.id} service={{ ...service, category }} />
+                    <ScrollReveal key={service.id}>
+                      <ServiceCard service={{ ...service, category }} />
+                    </ScrollReveal>
                   ))}
-                </div>
+                </StaggerReveal>
               </div>
             );
           })

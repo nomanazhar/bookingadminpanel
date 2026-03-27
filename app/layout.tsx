@@ -6,6 +6,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import NavbarWrapper from "@/components/layout/navbar-wrapper";
 import { LocationProvider } from "@/components/providers/location-provider";
+import { ReactLenis } from 'lenis/react'
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -38,9 +39,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body cz-shortcut-listen="false"
-        className={`${poppins.variable} ${inter.variable} font-sans antialiased overflow-x-hidden`}
+        className={`${poppins.variable} ${inter.variable} font-sans antialiased overflow-x-hidden  `}
       >
-        <div className="min-h-screen w-full overflow-x-hidden">
+        <div className="min-h-screen w-full overflow-x-hidden ">
           <LocationProvider>
             <ThemeProvider
               attribute="class"
@@ -48,11 +49,13 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <React.Suspense fallback={null}>
-                <NavbarWrapper />
-              </React.Suspense>
-              {children}
-              <Toaster />
+              <ReactLenis root>
+                <React.Suspense fallback={null}>
+                  <NavbarWrapper />
+                </React.Suspense>
+                {children}
+                <Toaster />
+              </ReactLenis>
             </ThemeProvider>
           </LocationProvider>
         </div>

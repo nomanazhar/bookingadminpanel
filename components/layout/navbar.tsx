@@ -105,7 +105,7 @@ export function Navbar({ user, action }: NavbarProps) {
   const [navbarWidth, setNavbarWidth] = useState(0);
   const controls = useAnimation();
   const lineWidth = 380; // px, width of the moving line
-  const motionSpeed = 9.5; // seconds for one full loop (increase for slower, decrease for faster)
+  const motionSpeed = 8.5; // seconds for one full loop (increase for slower, decrease for faster)
   useEffect(() => {
     // Get navbar width for animation
     const handleResize = () => {
@@ -132,7 +132,7 @@ export function Navbar({ user, action }: NavbarProps) {
   return (
     <nav
       id="navbar-animated"
-      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       style={{ position: "relative" }}
     >
       {/* Animated moving border line */}
@@ -336,9 +336,9 @@ export function Navbar({ user, action }: NavbarProps) {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/signup" className="text-black">
-                  <Button variant="primary" size="default">
-                   Sign Up
+                <Link href="/signup" >
+                  <Button variant="primary" size="default" >
+                   <span className="text-black hover:text-white">Sign Up</span>
                   </Button>
                 </Link>
               </div>
