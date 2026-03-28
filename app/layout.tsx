@@ -49,13 +49,13 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <ReactLenis root>
+             
                 <React.Suspense fallback={null}>
                   <NavbarWrapper />
                 </React.Suspense>
                 {children}
                 <Toaster />
-              </ReactLenis>
+             
             </ThemeProvider>
           </LocationProvider>
         </div>

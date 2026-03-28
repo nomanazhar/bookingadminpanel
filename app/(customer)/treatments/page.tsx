@@ -41,9 +41,9 @@ export default function AllTreatmentsPage() {
   };
 
   return (
-    <main className="container mx-auto py-6 ">
-      <section className="max-w-3xl mx-auto mb-4 ">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">
+    <main className="container mx-auto py-8 ">
+      <section className="max-w-3xl mx-auto mb-10 ">
+        <h1 className="text-4xl font-bold tracking-tight mb-4">
           All Treatments
         </h1>
         <p className="text-lg text-muted-foreground mb-6">
@@ -53,7 +53,7 @@ export default function AllTreatmentsPage() {
       </section>
 
       {/* Services Section */}
-      <section className="max-w-7xl mx-auto mb-2 ">
+      <section className="max-w-7xl mx-auto mb-2">
         {loading ? (
           <div className="text-center py-10">Loading...</div>
         ) : error ? (
@@ -63,7 +63,7 @@ export default function AllTreatmentsPage() {
             const catServices = services.filter((s: Service) => s.category_id === category.id);
             if (!catServices.length) return null;
             return (
-              <div
+               <div
                 key={category.id}
                 className="mb-6 bg-[#e8fffc] rounded-t-[3rem] shadow-xl py-4 px-4"
                 id={`category-${category.id}`}

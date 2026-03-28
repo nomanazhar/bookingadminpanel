@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS public.sessions (
     status         TEXT        NOT NULL DEFAULT 'pending'
                    CHECK (status IN ('pending','scheduled','completed','missed','cancelled','expired')),
     attended_date  DATE,
+    attended_time  TIME,
     notes          TEXT,
     expires_at     DATE,
     created_at     TIMESTAMPTZ DEFAULT NOW(),
@@ -188,6 +189,9 @@ CREATE TABLE IF NOT EXISTS public.sessions (
 
 -- For existing DBs: add service_id column to sessions if missing
 ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS service_id UUID;
+
+-- For existing DBs: add attended_time column to sessions if missing
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS attended_time TIME;
 
 -- Add FK constraint on sessions.service_id only if it doesn't exist
 DO $$
