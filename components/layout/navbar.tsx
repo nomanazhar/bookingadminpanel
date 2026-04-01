@@ -231,6 +231,12 @@ export function Navbar({ user, action }: NavbarProps) {
             >
               Treatments
             </Link>
+            <Link
+              href="/book-consultation"
+              className={`text-md font-semibold transition-colors px-4 py-2 rounded-full ${pathname === "/book-consultation" ? "text-[#42E0CF]" : "text-muted-foreground hover:text-primary"}`}
+            >
+              My Bookings
+            </Link>
           </div>
 
           {/* Right Section - User Menu, Book Consultation & Theme */}

@@ -5,11 +5,8 @@ import { UsersClient } from "@/components/admin/users-client"
 
 export default function AdminUsersPage() {
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold font-heading mb-2">Users</h1>
-      </div>
-
+    <div className="px-6 py-4 space-y-2">
+      
       <Card>
         <CardHeader>
           <CardTitle>Registered Users</CardTitle>
@@ -17,7 +14,7 @@ export default function AdminUsersPage() {
         <CardContent>
           <Suspense
             fallback={
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {[1, 2, 3, 4].map((i) => (
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}

@@ -360,7 +360,7 @@ export default function EditOrderPage() {
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Information</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Label htmlFor="customerName">Customer Name </Label>
                   <Input
                     id="customerName"
                     value={customerName}
@@ -371,7 +371,7 @@ export default function EditOrderPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Email *</Label>
+                  <Label htmlFor="customerEmail">Email </Label>
                   <Input
                     id="customerEmail"
                     type="email"
@@ -410,7 +410,7 @@ export default function EditOrderPage() {
               <h3 className="text-lg font-semibold text-foreground border-b pb-2">Service & Booking</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="serviceTitle">Service Title *</Label>
+                  <Label htmlFor="serviceTitle">Service Title </Label>
                   <Input
                     id="serviceTitle"
                     value={serviceTitle}
@@ -421,7 +421,7 @@ export default function EditOrderPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sessionCount">Session Count *</Label>
+                  <Label htmlFor="sessionCount">Session Count </Label>
                   <Input
                     id="sessionCount"
                     type="number"
@@ -434,7 +434,7 @@ export default function EditOrderPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bookingDate">Booking Date *</Label>
+                  <Label htmlFor="bookingDate">Booking Date </Label>
                   <Input
                     id="bookingDate"
                     type="date"
@@ -445,7 +445,7 @@ export default function EditOrderPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bookingTime">Booking Time *</Label>
+                  <Label htmlFor="bookingTime">Booking Time </Label>
                   {loadingTimeSlots ? (
                     <div className="w-full h-10 rounded-md border border-input bg-background flex items-center justify-center text-xs text-muted-foreground">
                       Loading times...
@@ -472,9 +472,9 @@ export default function EditOrderPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="doctor">Doctor (Optional)</Label>
+                  <Label htmlFor="doctor">Therapist (Optional)</Label>
                   {loadingDoctors ? (
-                    <div className="text-sm text-muted-foreground">Loading doctors...</div>
+                    <div className="text-sm text-muted-foreground">Loading therapists...</div>
                   ) : (
                     <Select value={doctorId || undefined} onValueChange={(value) => {
                       if (value === "__clear__") {
@@ -484,7 +484,7 @@ export default function EditOrderPage() {
                       }
                     }}>
                       <SelectTrigger id="doctor" className="w-full bg-white">
-                        <SelectValue placeholder="Select a doctor (optional)" />
+                        <SelectValue placeholder="Select a therapist (optional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         {doctorId && (

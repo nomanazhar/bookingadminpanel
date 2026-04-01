@@ -87,7 +87,7 @@ export default async function DoctorOrdersPage({
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/orders">
-          <Button variant="ghost" size="icon">
+          <Button variant="primary" size="icon" className="h-6 w-10">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
@@ -102,9 +102,9 @@ export default async function DoctorOrdersPage({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>All Bookings for Dr. {doctor.first_name} {doctor.last_name}</CardTitle>
+            <CardTitle> Dr. {doctor.first_name} {doctor.last_name}</CardTitle>
             <Link href={`/orders/new?doctor_id=${doctorId}`}>
-              <Button size="sm" className="gap-2">
+              <Button  className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Booking
               </Button>

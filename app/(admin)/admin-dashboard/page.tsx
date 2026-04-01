@@ -151,13 +151,13 @@ export default async function AdminDashboard() {
       {role === "admin" && (
         <div className="grid gap-4 lg:grid-cols-2">
           <DoctorBookingsChart
-            title="Total Bookings By Doctors"
+            title="Total Bookings By Therapists"
             colorClassName="bg-violet-700"
             color="#7c3aed"
             data={doctorCharts.totalBookingsByDoctor}
           />
           <DoctorBookingsChart
-            title="This Month Bookings By Doctors"
+            title="This Month Bookings By Therapists"
             colorClassName="bg-green-600"
             color="#16a34a"
             data={doctorCharts.thisMonthBookingsByDoctor}

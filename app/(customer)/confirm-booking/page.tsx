@@ -480,7 +480,7 @@ export default function ConfirmBookingPage() {
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Address <span className="text-gray-400">(optional)</span>
+                      Address 
                     </label>
                     <Input
                       value={address}
@@ -491,7 +491,7 @@ export default function ConfirmBookingPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Phone <span className="text-gray-400">(optional)</span>
+                      
                     </label>
                     <Input
                       value={phone}

@@ -157,7 +157,7 @@ function OrdersTableComponent({
             <TableHead className="uppercase">Service</TableHead>
             {/* <TableHead className="uppercase">Locations</TableHead> */}
             <TableHead className="uppercase">Sessions</TableHead>
-            <TableHead className="uppercase">Doctor</TableHead>
+            <TableHead className="uppercase">Therapist</TableHead>
             {/* <TableHead className="uppercase">Phone</TableHead> */}
             {/* <TableHead className="uppercase">Amount</TableHead> */}
             <TableHead className="uppercase">Status</TableHead>

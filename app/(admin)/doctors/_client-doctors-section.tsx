@@ -115,7 +115,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
       setDoctors((prev) => prev.filter((d) => d.id !== doctor.id));
     } else {
       const error = await res.json();
-      alert(error?.error || "Failed to delete doctor");
+      alert(error?.error || "Failed to delete Therapist");
     }
   };
 

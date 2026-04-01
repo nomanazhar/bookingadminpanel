@@ -154,7 +154,7 @@ function SearchBookingSlots({ doctors, services, onSearch, loading }: SearchBook
           </div>
         </div>
         <div className="flex flex-col mt-8 ml-12 gap-2 min-w-[220px]">
-          <label className="font-medium mb-1">Doctors</label>
+          <label className="font-medium mb-1">Therapist</label>
           <Select open={undefined} onOpenChange={undefined}>
             <SelectTrigger className="w-full min-w-[220px]">
               <SelectValue>

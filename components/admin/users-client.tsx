@@ -3,7 +3,10 @@
 
 import { useEffect, useMemo, useState, startTransition } from 'react'
 import { UsersTable } from './users-table'
+import { CreateCustomerDialog } from './create-customer-dialog'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { Button } from '@/components/ui/button'
+import { Plus, RotateCcw } from 'lucide-react'
 import axios from 'axios'
 
 const clientCache = new Map<string, any>()
@@ -24,6 +27,7 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
   const debouncedQ = useDebouncedValue(q, 400)
   const [data, setData] = useState<{ data: any[]; count: number } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -41,16 +45,86 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
     return Math.max(1, Math.ceil((data.count || 0) / pageSize))
   }, [data, pageSize])
 
+  const handleCustomerCreated = async () => {
+    // Clear server-side cache first
+    try {
+      await axios.post('/api/admin/clear-users-cache')
+    } catch (error) {
+      console.error('Failed to clear server cache:', error)
+    }
+    
+    // Clear client-side cache immediately
+    clientCache.clear()
+    
+    // Set loading state before fetching
+    setLoading(true)
+    
+    try {
+      // Fetch fresh data without using cache
+      const freshData = await axios.get(`/api/admin/users`, {
+        params: { page: 1, size: pageSize, q: '' }
+      })
+      
+      // Update the data state
+      setData(freshData.data)
+      
+      // Reset to first page and clear search
+      setPage(1)
+      setQ('')
+    } catch (error) {
+      console.error('Failed to refresh users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    // Clear all caches
+    try {
+      await axios.post('/api/admin/clear-users-cache')
+    } catch (error) {
+      console.error('Failed to clear server cache:', error)
+    }
+    
+    clientCache.clear()
+    
+    // Set loading state
+    setLoading(true)
+    
+    try {
+      // Fetch fresh data
+      const freshData = await axios.get(`/api/admin/users`, {
+        params: { page, size: pageSize, q: debouncedQ }
+      })
+      
+      // Update the data state
+      setData(freshData.data)
+    } catch (error) {
+      console.error('Failed to refresh users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <input
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(1) }}
-          placeholder="Search name or email..."
-          className="input input-bordered w-full max-w-sm"
-        />
-       
+       <p>Manage all Users</p>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="icon"
+            disabled={loading}
+            title="Refresh users list"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2" disabled={loading}>
+            <Plus className="h-4 w-4" />
+            Create User
+          </Button>
+        </div>
       </div>
 
       {loading && <div className="py-6 text-center text-muted-foreground">Loading...</div>}
@@ -69,6 +143,12 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
         <div className="text-sm">Page {page} of {totalPages}</div>
         <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="btn">Next</button>
       </div>
+
+      <CreateCustomerDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCustomerCreated={handleCustomerCreated}
+      />
     </div>
   )
 }

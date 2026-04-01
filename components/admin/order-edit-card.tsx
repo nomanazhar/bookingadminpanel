@@ -295,7 +295,7 @@ export default function OrderEditCard({ order, onSaved }: Props) {
             </div>
 
             <div>
-              <Label>Doctor (optional)</Label>
+              <Label>Therapist (optional)</Label>
               {loadingDoctors ? (
                 <div className="text-sm text-muted-foreground py-2">Loading therapists...</div>
               ) : (

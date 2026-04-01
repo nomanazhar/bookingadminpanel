@@ -98,7 +98,7 @@ export default function EditUserPage() {
         email: email.trim(),
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        phone,
+        phone : phone.trim(),
         gender: gender || null as any,
         address: address || null as any,
         role,
@@ -198,7 +198,7 @@ export default function EditUserPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -261,7 +261,7 @@ export default function EditUserPage() {
                     <SelectContent className="bg-white">
                       <SelectItem value="customer">Customer</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="doctor">Doctor</SelectItem>
+                      <SelectItem value="doctor">Therapist</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

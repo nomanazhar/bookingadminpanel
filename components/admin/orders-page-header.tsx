@@ -51,7 +51,6 @@ export default function OrdersPageHeader() {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
-        
         <p className="text-muted-foreground">Manage customer bookings</p>
       </div>
 

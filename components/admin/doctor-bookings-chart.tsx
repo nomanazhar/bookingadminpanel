@@ -74,7 +74,7 @@ export function DoctorBookingsChart({
               formatter={(value) => [`${value} bookings`, 'Count']}
               labelFormatter={(label, payload) => {
                 if (payload && payload.length > 0) {
-                  return `Doctor: ${payload[0].payload.fullName}`
+                  return `Therapist: ${payload[0].payload.fullName}`
                 }
                 return label
               }}

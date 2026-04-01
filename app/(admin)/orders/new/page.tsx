@@ -39,7 +39,7 @@ function time12hTo24h(time12h: string): string {
 function generateTimeSlots(durationMinutes: number = 15): string[] {
   const slots: string[] = [];
   const interval = durationMinutes || 15;
-  
+
   for (let min = 9 * 60; min <= 18 * 60 - interval; min += 15) {
     const h = Math.floor(min / 60);
     const m = min % 60;
@@ -47,7 +47,7 @@ function generateTimeSlots(durationMinutes: number = 15): string[] {
     const minute = m.toString().padStart(2, "0");
     slots.push(`${hour}:${minute}`);
   }
-  
+
   return slots;
 }
 
@@ -91,7 +91,9 @@ export default function CreateBookingPage() {
   const [userResults, setUserResults] = useState<any[]>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [loadingUserSearch, setLoadingUserSearch] = useState(false);
-  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const nameDropdownRef = useRef<HTMLDivElement>(null);
+  const phoneDropdownRef = useRef<HTMLDivElement>(null);
+  const [activeSearchField, setActiveSearchField] = useState<"name" | "phone" | null>(null);
   // Debounced search value
   const debouncedUserSearch = useDebouncedValue(userSearch, 400);
 
@@ -109,7 +111,7 @@ export default function CreateBookingPage() {
     const fetchAvailableTimes = async () => {
       try {
         setLoadingTimeSlots(true);
-        
+
         // If doctor is selected, fetch filtered availability from API
         if (selectedDoctorId) {
           // Use first service for API call (for backward compat), but calculate total duration
@@ -119,7 +121,7 @@ export default function CreateBookingPage() {
           );
           if (!res.ok) throw new Error("Failed to fetch available times");
           const data = await res.json();
-          
+
           if (!ignore) {
             // Convert 12h format to 24h format (e.g., "10:15 am" → "10:15")
             const slots24h = (data.slots || []).map((slot: string) => time12hTo24h(slot));
@@ -130,7 +132,7 @@ export default function CreateBookingPage() {
           const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
           const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 50), 0);
           const slots = generateTimeSlots(totalDuration);
-          
+
           if (!ignore) {
             setAvailableTimeSlots(slots);
           }
@@ -208,15 +210,16 @@ export default function CreateBookingPage() {
       return note;
     });
     setShowUserDropdown(false);
+    setActiveSearchField(null);
     setUserResults([]);
   };
 
-  // Handle Enter on name input: if dropdown visible use first result,
+  // Handle Enter on name or phone input: if dropdown visible use first result,
   // otherwise perform an immediate search and populate if a match is found.
-  const handleNameKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
 
-    const currentName = customerName.trim();
+    const query = (e.currentTarget.value || userSearch).trim();
 
     // If dropdown already has results, select the first one
     if (showUserDropdown && userResults.length > 0) {
@@ -226,10 +229,10 @@ export default function CreateBookingPage() {
     }
 
     // Require at least 2 characters to perform a search
-    if (currentName.length < 2) return;
+    if (query.length < 2) return;
 
     try {
-      const res = await fetch(`/api/users?search=${encodeURIComponent(currentName)}`);
+      const res = await fetch(`/api/users?search=${encodeURIComponent(query)}`);
       if (!res.ok) return;
       const data = await res.json();
       const users = data?.users || [];
@@ -247,8 +250,23 @@ export default function CreateBookingPage() {
   // Close dropdown on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
-        setShowUserDropdown(false);
+      const target = e.target as Node;
+      const clickedOutsideName = nameDropdownRef.current && !nameDropdownRef.current.contains(target);
+      const clickedOutsidePhone = phoneDropdownRef.current && !phoneDropdownRef.current.contains(target);
+
+      // If both refs exist, only close when click is outside the active field's wrapper
+      if (activeSearchField === "name") {
+        if (nameDropdownRef.current && !nameDropdownRef.current.contains(target)) setShowUserDropdown(false);
+      } else if (activeSearchField === "phone") {
+        if (phoneDropdownRef.current && !phoneDropdownRef.current.contains(target)) setShowUserDropdown(false);
+      } else {
+        // fallback: if click is outside both wrappers, close
+        if (
+          (nameDropdownRef.current && !nameDropdownRef.current.contains(target)) &&
+          (phoneDropdownRef.current && !phoneDropdownRef.current.contains(target))
+        ) {
+          setShowUserDropdown(false);
+        }
       }
     }
 
@@ -256,7 +274,7 @@ export default function CreateBookingPage() {
       document.addEventListener("mousedown", handleClick);
       return () => document.removeEventListener("mousedown", handleClick);
     }
-  }, [showUserDropdown]);
+  }, [showUserDropdown, activeSearchField]);
 
   // Duplicate order prefill
   useEffect(() => {
@@ -273,8 +291,8 @@ export default function CreateBookingPage() {
         setCustomerPhone(order.customer_phone || "");
         setAddress(order.address || "");
         // Support both legacy service_id and new service_ids
-        const serviceIds = order.service_ids && order.service_ids.length > 0 
-          ? order.service_ids 
+        const serviceIds = order.service_ids && order.service_ids.length > 0
+          ? order.service_ids
           : (order.service_id ? [order.service_id] : []);
         setSelectedServiceIds(serviceIds);
         setSelectedDoctorId(order.doctor_id || "");
@@ -362,7 +380,7 @@ export default function CreateBookingPage() {
 
   const calculatePrice = () => {
     if (selectedServices.length === 0) return 0;
-    
+
     // Calculate aggregate price for all selected services
     let totalPrice = 0;
     selectedServices.forEach(service => {
@@ -370,7 +388,7 @@ export default function CreateBookingPage() {
       const pricing = calculateSessionPricing(base, service.session_options, selectedSessions);
       totalPrice += pricing.totalAmount;
     });
-    
+
     return totalPrice;
   };
 
@@ -473,11 +491,11 @@ export default function CreateBookingPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-6 py-4 space-y-2">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/orders">
-          <Button variant="ghost" size="icon">
+          <Button variant="primary" size="icon" className="h-6 w-10 ">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
@@ -493,341 +511,348 @@ export default function CreateBookingPage() {
           <CardDescription>Fill in the details to create a new booking</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-8">
-  {/* Customer Details */}
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold text-foreground border-b pb-2">
-      Customer Details
-    </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
 
-    <div className="grid gap-4 md:grid-cols-3">
-      {/* Full Name - spans 2 columns because of dropdown/search */}
-      <div className="space-y-2 md:col-span-1">
-        <Label htmlFor="customerName">Full Name *</Label>
-        <div className="relative" ref={userDropdownRef}>
-          <Input
-            id="customerName"
-            value={customerName}
-            onChange={(e) => {
-              setCustomerName(e.target.value);
-              setUserSearch(e.target.value);
-              setShowUserDropdown(true);
-            }}
-            onFocus={() => setShowUserDropdown(true)}
-            onKeyDown={handleNameKeyDown}
-            placeholder="Enter customer full name"
-            required
-            className="w-full"
-            autoComplete="off"
-          />
+            {/* Customer Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">
+                Customer Details
+              </h3>
 
-          {showUserDropdown &&
-            (loadingUserSearch || userResults.length > 0 || debouncedUserSearch.length >= 2) && (
-              <div className="absolute z-10 left-0 right-0 bg-white border rounded shadow max-h-56 overflow-y-auto mt-1">
-                {loadingUserSearch ? (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">Searching...</div>
-                ) : userResults.length > 0 ? (
-                  userResults.map((user) => (
-                    <div
-                      key={user.id}
-                      className="px-4 py-2 cursor-pointer hover:bg-muted"
-                      onMouseDown={() => handleUserSelect(user)}
-                    >
-                      <div className="font-medium">
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {user.email}
-                        {user.phone ? ` • ${user.phone}` : ""}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">No users found</div>
-                )}
-              </div>
-            )}
-        </div>
-      </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {/* Full Name - spans 2 columns because of dropdown/search */}
+                <div className="space-y-2 md:col-span-1">
+                  <Label htmlFor="customerName">Full Name</Label>
+                  <div className="relative" ref={nameDropdownRef}>
+                    <Input
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        setUserSearch(e.target.value);
+                        setActiveSearchField("name");
+                        setShowUserDropdown(true);
+                      }}
+                      onFocus={() => {
+                        setActiveSearchField("name");
+                        setShowUserDropdown(true);
+                      }}
+                      onKeyDown={handleSearchKeyDown}
+                      placeholder="Enter customer full name"
+                      required
+                      className="w-full"
+                      autoComplete="off"
+                    />
 
-      {/* Email */}
-      <div className="space-y-2">
-        <Label htmlFor="customerEmail">Email *</Label>
-        <Input
-          id="customerEmail"
-          type="email"
-          value={customerEmail}
-          onChange={(e) => setCustomerEmail(e.target.value)}
-          placeholder="customer@example.com"
-          required
-        />
-      </div>
-
-      {/* Phone - moves to next row on mobile, but in row 2 on md+ */}
-      <div className="space-y-2 md:col-start-3">
-        <Label htmlFor="customerPhone">Phone</Label>
-        <Input
-          id="customerPhone"
-          type="tel"
-          value={customerPhone}
-          onChange={(e) => setCustomerPhone(e.target.value)}
-          placeholder="+44 123 456 7890"
-        />
-      </div>
-    </div>
-  </div>
-
-  {/* Service Details */}
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold text-foreground border-b pb-2">
-      Service Details
-    </h3>
-
-    <div className="grid gap-4 md:grid-cols-3">
-      {/* Services - Multi-select */}
-      <div className="space-y-2 md:col-span-2">
-        <Label>Services * (Select one or more)</Label>
-        {loadingServices ? (
-          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
-            Loading services...
-          </div>
-        ) : (
-          <div className="border rounded-md p-3 space-y-2 max-h-64 overflow-y-auto bg-background">
-            {services.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No services available</div>
-            ) : (
-              services.map((service) => (
-                <label
-                  key={service.id}
-                  className="flex items-start gap-3 p-2 hover:bg-muted rounded cursor-pointer transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedServiceIds.includes(service.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedServiceIds([...selectedServiceIds, service.id]);
-                      } else {
-                        setSelectedServiceIds(
-                          selectedServiceIds.filter((id) => id !== service.id)
-                        );
-                      }
-                    }}
-                    className="mt-1 w-4 h-4 rounded border-input"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{service.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      £{Number(service.base_price || 0).toFixed(2)}
-                      {service.duration_minutes && ` • ${service.duration_minutes} min`}
-                    </div>
+                    {showUserDropdown && activeSearchField === "name" &&
+                      (loadingUserSearch || userResults.length > 0 || debouncedUserSearch.length >= 2) && (
+                        <div className="absolute z-10 left-0 right-0 bg-white border rounded shadow max-h-56 overflow-y-auto mt-1">
+                          {loadingUserSearch ? (
+                            <div className="px-4 py-2 text-sm text-muted-foreground">Searching...</div>
+                          ) : userResults.length > 0 ? (
+                            userResults.map((user) => (
+                              <div
+                                key={user.id}
+                                className="px-4 py-2 cursor-pointer hover:bg-muted"
+                                onMouseDown={() => handleUserSelect(user)}
+                              >
+                                <div className="font-medium">
+                                  {user.first_name} {user.last_name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {user.email}
+                                  {user.phone ? ` • ${user.phone}` : ""}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-sm text-muted-foreground">No users found</div>
+                          )}
+                        </div>
+                      )}
                   </div>
-                </label>
-              ))
-            )}
-          </div>
-        )}
-        {selectedServiceIds.length > 0 && (
-          <div className="text-xs text-muted-foreground">
-            {selectedServiceIds.length} service{selectedServiceIds.length !== 1 ? "s" : ""} selected
-          </div>
-        )}
-      </div>
+                </div>
 
-      {/* Doctor (Optional) */}
-      <div className="space-y-2">
-        <Label htmlFor="doctor">Doctor (Optional)</Label>
-        {loadingDoctors ? (
-          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
-            Loading Therapists...
-          </div>
-        ) : (
-          <Select
-            value={selectedDoctorId || undefined}
-            onValueChange={(v) => setSelectedDoctorId(v === "__clear__" ? "" : v)}
-          >
-            <SelectTrigger id="doctor">
-              <SelectValue placeholder="Select a Therapist (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              {selectedDoctorId && (
-                <SelectItem value="__clear__" className="text-muted-foreground">
-                  Clear selection
-                </SelectItem>
-              )}
-              {doctors.map((doctor) => (
-                <SelectItem key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.first_name} {doctor.last_name}
-                  {doctor.specialization && ` - ${doctor.specialization}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="customerEmail">Email </Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                    required
+                  />
+                </div>
 
-      {/* Sessions */}
-      {selectedServices.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="sessions">Sessions *</Label>
-          <Select value={selectedSessions} onValueChange={setSelectedSessions} required>
-            <SelectTrigger id="sessions">
-              <SelectValue placeholder="Select number of sessions" />
-            </SelectTrigger>
-            <SelectContent>
-              {sessionsOptions.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s} {parseInt(s) === 1 ? "session" : "sessions"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+                {/* Phone - moves to next row on mobile, but in row 2 on md+ */}
+                <div className="space-y-2 md:col-start-3">
+                  <Label htmlFor="customerPhone">Phone</Label>
+                  <div className="relative" ref={phoneDropdownRef}>
+                    <Input
+                      id="customerPhone"
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        setUserSearch(e.target.value);
+                        setActiveSearchField("phone");
+                        setShowUserDropdown(true);
+                      }}
+                      onFocus={() => {
+                        setActiveSearchField("phone");
+                        setShowUserDropdown(true);
+                      }}
+                      onKeyDown={handleSearchKeyDown}
+                      placeholder="+44 123 456 7890"
+                    />
 
-      {/* Total Amount - full width */}
-      {selectedSessions && selectedServices.length > 0 && totalPrice > 0 && (
-        <div className="md:col-span-3">
-          <div className="p-4 bg-muted rounded-md border">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-base font-medium">Selected Services:</span>
-                <span className="text-sm">{selectedServices.map(s => s.name).join(", ")}</span>
-              </div>
-              <div className="flex items-center justify-between text-lg">
-                <span className="font-medium">Total Amount:</span>
-                <span className="text-2xl font-bold">£{totalPrice.toFixed(2)}</span>
+                    {showUserDropdown && activeSearchField === "phone" &&
+                      (loadingUserSearch || userResults.length > 0 || debouncedUserSearch.length >= 2) && (
+                        <div className="absolute z-10 left-0 right-0 bg-white border rounded shadow max-h-56 overflow-y-auto mt-1">
+                          {loadingUserSearch ? (
+                            <div className="px-4 py-2 text-sm text-muted-foreground">Searching...</div>
+                          ) : userResults.length > 0 ? (
+                            userResults.map((user) => (
+                              <div
+                                key={user.id}
+                                className="px-4 py-2 cursor-pointer hover:bg-muted"
+                                onMouseDown={() => handleUserSelect(user)}
+                              >
+                                <div className="font-medium">
+                                  {user.first_name} {user.last_name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {user.email}
+                                  {user.phone ? ` • ${user.phone}` : ""}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-sm text-muted-foreground">No users found</div>
+                          )}
+                        </div>
+                      )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
 
-  {/* Booking Date & Time */}
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold text-foreground border-b pb-2">
-      Booking Date & Time
-    </h3>
+            {/* Service Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">
+                Service Details
+              </h3>
 
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="space-y-2">
-        <Label htmlFor="bookingDate">Date *</Label>
-        <Input
-          id="bookingDate"
-          type="date"
-          value={bookingDate}
-          onChange={(e) => setBookingDate(e.target.value)}
-          min={new Date().toISOString().split("T")[0]}
-          required
-        />
-      </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {/* Services - Multi-select */}
+                <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                  <Label>Services <span className="text-destructive italic">(Select one or more)</span> </Label>
+                  {loadingServices ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
+                      Loading services...
+                    </div>
+                  ) : (
+                    <div className="border rounded-md p-3 space-y-2 max-h-64 overflow-y-auto bg-background">
+                      {services.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">No services available</div>
+                      ) : (
+                        services.map((service) => (
+                          <label
+                            key={service.id}
+                            className="flex items-start gap-3 p-2 hover:bg-muted rounded cursor-pointer transition"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedServiceIds.includes(service.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedServiceIds([...selectedServiceIds, service.id]);
+                                } else {
+                                  setSelectedServiceIds(
+                                    selectedServiceIds.filter((id) => id !== service.id)
+                                  );
+                                }
+                              }}
+                              className="mt-1 w-4 h-4 rounded border-input"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{service.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                £{Number(service.base_price || 0).toFixed(2)}
+                                {service.duration_minutes && ` • ${service.duration_minutes} min`}
+                              </div>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {selectedServiceIds.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {selectedServiceIds.length} service{selectedServiceIds.length !== 1 ? "s" : ""} selected
+                    </div>
+                  )}
+                </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="bookingTime">Time *</Label>
-        {!bookingDate ? (
-          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
-            Select a date first
-          </div>
-        ) : selectedServiceIds.length === 0 ? (
-          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
-            Select service(s) first
-          </div>
-        ) : loadingTimeSlots ? (
-          <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
-            Loading available times...
-          </div>
-        ) : availableTimeSlots.length === 0 ? (
-          <div className="flex items-center justify-center py-2 text-sm text-destructive border rounded-md bg-muted">
-            No available times for this date{selectedDoctorId ? " and therapist" : ""}
-          </div>
-        ) : (
-          <Select value={bookingTime} onValueChange={setBookingTime} required>
-            <SelectTrigger id="bookingTime">
-              <SelectValue placeholder="Select time" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableTimeSlots.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+                <div>
+                  {/* Doctor (Optional) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor">Doctor <span className=" italic">(Optional)</span></Label>
+                    {loadingDoctors ? (
+                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
+                        Loading Therapists...
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedDoctorId || undefined}
+                        onValueChange={(v) => setSelectedDoctorId(v === "__clear__" ? "" : v)}
+                      >
+                        <SelectTrigger id="doctor">
+                          <SelectValue placeholder="Select a Therapist (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedDoctorId && (
+                            <SelectItem value="__clear__" className="text-muted-foreground">
+                              Clear selection
+                            </SelectItem>
+                          )}
+                          {doctors.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id}>
+                              Dr. {doctor.first_name} {doctor.last_name}
+                              {doctor.specialization && ` - ${doctor.specialization}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-      {/* <div className="space-y-2">
-        <Label htmlFor="customerType">Customer Type *</Label>
-        <Select value={customerType} onValueChange={setCustomerType} required>
-          <SelectTrigger id="customerType">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="new">New Customer</SelectItem>
-            <SelectItem value="returning">Returning Customer</SelectItem>
-          </SelectContent>
-        </Select>
-      </div> */}
-    </div>
-  </div>
+                  {/* Sessions */}
+                  {selectedServices.length > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="sessions">Sessions </Label>
+                      <Select value={selectedSessions} onValueChange={setSelectedSessions} required>
+                        <SelectTrigger id="sessions">
+                          <SelectValue placeholder="Select number of sessions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sessionsOptions.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s} {parseInt(s) === 1 ? "session" : "sessions"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-  {/* Additional Details */}
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold text-foreground border-b pb-2">
-      Additional Details
-    </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes (optional)"
+                      className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    />
+                  </div>
+                </div>
 
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-      <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Input
-          id="address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Customer address (optional)"
-        />
-      </div>
+                <div className="md:col-span-2 lg:col-span-1 flex flex-col gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingDate">Date</Label>
+                    <Input
+                      id="bookingDate"
+                      type="date"
+                      value={bookingDate}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
-        <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Additional notes (optional)"
-          className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        />
-      </div>
-    </div>
-  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingTime">Time </Label>
+                    {!bookingDate ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                        Select a date first
+                      </div>
+                    ) : selectedServiceIds.length === 0 ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                        Select service(s) first
+                      </div>
+                    ) : loadingTimeSlots ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                        Loading available times...
+                      </div>
+                    ) : availableTimeSlots.length === 0 ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-destructive border rounded-md bg-muted">
+                        No available times for this date{selectedDoctorId ? " and therapist" : ""}
+                      </div>
+                    ) : (
+                      <Select value={bookingTime} onValueChange={setBookingTime} required>
+                        <SelectTrigger id="bookingTime">
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTimeSlots.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+                {/* Total Amount - full width */}
+                {selectedSessions && selectedServices.length > 0 && totalPrice > 0 && (
+                  <div className="md:col-span-3">
+                    <div className="p-4 bg-muted rounded-md border">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-base font-medium">Selected Services:</span>
+                          <span className="text-sm">{selectedServices.map(s => s.name).join(", ")}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-lg">
+                          <span className="font-medium">Total Amount:</span>
+                          <span className="text-2xl font-bold">£{totalPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-  {/* Actions */}
-  <div className="flex justify-end gap-4 pt-6 border-t">
-    <Button
-      type="button"
-      variant="outline"
-      onClick={() => router.back()}
-      disabled={loading}
-    >
-      Cancel
-    </Button>
-    <Button
-      type="submit"
-      disabled={
-        loading ||
-        !customerName ||
-        !customerEmail ||
-        selectedServiceIds.length === 0 ||
-        !bookingDate ||
-        !bookingTime
-      }
-    >
-      {loading ? "Creating..." : "Create Booking"}
-    </Button>
-  </div>
-</form>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-4  ">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  loading ||
+                  !customerName ||
+                  !customerEmail ||
+                  selectedServiceIds.length === 0 ||
+                  !bookingDate ||
+                  !bookingTime
+                }
+              >
+                {loading ? "Creating..." : "Create Booking"}
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

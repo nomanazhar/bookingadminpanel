@@ -11,13 +11,13 @@ export default async function EditDoctorPage({ params }: { params: { id: string 
     .single()
 
     if (error || !doctor) {
-      return <div className="p-6">Doctor not found.</div>
+      return <div className="p-6">Therapist not found.</div>
     }
 
     return (
       <div className="p-6 space-y-6">
-        <h1 className="text-3xl font-bold font-heading mb-2">Edit Doctor</h1>
-        <p className="text-muted-foreground">Update doctor profile</p>
+        <h1 className="text-3xl font-bold font-heading mb-2">Edit Therapist</h1>
+        <p className="text-muted-foreground">Update therapist profile</p>
         <DoctorForm initialValues={doctor} />
       </div>
     )

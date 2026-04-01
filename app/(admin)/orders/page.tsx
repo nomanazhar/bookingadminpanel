@@ -22,11 +22,12 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Prom
 
   return (
     <div className="p-6 space-y-4">
-      <OrdersPageHeader />
+     
 
       <Card>
         <CardHeader>
           <CardTitle>All Bookings</CardTitle>
+           <OrdersPageHeader />
         </CardHeader>
         <CardContent>
           <Suspense

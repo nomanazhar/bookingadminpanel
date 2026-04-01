@@ -54,7 +54,7 @@ export default async function BookConsultationPage() {
           </div>
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold tracking-tight">My Account</h1>
-            {!authUser && <p>To see your bookings SignIn</p>}
+            {!authUser && <p className="capitalize italic text-sm">To see your bookings SignIn</p>}
           </div>
         </section>
 

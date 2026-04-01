@@ -31,18 +31,28 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({ users: [], error: (error as any)?.message || String(error) }, { status: 500 });
     }
-    // Filter for full name match in JS
+    // Filter for full name / email / phone match in JS
+    // Normalize phone numbers (strip non-digit chars) so searches like '+44 123-456' match stored formatted phones
+    const normalizeDigits = (s?: string) => (s || "").toString().replace(/\D/g, "");
     let filtered = data || [];
     if (search && filtered.length > 0) {
       const q = search.toLowerCase();
+      const qDigits = normalizeDigits(search);
       filtered = filtered.filter(u => {
         const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim().toLowerCase();
-        return (
+        const email = (u.email || '').toLowerCase();
+        const phoneDigits = normalizeDigits(u.phone);
+
+        const matchesText = (
           fullName.includes(q) ||
           (u.first_name && u.first_name.toLowerCase().includes(q)) ||
           (u.last_name && u.last_name.toLowerCase().includes(q)) ||
-          (u.email && u.email.toLowerCase().includes(q))
+          (email && email.includes(q))
         );
+
+        const matchesPhone = qDigits.length > 0 && phoneDigits.includes(qDigits);
+
+        return matchesText || matchesPhone;
       });
     }
 
@@ -57,15 +67,24 @@ export async function GET(req: NextRequest) {
             .limit(50);
           if (!adminError && Array.isArray(adminData) && adminData.length > 0) {
             // apply same JS full-name filter
+            const normalizeDigitsAdmin = (s?: string) => (s || '').toString().replace(/\D/g, '');
             const q = search.toLowerCase();
+            const qDigits = normalizeDigitsAdmin(search);
             const adminFiltered = adminData.filter(u => {
               const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim().toLowerCase();
-              return (
+              const email = (u.email || '').toLowerCase();
+              const phoneDigits = normalizeDigitsAdmin(u.phone);
+
+              const matchesText = (
                 fullName.includes(q) ||
                 (u.first_name && u.first_name.toLowerCase().includes(q)) ||
                 (u.last_name && u.last_name.toLowerCase().includes(q)) ||
-                (u.email && u.email.toLowerCase().includes(q))
+                (email && email.includes(q))
               );
+
+              const matchesPhone = qDigits.length > 0 && phoneDigits.includes(qDigits);
+
+              return matchesText || matchesPhone;
             });
             return NextResponse.json({ users: adminFiltered });
           }

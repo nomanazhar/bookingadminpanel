@@ -61,7 +61,7 @@ export function SessionRow({
           </div>
           {doctorName && (
             <div className="min-w-fit">
-              <span className="text-muted-foreground">Doctor:</span>
+              <span className="text-muted-foreground">Therapist:</span>
               <div className="font-medium">{doctorName}</div>
             </div>
           )}
