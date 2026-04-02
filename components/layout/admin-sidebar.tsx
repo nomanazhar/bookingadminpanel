@@ -69,6 +69,11 @@ const sidebarLinks = [
     href: "/legacy-orders",
     icon: History,
   },
+  {
+    title: "Calendar View",
+    href: "/calendar-view",
+    icon: LayoutDashboard,
+  },
 ]
 
 function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void, isCollapsed?: boolean }) {

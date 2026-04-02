@@ -74,7 +74,8 @@ export default function NavbarWrapper() {
   pathname.startsWith("/legacy-orders") || 
   pathname.startsWith("/searchbooking") || 
   pathname.startsWith("/doctors") || 
-  pathname.startsWith("/users") ) {
+  pathname.startsWith("/users") ||
+ pathname.startsWith("/calendar-view")) {
     return null
   }
 

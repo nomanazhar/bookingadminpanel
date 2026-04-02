@@ -65,7 +65,7 @@ export interface ServiceSessionOptions {
 
 export interface Service {
   id: string
-  category_id: string
+  category_id?: string | null
   name: string
   slug: string
   description: string
@@ -100,10 +100,34 @@ export interface Order {
   discount_percent?: number
   total_amount: number
   status: OrderStatus
-  location: string[]
   booking_date: string
   booking_time: string
+  booking_end_time?: string | null
+  subservice_id?: string | null
+  customer_type?: 'new' | 'returning'
+  google_calendar_event_id?: string | null
   notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Subservice {
+  id: string
+  service_id: string
+  name: string
+  slug: string
+  price: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  address?: string
+  city?: string
+  country: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -176,6 +200,16 @@ export interface Database {
         Row: Service
         Insert: Omit<Service, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Service, 'id' | 'created_at' | 'updated_at'>>
+      }
+      subservices: {
+        Row: Subservice
+        Insert: Omit<Subservice, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Subservice, 'id' | 'created_at' | 'updated_at'>>
+      }
+      locations: {
+        Row: Location
+        Insert: Omit<Location, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Location, 'id' | 'created_at' | 'updated_at'>>
       }
       orders: {
         Row: Order
