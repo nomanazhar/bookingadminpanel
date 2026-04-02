@@ -104,7 +104,7 @@ export function CategoryServices() {
               id={`category-${category.id}`}
               className="container pt-4 pb-4 px-6  bg-[#e8fffc] rounded-t-[3rem] shadow-xl"
             >
-              <h2 className="text-2xl md:text-2xl lg:text-3xl font-bold mb-8 text-center capitalize text-charcoal">
+              <h2 className="text-2xl md:text-2xl lg:text-3xl font-bold mb-4 text-center capitalize text-charcoal">
                 {category.name}
               </h2>
               <StaggerReveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-center ">

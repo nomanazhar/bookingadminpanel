@@ -5,7 +5,7 @@ import { UsersClient } from "@/components/admin/users-client"
 
 export default function AdminUsersPage() {
   return (
-    <div className="px-6 py-4 space-y-2">
+    <div className="px-6 py-4 space-y-1">
       
       <Card>
         <CardHeader>

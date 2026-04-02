@@ -209,7 +209,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
               <th className="px-4 py-2 text-left uppercase">Name</th>
              
               <th className="px-4 py-2 text-left uppercase">Email</th>
-              <th className="px-4 py-2 text-left uppercase">Phone</th>
+             
               <th className="px-4 py-2 text-left uppercase">Specialization</th>
               <th className="px-4 py-2 text-left uppercase">Bio</th>
               <th className="px-4 py-2 text-left uppercase">Locations</th>
@@ -242,7 +242,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                       className="rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <div className="w-12 h-6 rounded-full bg-muted flex items-center justify-center">
                       <span className="font-semibold text-sm text-muted-foreground">
                         {doctor.first_name[0]}
                         {doctor.last_name[0]}
@@ -256,14 +256,13 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
                 </td>
 
                 <td className="px-4 py-2 text-sm text-muted-foreground">
-                  {doctor.email}
+                  {doctor.email} <br/>
+                   {doctor.phone || "-"}
                 </td>
 
-                <td className="px-4 py-2 text-sm text-muted-foreground">
-                  {doctor.phone || "-"}
-                </td>
+               
 
-                <td className="px-4 py-2 text-sm text-muted-foreground">
+                <td className="px-4 py-2 text-xs text-muted-foreground">
                   {doctor.specialization || "-"}
                 </td>
 

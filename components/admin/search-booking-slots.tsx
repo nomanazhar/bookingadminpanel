@@ -97,100 +97,112 @@ function SearchBookingSlots({ doctors, services, onSearch, loading }: SearchBook
 
   return (
     <form className="bg-white rounded shadow p-6 flex flex-col gap-4" onSubmit={handleSubmit}>
-      <div className="flex flex-wrap gap-8">
-        <div className="flex flex-col gap-2 min-w-[220px]">
-          <label className="font-medium">Service</label>
-          <Select value={serviceId} onValueChange={setServiceId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select service" />
-            </SelectTrigger>
-            <SelectContent>
-              {services.map((svc: Service) => (
-                <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <label className="font-medium">Search From</label>
-          <div className="flex gap-2 items-center">
-            <Input type="date" value={from} onChange={e => setFrom(e.target.value)} />
-            {from && <Button type="button" size="sm" variant="outline" onClick={() => setFrom("")}>Clear</Button>}
-          </div>
-          <label className="font-medium">Search To</label>
-          <div className="flex gap-2 items-center">
-            <Input type="date" value={to} onChange={e => setTo(e.target.value)} />
-            {to && <Button type="button" size="sm" variant="outline" onClick={() => setTo("")}>Clear</Button>}
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 min-w-[180px]">
-          <label className="font-medium">Start Time</label>
-          <div className="flex gap-2 items-center">
-            <Select value={startTime} onValueChange={setStartTime}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Any" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-end">
+        <div>
+          <div className="flex flex-col gap-2 mb-3">
+            <label className="font-medium">Service</label>
+            <Select value={serviceId} onValueChange={setServiceId}>
+              <SelectTrigger className="w-full min-w-[220px]">
+                <SelectValue placeholder="Select service" />
               </SelectTrigger>
               <SelectContent>
-                {timeOptions.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                {services.map((svc: Service) => (
+                  <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {startTime && <Button type="button" size="sm" variant="outline" onClick={() => setStartTime("")}>Clear</Button>}
           </div>
-          <label className="font-medium">End Time</label>
-          <div className="flex gap-2 items-center">
-            <Select value={endTime} onValueChange={setEndTime}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Any" />
+
+          <div className="flex flex-col gap-2">
+            <label className="font-medium mb-1">Therapist</label>
+            <Select value={selectedDoctors.join(",")} onValueChange={() => { }}>
+              <SelectTrigger className="w-full min-w-[220px]">
+                <SelectValue>
+                  {selectedDoctors.length === 0
+                    ? "Select doctors"
+                    : selectedDoctors.length === doctors.length
+                      ? "All doctors selected"
+                      : doctors
+                        .filter((d) => selectedDoctors.includes(d.id))
+                        .map((d) => d.name)
+                        .join(", ")}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {timeOptions.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {endTime && <Button type="button" size="sm" variant="outline" onClick={() => setEndTime("")}>Clear</Button>}
-          </div>
-        </div>
-        <div className="flex flex-col mt-8 ml-12 gap-2 min-w-[220px]">
-          <label className="font-medium mb-1">Therapist</label>
-          <Select open={undefined} onOpenChange={undefined}>
-            <SelectTrigger className="w-full min-w-[220px]">
-              <SelectValue>
-                {selectedDoctors.length === 0
-                  ? "Select doctors"
-                  : selectedDoctors.length === doctors.length
-                  ? "All doctors selected"
-                  : doctors
-                      .filter((d) => selectedDoctors.includes(d.id))
-                      .map((d) => d.name)
-                      .join(", ")}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <div className="max-h-60 overflow-y-auto px-2 py-1">
-                <label className="flex items-center gap-2 mb-1">
-                  <input
-                    type="checkbox"
-                    checked={allChecked}
-                    onChange={handleAllChange}
-                  />
-                  <span className="font-medium">All</span>
-                </label>
-                {doctors.map((doctor) => (
-                  <label key={doctor.id} className="flex items-center gap-2 py-1">
+                <div className="max-h-60 overflow-y-auto px-2 py-1">
+                  <label className="flex items-center gap-2 mb-1">
                     <input
                       type="checkbox"
-                      checked={selectedDoctors.includes(doctor.id)}
-                      onChange={() => handleDoctorChange(doctor.id)}
+                      checked={allChecked}
+                      onChange={handleAllChange}
                     />
-                    {doctor.name}
+                    <span className="font-medium">All</span>
                   </label>
-                ))}
-              </div>
-            </SelectContent>
-          </Select>
+                  {doctors.map((doctor) => (
+                    <label key={doctor.id} className="flex items-center gap-2 py-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedDoctors.includes(doctor.id)}
+                        onChange={() => handleDoctorChange(doctor.id)}
+                      />
+                      {doctor.name}
+                    </label>
+                  ))}
+                </div>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Search From</label>
+            <div className="flex gap-2 items-center">
+              <Input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+              {from && <Button type="button" size="sm" variant="outline" onClick={() => setFrom("")}>Clear</Button>}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Start Time</label>
+            <div className="flex gap-2 items-center">
+              <Select value={startTime} onValueChange={setStartTime}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {startTime && <Button type="button" size="sm" variant="outline" onClick={() => setStartTime("")}>Clear</Button>}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Search To</label>
+            <div className="flex gap-2 items-center">
+              <Input type="date" value={to} onChange={e => setTo(e.target.value)} />
+              {to && <Button type="button" size="sm" variant="outline" onClick={() => setTo("")}>Clear</Button>}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">End Time</label>
+            <div className="flex gap-2 items-center">
+              <Select value={endTime} onValueChange={setEndTime}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Any" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {endTime && <Button type="button" size="sm" variant="outline" onClick={() => setEndTime("")}>Clear</Button>}
+            </div>
+          </div>
         </div>
       </div>
       <div>

@@ -333,51 +333,52 @@ export default function EditOrderPage() {
   }
 
   return (
-    <div className="bg-white p-6 space-y-6">
+    <div className="bg-white p-6 space-y-2">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/orders">
-          <Button variant="ghost" size="icon">
+          <Button variant="primary" size="icon" className="h-6 w-10">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
           <h1 className="text-3xl font-bold font-heading mb-2">Edit Booking</h1>
-         
         </div>
       </div>
 
       {/* Form Card */}
       <Card>
+
         <CardHeader>
           <CardTitle>Booking Information</CardTitle>
           <CardDescription>Update the booking details</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Customer Information Section */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Customer Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Information</h3>
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Customer Details</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Customer Name </Label>
+                  <Label htmlFor="customerName">Full Name</Label>
                   <Input
                     id="customerName"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Customer name"
+                    placeholder="Enter customer full name"
                     required
                     className="w-full"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Email </Label>
+                  <Label htmlFor="customerEmail">Email</Label>
                   <Input
                     id="customerEmail"
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Email"
+                    placeholder="customer@example.com"
                     required
                     className="w-full"
                   />
@@ -388,174 +389,152 @@ export default function EditOrderPage() {
                     id="customerPhone"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Phone (optional)"
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Address (optional)"
+                    placeholder="+44 123 456 7890"
                     className="w-full"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Service & Booking Section */}
+            {/* Service Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Service & Booking</h3>
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Service Details</h3>
+
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="serviceTitle">Service Title </Label>
-                  <Input
-                    id="serviceTitle"
-                    value={serviceTitle}
-                    onChange={(e) => setServiceTitle(e.target.value)}
-                    placeholder="Service title"
-                    required
-                    className="w-full"
-                  />
+                <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                  <Label>Services <span className="text-destructive italic">(Select one)</span></Label>
+                  <div className="border rounded-md p-3 space-y-2 max-h-64 overflow-y-auto bg-background">
+                    {services.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">No services available</div>
+                    ) : (
+                      services.map((service) => (
+                        <label
+                          key={service.id}
+                          className="flex items-start gap-3 p-2 hover:bg-muted rounded cursor-pointer transition"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={serviceId === service.id}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setServiceId(service.id)
+                                setServiceTitle(service.name || "")
+                                setUnitPrice(String(service.base_price ?? 0))
+                              } else {
+                                setServiceId("")
+                                setServiceTitle("")
+                                setUnitPrice("0")
+                              }
+                            }}
+                            className="mt-1 w-4 h-4 rounded border-input"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{service.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              £{Number(service.base_price || 0).toFixed(2)}
+                              {service.duration_minutes && ` • ${service.duration_minutes} min`}
+                            </div>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sessionCount">Session Count </Label>
-                  <Input
-                    id="sessionCount"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={sessionCount}
-                    onChange={(e) => setSessionCount(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bookingDate">Booking Date </Label>
-                  <Input
-                    id="bookingDate"
-                    type="date"
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bookingTime">Booking Time </Label>
-                  {loadingTimeSlots ? (
-                    <div className="w-full h-10 rounded-md border border-input bg-background flex items-center justify-center text-xs text-muted-foreground">
-                      Loading times...
-                    </div>
-                  ) : (
-                    <Select value={bookingTime || ""} onValueChange={setBookingTime} disabled={!bookingDate}>
-                      <SelectTrigger id="bookingTime" className="w-full bg-white">
-                        <SelectValue placeholder="Select time">
-                          {bookingTime || "Select time"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60 bg-white">
-                        {availableTimeSlots.length > 0 ? (
-                          availableTimeSlots.map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
+
+                <div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor">Doctor <span className="italic">(Optional)</span></Label>
+                    {loadingDoctors ? (
+                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
+                        Loading Therapists...
+                      </div>
+                    ) : (
+                      <Select value={doctorId || undefined} onValueChange={(value) => setDoctorId(value === "__clear__" ? "" : value)}>
+                        <SelectTrigger id="doctor">
+                          <SelectValue placeholder="Select a Therapist (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doctorId && (
+                            <SelectItem value="__clear__" className="text-muted-foreground">Clear selection</SelectItem>
+                          )}
+                          {doctors.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id}>
+                              Dr. {doctor.first_name} {doctor.last_name}
+                              {doctor.specialization && ` - ${doctor.specialization}`}
                             </SelectItem>
-                          ))
-                        ) : (
-                          <div className="p-2 text-xs text-muted-foreground">No slots available</div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="doctor">Therapist (Optional)</Label>
-                  {loadingDoctors ? (
-                    <div className="text-sm text-muted-foreground">Loading therapists...</div>
-                  ) : (
-                    <Select value={doctorId || undefined} onValueChange={(value) => {
-                      if (value === "__clear__") {
-                        setDoctorId("")
-                      } else {
-                        setDoctorId(value)
-                      }
-                    }}>
-                      <SelectTrigger id="doctor" className="w-full bg-white">
-                        <SelectValue placeholder="Select a therapist (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        {doctorId && (
-                          <SelectItem value="__clear__" className="text-muted-foreground">
-                            Clear selection
-                          </SelectItem>
-                        )}
-                        {doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id}>
-                            Dr. {doctor.first_name} {doctor.last_name}
-                            {doctor.specialization && ` - ${doctor.specialization}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </div>
-            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-            {/* Pricing Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Pricing</h3>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="unitPrice">Unit Price (£) *</Label>
-                  <Input
-                    id="unitPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={unitPrice}
-                    onChange={(e) => setUnitPrice(e.target.value)}
-                    required
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="discountPercent">Discount (%)</Label>
-                  <Input
-                    id="discountPercent"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={discountPercent}
-                    onChange={(e) => setDiscountPercent(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="totalAmount">Total Amount (£)</Label>
-                  <Input
-                    id="totalAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={totalAmount}
-                    readOnly
-                    className="w-full bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground">Auto-calculated</p>
-                </div>
-              </div>
-            </div>
+                    <div className="space-y-2 ">
+                      <Label htmlFor="sessionCount">Sessions</Label>
+                      <Input
+                        id="sessionCount"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={sessionCount}
+                        onChange={(e) => setSessionCount(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
 
-            {/* Status & Notes Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground border-b pb-2">Status & Notes</h3>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <textarea
+                        id="notes"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Additional notes (optional)"
+                        className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      />
+                    </div>
+                </div>
+
+                <div className="md:col-span-2 lg:col-span-1 flex flex-col gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingDate">Date</Label>
+                    <Input
+                      id="bookingDate"
+                      type="date"
+                      value={bookingDate}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingTime">Time</Label>
+                    {!bookingDate ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                        Select a date first
+                      </div>
+                    ) : loadingTimeSlots ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                        Loading available times...
+                      </div>
+                    ) : availableTimeSlots.length === 0 ? (
+                      <div className="flex items-center justify-center py-2 text-sm text-destructive border rounded-md bg-muted">
+                        No available times for this date{doctorId ? " and therapist" : ""}
+                      </div>
+                    ) : (
+                      <Select value={bookingTime} onValueChange={setBookingTime} required>
+                        <SelectTrigger id="bookingTime">
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTimeSlots.map((time) => (
+                            <SelectItem key={time} value={time}>{time}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
                   <Label htmlFor="status">Status *</Label>
                   <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger id="status" className="w-full bg-white">
@@ -569,19 +548,24 @@ export default function EditOrderPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Additional notes (optional)"
-                    rows={4}
-                    className="w-full min-h-[100px] border border-input bg-background text-foreground rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  />
+                  
                 </div>
               </div>
             </div>
+
+           {/* Pricing box */}
+                  <div className="mt-4 p-4 bg-muted rounded-md border">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-medium">Selected Service:</span>
+                        <span className="text-sm">{serviceTitle || "-"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-lg">
+                        <span className="font-medium">Total Amount:</span>
+                        <span className="text-2xl font-bold">£{Number(totalAmount || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
 
             {/* Footer Actions */}
             <div className="flex items-center justify-end gap-4 pt-4 border-t">

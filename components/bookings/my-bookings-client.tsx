@@ -111,18 +111,18 @@ export default function MyBookingsClient({ customerId }: Props) {
 
   return (
     <>
-      {isDev && (
+      {/* {isDev && (
         <div style={{ background: '#f5f5f5', color: '#222', padding: 12, marginBottom: 16, borderRadius: 8, fontSize: 12 }}>
           <strong>Debug Info (dev only):</strong>
           <div><b>customerId:</b> {customerId}</div>
           <div><b>orders (raw):</b> <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflow: 'auto' }}>{JSON.stringify(orders, null, 2)}</pre></div>
         </div>
-      )}
-      <section className="max-w-3xl mx-auto mb-8">
+      )} */}
+      <section className="max-w-3xl mx-auto mb-4">
         <div className="flex w-full rounded-full overflow-hidden bg-muted p-2">
           <button
-            className={`flex-1 py-4 text-lg font-medium rounded-full transition ${
-              state.activeTab === "Upcoming" ? "bg-background shadow" : "text-muted-foreground"
+            className={`flex-1 py-2 text-lg font-medium rounded-full transition ${
+              state.activeTab === "Upcoming" ? "bg-background shadow-lg border border-b-2" : "text-muted-foreground"
             }`}
             onClick={() => dispatch({ type: "SET_TAB", tab: "Upcoming" })}
           >
@@ -130,7 +130,7 @@ export default function MyBookingsClient({ customerId }: Props) {
           </button>
           <button
             className={`flex-1 py-4 text-lg font-medium rounded-full transition ${
-              state.activeTab === "Previous" ? "bg-background shadow" : "text-muted-foreground"
+              state.activeTab === "Previous" ? "bg-background shadow-lg border border-b-2" : "text-muted-foreground"
             }`}
             onClick={() => dispatch({ type: "SET_TAB", tab: "Previous" })}
           >
@@ -142,13 +142,13 @@ export default function MyBookingsClient({ customerId }: Props) {
       {state.activeTab === "Upcoming" ? (
         <section className="max-w-3xl mx-auto">
           {upcoming.length === 0 ? (
-            <div className="bg-muted rounded-xl shadow p-8 min-h-[180px] flex items-center justify-center">
+            <div className="bg-muted rounded-xl shadow p-6 min-h-[180px] flex items-center justify-center">
               <span className="text-lg text-muted-foreground">No upcoming bookings.</span>
             </div>
           ) : (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Upcoming ({upcoming.length})</h2>
+                <h2 className="text-lg font-semibold">Upcoming ({upcoming.length})</h2>
               </div>
               {upcoming.map((upcomingOrder: OrderWithDetails, idx: number) => {
                 // Find the next session (pending or scheduled)
@@ -158,7 +158,7 @@ export default function MyBookingsClient({ customerId }: Props) {
                 const nextSession = sortedSessions.find(s => s.status === 'pending' || s.status === 'scheduled');
                 const hasDate = nextSession && nextSession.scheduled_date && nextSession.scheduled_time;
                 return (
-                  <section key={idx} className="bg-muted rounded-xl shadow p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between mb-6">
+                  <section key={idx} className="bg-muted  rounded-xl shadow p-6 md:p-6 flex flex-col md:flex-row md:items-center justify-between mb-4">
                     <div className="flex-1 min-w-0">
                       <div className="mb-2">
                         <span className="inline-block bg-[#7B61FF] text-white text-xs font-semibold px-3 py-1 rounded-full mb-2">Upcoming</span>
@@ -280,14 +280,14 @@ export default function MyBookingsClient({ customerId }: Props) {
           )}
         </section>
       ) : (
-        <section className="max-w-3xl mx-auto bg-muted rounded-xl shadow p-8 min-h-[180px]">
+        <section className="max-w-3xl mx-auto bg-muted rounded-xl shadow p-6 min-h-[180px] border border-muted">
           {previousSessions.length === 0 ? (
             <div className="flex items-center justify-center min-h-[180px]">
               <span className="text-lg text-muted-foreground">You have no previous sessions.</span>
             </div>
           ) : (
             previousSessions.map(({ order, session }, idx) => (
-              <div key={session.id} className="bg-white rounded-xl shadow p-6 flex items-center gap-6 mb-4">
+              <div key={session.id} className="bg-white rounded-xl shadow p-6 flex items-center gap-6 mb-4 border-b-2 shadow-md">
                 <div className="flex-1">
                   <div className="text-xs font-semibold text-primary mb-2">Session {session.session_number} of {order.session_count}</div>
                   <h3 className="font-semibold">{formatDate(session.attended_date || session.scheduled_date || order.booking_date)}</h3>

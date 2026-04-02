@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import MyBookingsClient from "@/components/bookings/my-bookings-client";
 import { getCurrentUserWithProfile } from "@/lib/supabase/auth";
+import { Button } from "@/components/ui/button";
 
 export default async function MyBookingsPage() {
   const { user } = await getCurrentUserWithProfile();
@@ -10,18 +11,16 @@ export default async function MyBookingsPage() {
 
   return (
     <>
-      <main className="container mx-auto py-8">
-        <section className="max-w-3xl mx-auto mb-10">
+      <main className="container mx-auto py-6">
+        <section className="max-w-3xl mx-auto mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-            <Link
-              href="/book-consultation"
-              className="text-muted-foreground text-base font-normal cursor-pointer"
-            >
-              Go back
-            </Link>
+            
+            <Link href="/book-consultation">
+              <Button variant="primary" className="h-6 w-10 "><ArrowLeft /></Button>
+            </Link> 
+            <h1 className="text-3xl font-bold tracking-tight">My Bookings</h1>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">My Bookings</h1>
+          
         </section>
 
         {authUser && (

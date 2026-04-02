@@ -42,18 +42,18 @@ export default async function BookConsultationPage() {
 
   return (
     <>
-      <main className="container mx-auto py-8">
-        <section className="max-w-3xl mx-auto mb-10 ">
-          <div className="mb-2">
-            <Link href="/">
-              <Button variant="ghost">← Back to Dashboard</Button>
-            </Link>
-          </div>
+      <main className="container mx-auto py-6">
+        <section className="max-w-3xl mx-auto mb-4 ">
           <div className="mb-2 text-muted-foreground text-base font-normal">
             Good evening
           </div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-4xl font-bold tracking-tight">My Account</h1>
+          <div className="flex items-center justify-start gap-4">
+            <div>
+            <Link href="/">
+              <Button variant="primary" className="h-6 w-10 ">←</Button>
+            </Link>
+          </div>
+            <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
             {!authUser && <p className="capitalize italic text-sm">To see your bookings SignIn</p>}
           </div>
         </section>
@@ -92,12 +92,12 @@ export default async function BookConsultationPage() {
           )}
         </section>
 
-        <section className="max-w-3xl mx-auto mt-10 shadow-md rounded-xl">
-          <h2 className="text-xl font-bold mb-4">Manage</h2>
+        <section className="max-w-3xl mx-auto mt-6 shadow-md rounded-xl">
+          <h2 className="text-xl font-bold mb-2 pl-4">Manage</h2>
           <div className="bg-muted rounded-xl shadow divide-y">
             <Link
               href="/my-bookings"
-              className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
+              className="flex items-center px-6 py-4 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
             >
               <span className="bg-muted p-2 rounded-full">
                 <CalendarDays className="w-6 h-6 text-primary" />
@@ -112,7 +112,7 @@ export default async function BookConsultationPage() {
             </Link>
             <Link
               href="/my-treatments"
-              className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
+              className="flex items-center px-6 py-4 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
             >
               <span className="bg-muted p-2 rounded-full">
                 <ShoppingBag className="w-6 h-6 text-primary" />
@@ -127,7 +127,7 @@ export default async function BookConsultationPage() {
             </Link>
             <Link
               href="/order-history"
-              className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
+              className="flex items-center px-6 py-4 gap-4 hover:bg-white hover:text-black transition cursor-pointer"
             >
               <span className="bg-muted p-2 rounded-full">
                 <ShoppingBag className="w-6 h-6 text-primary" />
@@ -144,7 +144,7 @@ export default async function BookConsultationPage() {
             </Link>
             <Link
               href="/profile/settings"
-              className="flex items-center px-6 py-5 gap-4 hover:bg-white hover:text-black transition cursor-pointer rounded-b-xl"
+              className="flex items-center px-6 py-4 gap-4 hover:bg-white hover:text-black transition cursor-pointer rounded-b-xl"
             >
               <span className="bg-muted p-2 rounded-full">
                 <Settings className="w-6 h-6 text-primary" />

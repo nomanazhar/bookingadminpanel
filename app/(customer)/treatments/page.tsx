@@ -41,12 +41,12 @@ export default function AllTreatmentsPage() {
   };
 
   return (
-    <main className="container mx-auto py-8 ">
-      <section className="max-w-3xl mx-auto mb-10 ">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">
+    <main className="container mx-auto py-6 ">
+      <section className="max-w-7xl mx-auto mb-4 ">
+        <h1 className="text-4xl font-bold tracking-tight mb-2">
           All Treatments
         </h1>
-        <p className="text-lg text-muted-foreground mb-6">
+        <p className="text-lg text-muted-foreground mb-4">
           Browse all available treatment categories below.
         </p>
         <CategoryButtons categories={categories} selectedId={selected} onSelect={handleSelect} />
@@ -65,7 +65,7 @@ export default function AllTreatmentsPage() {
             return (
                <div
                 key={category.id}
-                className="mb-6 bg-[#e8fffc] rounded-t-[3rem] shadow-xl py-4 px-4"
+                className="mb-2 bg-[#e8fffc] rounded-t-[3rem] shadow-xl py-4 px-4"
                 id={`category-${category.id}`}
               >
                 <h2 className="text-2xl md:text-2xl lg:text-3xl font-bold mb-8 text-center capitalize text-charcoal">

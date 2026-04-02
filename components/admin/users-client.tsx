@@ -108,7 +108,7 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-2 flex items-center justify-between gap-4">
        <p>Manage all Users</p>
         <div className="flex items-center gap-2">
           <Button
@@ -138,10 +138,10 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
         />
       )}
 
-      <div className="mt-4 flex items-center justify-center gap-2">
-        <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="btn">Previous</button>
+      <div className="mt-4 flex items-center justify-start gap-6">
+        <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="btn border border-2 px-2 rounded-md">Previous</button>
         <div className="text-sm">Page {page} of {totalPages}</div>
-        <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="btn">Next</button>
+        <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="btn border border-2 px-2 rounded-md">Next</button>
       </div>
 
       <CreateCustomerDialog

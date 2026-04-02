@@ -32,9 +32,9 @@ export default async function SearchBookingPage() {
     services = [];
   }
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-3xl font-bold font-heading mb-2">Search Bookings Slots</h1>
+        <h1 className="text-2xl font-bold font-heading ">Search Bookings Slots</h1>
         <p className="text-muted-foreground">Find available slots for walk-in or instant bookings</p>
       </div>
       <SearchBookingClientSection initialDoctors={doctors} initialServices={services} />

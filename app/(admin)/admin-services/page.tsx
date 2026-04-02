@@ -5,9 +5,9 @@ import ClientServicesSection from "./_client-services-section"
 export default async function ServicesPage() {
   const categories = await getCategories()
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-start gap-8">
-        <h1 className="text-2xl font-bold font-heading mb-2">Treatments</h1>
+    <div className="p-6 space-y-2">
+      <div className="flex items-center justify-start gap-6">
+        <h1 className="text-xl font-bold font-heading mb-2">Treatments</h1>
         <p className="text-muted-foreground">Manage your treatments</p>
       </div>
       <ClientServicesSection categories={categories} />

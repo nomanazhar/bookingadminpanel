@@ -375,301 +375,301 @@ export function ServiceForm({
         {initialValues?.id ? "✏️ Edit Treatment" : "➕ Add New Treatment"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-  {/* Top main container - full width, flex row */}
-  <div className="flex flex-col md:flex-row gap-6 w-full">
+        {/* Top main container - full width, flex row */}
+        <div className="flex flex-col md:flex-row gap-4 w-full">
 
-    {/* Left column - ~70% width - main fields in 2-column grid */}
-    <div className="flex-1 md:w-[70%]">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left column - ~70% width - main fields in 2-column grid */}
+          <div className="flex-1 md:w-[70%]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Name */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Name *</label>
-          <Input
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (!slugEdited) setSlug(slugify(e.target.value));
-            }}
-            placeholder="Treatment name"
-            required
-            className="capitalize"
-          />
-        </div>
-
-        {/* Category */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Category *</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-          >
-            <option value="">Select category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Base Price */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Base Price*</label>
-          <Input
-            type="number"
-            min={0}
-            step={0.01}
-            value={basePrice}
-            onChange={e => setBasePrice(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Duration */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Duration (min)</label>
-          <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
-        </div>
-
-        {/* Locations - spans both columns because it's wider */}
-        <div className="md:col-span-2">
-          <label className="block mb-1.5 text-md font-bold font-medium">Locations *</label>
-          <div className="flex flex-row gap-8 border p-2 rounded-md">
-            {availableLocations.map((loc) => (
-              <label key={loc} className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  value={loc}
-                  checked={locations.includes(loc)}
-                  onChange={e => {
-                    if (e.target.checked) {
-                      setLocations(prev => [...prev, loc]);
-                    } else {
-                      setLocations(prev => prev.filter(l => l !== loc));
-                    }
+              {/* Name */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Name </label>
+                <Input
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!slugEdited) setSlug(slugify(e.target.value));
                   }}
-                  className="h-4 w-4 rounded border-input"
+                  placeholder="Treatment name"
+                  required
+                  className="capitalize"
                 />
-                <span className="capitalize">{loc}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* Available times */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Available times</label>
-          <div className="flex flex-wrap gap-3 border p-2 rounded-md">
-            {defaultTimeOptions.map((t) => (
-              <label key={t} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={timeOptions.includes(t)}
-                  onChange={(e) =>
-                    setTimeOptions((prev) =>
-                      e.target.checked ? [...prev, t] : prev.filter((x) => x !== t)
-                    )
-                  }
-                  className="h-4 w-4 rounded"
-                />
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Thumbnail */}
-        <div>
-          <label className="block mb-1.5 text-md font-bold font-medium">Thumbnail</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="block border-1 rounded-md w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-          />
-          {thumbnail && !imageFile && (
-            <div className="mt-3">
-              <Image src={thumbnail} alt="Thumbnail preview" width={100} height={100} className="rounded object-cover" />
-            </div>
-          )}
-        </div>
-
-        {/* Description + toggles - spans both columns */}
-        <div className="md:col-span-2">
-          <label className="block mb-1.5 text-md font-bold font-medium">Description</label>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
-
-          <div className="flex items-center gap-8 mt-4">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
-              <span className="text-sm font-medium">Active</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
-              <span className="text-sm font-medium">Popular</span>
-            </label>
-          </div>
-        </div>
-
-      
-      </div>
-          {/* Subservices */}
-    <div>
-      <label className="mt-4 block mb-1.5 text-md font-bold font-medium">Subservices (optional)</label>
-      <div className="overflow-x-auto border rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className="px-3 py-2 text-left">Name</th>
-              <th className="px-3 py-2 text-left">Price</th>
-              <th className="w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {subservices.map((row, idx) => (
-              <tr key={row.id || idx}>
-                <td className="px-3 py-2">
-                  <Input
-                    value={row.name}
-                    onChange={(e) =>
-                      setSubservices((prev) =>
-                        prev.map((r, i) =>
-                          i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
-                        )
-                      )
-                    }
-                    placeholder="Subservice name"
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <Input
-                    type="number"
-                    value={row.price}
-                    onChange={(e) =>
-                      setSubservices((prev) =>
-                        prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
-                      )
-                    }
-                    placeholder="Price"
-                    min={0}
-                  />
-                </td>
-                <td className="px-2 py-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
-                    className="text-destructive text-2xl text-red-500 h-10 w-10 p-2 border border-1 rounded-md"
-                  >
-                    ×
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            <tr>
-              <td colSpan={3} className="px-3 py-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSubservices((prev) => [...prev, { name: "", price: "" }])}
+              {/* Category */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Category </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  required
                 >
-                  + Add Subservice
-                </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
-    </div>
+                  <option value="">Select category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-    </div>
+              {/* Base Price */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Base Price</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={basePrice}
+                  onChange={e => setBasePrice(e.target.value)}
+                  required
+                />
+              </div>
 
-    {/* Right column - ~30% width - Session options */}
-    <div className="w-full md:w-[30%]">
-      <label className="block mb-1.5 text-md font-bold font-medium">Session options</label>
-      <div className="space-y-2 border p-2 rounded-md">
-        {sessionPackages.map((pkg, index) => (
-          <div
-            key={pkg.sessions}
-            className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-          >
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                checked={Boolean(pkg.enabled)}
-                onChange={(e) =>
-                  setSessionPackages((prev) =>
-                    prev.map((item, i) =>
-                      i === index ? { ...item, enabled: e.target.checked } : item
-                    )
-                  )
-                }
-                className="h-4 w-4 rounded"
-              />
-              {pkg.label}
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Discount</span>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={pkg.discountPercent === 0 ? "" : pkg.discountPercent}
-                onChange={(e) => {
-                  const nextDiscount = Number(e.target.value);
-                  setSessionPackages((prev) =>
-                    prev.map((item, i) =>
-                      i === index
-                        ? {
-                            ...item,
-                            discountPercent: Number.isFinite(nextDiscount) ? nextDiscount : 0,
+              {/* Duration */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Duration (min)</label>
+                <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} min={0} />
+              </div>
+
+              {/* Locations - spans both columns because it's wider */}
+              <div className="md:col-span-2">
+                <label className="block mb-1.5 text-sm   font-bold font-medium">Locations </label>
+                <div className="flex flex-row gap-8 border p-2 rounded-md">
+                  {availableLocations.map((loc) => (
+                    <label key={loc} className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={loc}
+                        checked={locations.includes(loc)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setLocations(prev => [...prev, loc]);
+                          } else {
+                            setLocations(prev => prev.filter(l => l !== loc));
                           }
-                        : item
-                    )
-                  );
-                }}
-                className="h-8 w-20"
-              />
-              <span className="text-xs text-muted-foreground">%</span>
+                        }}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <span className="capitalize">{loc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Available times */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Available times</label>
+                <div className="flex flex-wrap gap-3 border p-2 rounded-md">
+                  {defaultTimeOptions.map((t) => (
+                    <label key={t} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={timeOptions.includes(t)}
+                        onChange={(e) =>
+                          setTimeOptions((prev) =>
+                            e.target.checked ? [...prev, t] : prev.filter((x) => x !== t)
+                          )
+                        }
+                        className="h-4 w-4 rounded"
+                      />
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Thumbnail */}
+              <div>
+                <label className="block mb-1.5 text-sm font-bold font-medium">Thumbnail</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="block border-1 rounded-md w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                />
+                {thumbnail && !imageFile && (
+                  <div className="mt-3">
+                    <Image src={thumbnail} alt="Thumbnail preview" width={100} height={100} className="rounded object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* Description + toggles - spans both columns */}
+              <div className="md:col-span-2">
+                <label className="block mb-1.5 text-sm font-bold font-medium">Description</label>
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+
+                <div className="flex items-center gap-8 mt-4">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4" />
+                    <span className="text-sm font-medium">Active</span>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} className="h-4 w-4" />
+                    <span className="text-sm font-medium">Popular</span>
+                  </label>
+                </div>
+              </div>
+
+
+            </div>
+            {/* Subservices */}
+            <div>
+              <label className="mt-4 block mb-1.5 text-sm font-bold font-medium">Subservices (optional)</label>
+              <div className="overflow-x-auto border rounded">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Name</th>
+                      <th className="px-3 py-2 text-left">Price</th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subservices.map((row, idx) => (
+                      <tr key={row.id || idx}>
+                        <td className="px-3 py-2">
+                          <Input
+                            value={row.name}
+                            onChange={(e) =>
+                              setSubservices((prev) =>
+                                prev.map((r, i) =>
+                                  i === idx ? { ...r, name: e.target.value, slug: slugify(e.target.value) } : r
+                                )
+                              )
+                            }
+                            placeholder="Subservice name"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number"
+                            value={row.price}
+                            onChange={(e) =>
+                              setSubservices((prev) =>
+                                prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                              )
+                            }
+                            placeholder="Price"
+                            min={0}
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSubservices((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-destructive text-2xl text-red-500 h-10 w-10 p-2 border border-1 rounded-md"
+                          >
+                            ×
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSubservices((prev) => [...prev, { name: "", price: "" }])}
+                        >
+                          + Add Subservice
+                        </Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {subserviceError && <p className="text-xs text-destructive mt-1.5">{subserviceError}</p>}
+            </div>
+
+          </div>
+
+          {/* Right column - ~30% width - Session options */}
+          <div className="w-full md:w-[30%]">
+            <label className="block mb-1.5 text-sm font-bold font-medium">Session options</label>
+            <div className="space-y-2 border p-2 rounded-md">
+              {sessionPackages.map((pkg, index) => (
+                <div
+                  key={pkg.sessions}
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 border-b-2 shadow-md"
+                >
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(pkg.enabled)}
+                      onChange={(e) =>
+                        setSessionPackages((prev) =>
+                          prev.map((item, i) =>
+                            i === index ? { ...item, enabled: e.target.checked } : item
+                          )
+                        )
+                      }
+                      className="h-4 w-4 rounded"
+                    />
+                    {pkg.label}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Discount</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={pkg.discountPercent === 0 ? "" : pkg.discountPercent}
+                      onChange={(e) => {
+                        const nextDiscount = Number(e.target.value);
+                        setSessionPackages((prev) =>
+                          prev.map((item, i) =>
+                            i === index
+                              ? {
+                                ...item,
+                                discountPercent: Number.isFinite(nextDiscount) ? nextDiscount : 0,
+                              }
+                              : item
+                          )
+                        );
+                      }}
+                      className="h-8 w-20"
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
-    </div>
 
-  </div>
+        </div>
 
-  {/* Bottom full-width container */}
-  <div className="w-full space-y-6">
+        {/* Bottom full-width container */}
+        <div className="w-full space-y-6">
 
-    
 
-    {/* Actions */}
-    <div className="flex gap-4 mt-6">
-      <Button type="submit" disabled={loading} className="flex-1">
-        {loading ? "Saving..." : initialValues?.id ? "Update Treatment" : "Add Treatment"}
-      </Button>
 
-      {initialValues?.id && onCancel && (
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      )}
-    </div>
+          {/* Actions */}
+          <div className="flex gap-4 mt-6">
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "Saving..." : initialValues?.id ? "Update Treatment" : "Add Treatment"}
+            </Button>
 
-  </div>
+            {initialValues?.id && onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
+          </div>
 
-</form>
+        </div>
+
+      </form>
     </div>
   );
 }

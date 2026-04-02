@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { clearUsersClientCache } from "@/components/admin/users-client";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function ProfileSettingsPage() {
   const supabase = createClient()
@@ -130,23 +132,24 @@ export default function ProfileSettingsPage() {
 
   return (
     <>
-      <main className="container mx-auto py-8">
-        <section className="max-w-3xl mx-auto mb-10">
+      <main className="container mx-auto py-6">
+        <section className="max-w-3xl mx-auto mb-4">
           <div className="flex items-center gap-2 mb-2">
             {(() => {
               // If admin, go to /admin; else, go to /
-              let backHref = "/";
+              let backHref = "/book-consultation";
               if (profile && (profile.role === "admin" || (user && user.email && user.email.endsWith("@admin.com")))) {
                 backHref = "/admin";
               }
               return (
-                <Link href={backHref} className="text-muted-foreground text-base font-normal cursor-pointer flex items-center gap-1">
-                  <span className="text-xl font-bold">←</span> Go back
-                </Link>
+                 <Link href={backHref}>
+              <Button variant="primary" className="h-6 w-10 "><ArrowLeft /></Button>
+            </Link> 
               );
             })()}
+              <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">Profile</h1>
+        
         </section>
 
         <section className="max-w-3xl mx-auto bg-muted rounded-xl shadow p-6">
@@ -228,7 +231,7 @@ export default function ProfileSettingsPage() {
         {/* Addresses & Notifications (static placeholders) */}
         {/* Address moved into Personal Details form; separate Address section removed */}
 
-        <section className="max-w-3xl mx-auto bg-muted rounded-xl shadow p-6 mt-4">
+        {/* <section className="max-w-3xl mx-auto bg-muted rounded-xl shadow p-6 mt-4">
           <h2 className="text-2xl font-bold mb-4">Notification Preferences</h2>
           <div className="mb-2">
             <div className="text-xl font-semibold mb-2">Email</div>
@@ -247,7 +250,7 @@ export default function ProfileSettingsPage() {
               <input type="checkbox" className="w-10 h-6 rounded-full accent-green-500" readOnly />
             </div>
           </div>
-        </section>
+        </section> */}
       </main>
     </>
   )

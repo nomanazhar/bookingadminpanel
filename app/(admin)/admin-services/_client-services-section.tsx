@@ -163,10 +163,10 @@ export default function ClientServicesSection({
                 key={service.id}
                 className="border-b hover:bg-muted/30 transition"
               >
-                <td className="px-4 py-2 text-sm font-semibold">
+                <td className="px-4 py-2 text-sm font-semibold capitalize">
                   {service.name}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2 text-sm">
                   {categories.find((c) => c.id === service.category_id)?.name ||
                     "-"}
                 </td>
@@ -183,14 +183,14 @@ export default function ClientServicesSection({
                     "-"
                   )}
                 </td>
-                <td className="px-4 py-3">£{service.base_price}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-2 text-sm">£{service.base_price}</td>
+                <td className="px-4 py-2 text-xs">
                   {service.description || "-"}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2">
                   {service.duration_minutes || "-"} min
                 </td>
-                <td className="px-4 py-3 ">
+                <td className="px-4 py-1 ">
                   {Array.isArray(service.locations) && service.locations.length > 0
                     ? service.locations.map((loc) => (
                         <span key={loc} className="inline-block bg-muted px-2 py-0.5 rounded text-xs mr-1 capitalize">
@@ -199,15 +199,15 @@ export default function ClientServicesSection({
                       ))
                     : "-"}
                 </td>
-                <td className="px-2 py-3 text-sm flex flex-col gap-1">
+                <td className="px-2 py-2 text-xs flex flex-col gap-1 capitalize">
                   {Array.isArray(subservicesMap[service.id]) && subservicesMap[service.id].length > 0
                     ? subservicesMap[service.id].map((sub) => sub.name).join(", ")
                     : "-"}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-1 text-center text-xs">
                   {service.is_active ? "Yes" : "No"}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-2 text-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="text-gray-500 hover:text-black">

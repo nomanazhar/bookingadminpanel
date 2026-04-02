@@ -35,9 +35,6 @@ function ServiceCardComponent({ service, featured = false }: ServiceCardProps) {
 
       <CardContent className="p-4 space-y-1">
         <div>
-          <p className="text-sm text-muted-foreground mb-1 capitalize">
-            {service.category.name}
-          </p>
           <h3 className="text-xl font-bold font-heading line-clamp-2 capitalize">
             {service.name}
           </h3>

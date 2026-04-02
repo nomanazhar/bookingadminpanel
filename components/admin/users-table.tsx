@@ -77,7 +77,6 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
             <TableRow>
               <TableHead className="uppercase">Name</TableHead>
               <TableHead className="uppercase">Email</TableHead>
-              <TableHead className="uppercase">Phone</TableHead>
               <TableHead className="uppercase">Gender</TableHead>
               <TableHead className="uppercase">Address</TableHead>
               <TableHead className="uppercase">Role</TableHead>
@@ -98,13 +97,12 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
                       )}
                     </Avatar>
                     <div>
-                      <div className="font-medium">{user.first_name} {user.last_name}</div>
-                      <div className="text-xs text-muted-foreground">{user.id}</div>
+                      <div className="font-medium capitalize">{user.first_name} {user.last_name}</div>
+                     
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.phone || '—'}</TableCell>
+                <TableCell>{user.email} <br/> {user.phone || '—'}</TableCell>
                 <TableCell>{user.gender || '—'}</TableCell>
                 <TableCell className="max-w-xs truncate">{user.address || '—'}</TableCell>
                 <TableCell>
@@ -138,16 +136,16 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
           </TableBody>
         </Table>
         {typeof currentPage !== 'undefined' && typeof totalCount !== 'undefined' && (
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-start p-4 ">
             <div className="text-sm text-muted-foreground">Showing page {currentPage}</div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center justify-start gap-2">
               {currentPage > 1 && (
                 <a href={`?page=${currentPage - 1}`} className="btn">Previous</a>
               )}
               {currentPage * (pageSize || 20) < (totalCount || 0) && (
                 <a href={`?page=${currentPage + 1}`} className="btn">Next</a>
               )}
-            </div>
+            </div> */}
           </div>
         )}
       </div>

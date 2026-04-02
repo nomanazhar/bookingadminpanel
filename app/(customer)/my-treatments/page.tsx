@@ -12,6 +12,7 @@ const RescheduleSessionDialog = dynamic(
 );
 
 import { calculateSessionProgress } from "@/lib/supabase/queries";
+import { Button } from "@/components/ui/button";
 
 type Session = any; // ← improve with real type when possible
 type Order = any;
@@ -71,13 +72,15 @@ export default function MyTreatmentsClient({
 
   return (
     <>
-    <main className="container mx-auto py-8">
-    <section className="max-w-3xl mx-auto mb-10">
+    <main className="container mx-auto py-6">
+    <section className="max-w-3xl mx-auto mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-            <Link href="/book-consultation" className="text-muted-foreground text-base font-normal cursor-pointer">Go back</Link>
+            <Link href="/book-consultation">
+              <Button variant="primary" className="h-6 w-10 "><ArrowLeft /></Button>
+            </Link>   
+            <h1 className="text-3xl font-bold tracking-tight">My Treatments</h1>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">My Treatments</h1>
+          
         </section>
       <section className="max-w-4xl mx-auto space-y-4">
         {safeTreatments.length === 0 ? (
