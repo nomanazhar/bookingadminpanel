@@ -32,7 +32,8 @@ export default function CalendarGrid({ selectedDate, doctors, ordersByDoctor, ti
   const dayEndMins = 18 * 60; // 18:00
   const slotInterval = 30; // minutes
   const slotHeight = 48; // px per slot
-  const containerHeight = ((dayEndMins - dayStartMins) / slotInterval) * slotHeight;
+  // Compute container height from actual timeSlots length so labels align to grid
+  const containerHeight = (timeSlots.length) * slotHeight;
 
   // Build explicit grid template so each doctor always gets its own column
   const columnsTemplate = `120px ${visibleDoctors.map(() => "minmax(180px, 1fr)").join(" ")}`;

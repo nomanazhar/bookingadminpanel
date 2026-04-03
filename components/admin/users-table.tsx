@@ -1,6 +1,6 @@
 "use client"
 import axios from 'axios'
-import { memo, useState, useMemo } from "react"
+import { memo, useState, useMemo, useEffect } from "react"
 import TableSearchBar from './table-search-bar'
 import { useRouter } from "next/navigation"
 import type { Profile } from "@/types"
@@ -22,11 +22,17 @@ interface UsersTableProps {
   currentPage?: number
   totalCount?: number
   pageSize?: number
+  onEdit?: (user: Profile) => void
 }
 
-function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pageSize }: UsersTableProps) {
+function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pageSize, onEdit }: UsersTableProps) {
   const router = useRouter()
   const [users, setUsers] = useState(initialUsers || [])
+
+  // Keep local state in sync when parent updates `initialUsers`
+  useEffect(() => {
+    setUsers(initialUsers || [])
+  }, [initialUsers])
   const [search, setSearch] = useState('');
   const filtered = useMemo(() => {
     if (!search) return users;
@@ -116,7 +122,7 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => router.push(`/users/${user.id}/edit`)}
+                      onClick={() => onEdit ? onEdit(user) : router.push(`/users/${user.id}/edit`)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     }
 
     const doctorsParam = url.searchParams.get("doctors");
-    const limit = parseInt(url.searchParams.get("limit") || "500", 10) || 500;
+    const limit = parseInt(url.searchParams.get("limit") || "100", 10) || 100;
 
     // Fields to return (compact)
     const selectFields = `id, booking_date, booking_time, booking_end_time, doctor_id, customer_name, service_title, status, service_id, service_ids`;

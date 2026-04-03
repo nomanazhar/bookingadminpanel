@@ -7,19 +7,20 @@ export function useCalendarData(selectedDate: string, filteredDoctorIds: string[
   const [ordersByDoctor, setOrdersByDoctor] = useState<Record<string, Order[]>>({});
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     let ignore = false;
+    const controller = new AbortController();
+
     const load = async () => {
       setLoading(true);
       try {
-        // Prepare doctors fetch and compact bookings fetch
-        const docsPromise = fetch('/api/doctors');
+        // Prepare doctors fetch and compact bookings fetch (pass abort signal)
+        const docsPromise = fetch('/api/doctors', { signal: controller.signal });
 
         // build doctors param for bookings endpoint
         const doctorsParam = (filteredDoctorIds || []).length > 0 ? `&doctors=${filteredDoctorIds.join(',')}` : '';
-        const bookingsUrl = `/api/admin/bookings-by-date?date=${encodeURIComponent(selectedDate)}${doctorsParam}&limit=500`;
-        const bookingsPromise = fetch(bookingsUrl);
+        const bookingsUrl = `/api/admin/bookings-by-date?date=${encodeURIComponent(selectedDate)}${doctorsParam}&limit=100`;
+        const bookingsPromise = fetch(bookingsUrl, { signal: controller.signal });
 
         const [docsRes, bookingsRes] = await Promise.all([docsPromise, bookingsPromise]);
 
@@ -44,7 +45,9 @@ export function useCalendarData(selectedDate: string, filteredDoctorIds: string[
           setOrdersByDoctor(grouped);
           setTimeSlots(generateTimeSlots(9, 18, 30));
         }
-      } catch (err) {
+      } catch (err: any) {
+        // Ignore abort errors silently
+        if (err?.name === 'AbortError') return;
         console.error('Calendar data load error', err);
       } finally {
         if (!ignore) setLoading(false);
@@ -52,7 +55,10 @@ export function useCalendarData(selectedDate: string, filteredDoctorIds: string[
     };
 
     load();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
   }, [selectedDate, filteredDoctorIds]);
 
   return { doctors, ordersByDoctor, timeSlots, loading } as const;

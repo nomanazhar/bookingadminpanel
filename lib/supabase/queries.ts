@@ -427,9 +427,12 @@ export async function getUsersPaginated(
   const start = (page - 1) * pageSize
   const end   = start + pageSize - 1
 
+  // Use a planned/estimated count rather than an exact count to avoid
+  // expensive full-table counting on large `profiles` tables. This speeds
+  // up admin listing while still allowing approximate pagination UI.
   let query = supabase
     .from('profiles')
-    .select(PROFILE_SELECT, { count: 'exact' })
+    .select(PROFILE_SELECT, { count: 'planned' })
     .order('created_at', { ascending: false })
 
   if (q?.trim()) {
@@ -451,7 +454,8 @@ export async function getUsersPaginated(
 export async function getUsersPaginatedAdmin(
   page: number = 1,
   pageSize: number = 20,
-  q: string | null = null
+  q: string | null = null,
+  role: string | null = null
 ): Promise<{ data: any[]; count: number }> {
   const supabase = createServiceRoleClient()
   const start = (page - 1) * pageSize
@@ -469,9 +473,16 @@ export async function getUsersPaginatedAdmin(
     )
   }
 
+  // Apply optional role filter for admin listing (e.g., only customers)
+  if (role && role.trim()) {
+    query = query.eq('role', role.trim())
+  }
+
   const { data, error, count } = await query.range(start, end)
   if (error) throw error
-  return { data: data ?? [], count: count ?? 0 }
+  // If `count` is not provided by the DB for some reason, fall back to the
+  // page length to avoid breaking callers.
+  return { data: data ?? [], count: typeof count === 'number' ? count : (data ? data.length : 0) }
 }
 
 // ─────────────────────────────────────────────

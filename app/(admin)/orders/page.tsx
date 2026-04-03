@@ -21,7 +21,7 @@ export default async function OrdersPage({ searchParams }: { searchParams?: Prom
   const status = resolvedSearchParams?.status || 'all';
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-2">
      
 
       <Card>

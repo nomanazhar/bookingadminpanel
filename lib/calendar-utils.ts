@@ -2,7 +2,8 @@
 
 export function generateTimeSlots(startHour = 9, endHour = 18, intervalMins = 30) {
   const slots: string[] = [];
-  for (let mins = startHour * 60; mins < endHour * 60; mins += intervalMins) {
+  // Include the final endHour label so ranges like 9:00-18:00 show the terminal slot
+  for (let mins = startHour * 60; mins <= endHour * 60; mins += intervalMins) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     const hh = String(h).padStart(2, '0');

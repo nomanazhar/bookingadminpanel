@@ -7,7 +7,7 @@ export default async function ServicesPage() {
   return (
     <div className="p-6 space-y-2">
       <div className="flex items-center justify-start gap-6">
-        <h1 className="text-xl font-bold font-heading mb-2">Treatments</h1>
+        <h1 className="text-xl font-bold font-heading ">Treatments</h1>
         <p className="text-muted-foreground">Manage your treatments</p>
       </div>
       <ClientServicesSection categories={categories} />

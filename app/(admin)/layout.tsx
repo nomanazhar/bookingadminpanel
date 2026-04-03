@@ -8,10 +8,25 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { profile } = await getCurrentUserWithProfile();
+  const { profile, supabase } = await getCurrentUserWithProfile();
+
+  let allowedPages: string[] | null = null
+  if (profile?.role === 'doctor') {
+    try {
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('allowed_admin_pages')
+        .eq('email', profile.email)
+        .single()
+      allowedPages = Array.isArray(doctor?.allowed_admin_pages) ? doctor.allowed_admin_pages : []
+    } catch {
+      allowedPages = null
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden " style={{ width: '100%' }}>
-      <AdminSidebar />
+      <AdminSidebar profile={profile} allowedPages={allowedPages} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminNavbar user={profile} />

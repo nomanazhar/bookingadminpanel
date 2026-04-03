@@ -11,11 +11,11 @@ import axios from 'axios'
 
 const clientCache = new Map<string, any>()
 
-async function fetchUsers(page: number, size: number, q: string) {
-  const key = `p=${page}&s=${size}&q=${encodeURIComponent(q)}`
+async function fetchUsers(page: number, size: number, q: string, role: string = 'customer') {
+  const key = `p=${page}&s=${size}&q=${encodeURIComponent(q)}&r=${encodeURIComponent(role)}`
   if (clientCache.has(key)) return clientCache.get(key)
   const { data } = await axios.get(`/api/admin/users`, {
-    params: { page, size, q }
+    params: { page, size, q, role }
   })
   clientCache.set(key, data)
   return data
@@ -27,12 +27,15 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
   const debouncedQ = useDebouncedValue(q, 400)
   const [data, setData] = useState<{ data: any[]; count: number } | null>(null)
   const [loading, setLoading] = useState(false)
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  // single dialog state for both create and edit to keep behavior consistent
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [dialogInitialData, setDialogInitialData] = useState<any | null>(null)
 
   useEffect(() => {
     let mounted = true
     startTransition(() => setLoading(true))
-    fetchUsers(page, pageSize, debouncedQ).then((res) => {
+    fetchUsers(page, pageSize, debouncedQ, 'customer').then((res) => {
       if (!mounted) return
       setData(res)
       setLoading(false)
@@ -62,7 +65,7 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
     try {
       // Fetch fresh data without using cache
       const freshData = await axios.get(`/api/admin/users`, {
-        params: { page: 1, size: pageSize, q: '' }
+        params: { page: 1, size: pageSize, q: '', role: 'customer' }
       })
       
       // Update the data state
@@ -78,49 +81,25 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
     }
   }
 
-  const handleRefresh = async () => {
-    // Clear all caches
-    try {
-      await axios.post('/api/admin/clear-users-cache')
-    } catch (error) {
-      console.error('Failed to clear server cache:', error)
-    }
-    
-    clientCache.clear()
-    
-    // Set loading state
-    setLoading(true)
-    
-    try {
-      // Fetch fresh data
-      const freshData = await axios.get(`/api/admin/users`, {
-        params: { page, size: pageSize, q: debouncedQ }
-      })
-      
-      // Update the data state
-      setData(freshData.data)
-    } catch (error) {
-      console.error('Failed to refresh users:', error)
-    } finally {
-      setLoading(false)
-    }
+  const handleOpenCreate = () => {
+    setDialogMode('create')
+    setDialogInitialData(null)
+    setDialogOpen(true)
   }
+
+  const handleEditUser = (user: any) => {
+    setDialogMode('edit')
+    setDialogInitialData(user)
+    setDialogOpen(true)
+  }
+
 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-4">
        <p>Manage all Users</p>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="icon"
-            disabled={loading}
-            title="Refresh users list"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2" disabled={loading}>
+          <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
             Create User
           </Button>
@@ -131,11 +110,12 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
 
       {data && (
         <UsersTable
-          users={data.data.filter((user: any) => user.role !== 'admin')}
-          currentPage={page}
-          totalCount={data.count}
-          pageSize={pageSize}
-        />
+            users={data.data.filter((user: any) => user.role === 'customer')}
+            currentPage={page}
+            totalCount={data.count}
+            pageSize={pageSize}
+            onEdit={handleEditUser}
+          />
       )}
 
       <div className="mt-4 flex items-center justify-start gap-6">
@@ -145,9 +125,11 @@ export function UsersClient({ initialPage = 1, pageSize = 20 }: { initialPage?: 
       </div>
 
       <CreateCustomerDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onCustomerCreated={handleCustomerCreated}
+        open={dialogOpen}
+        onOpenChange={(v) => setDialogOpen(v)}
+        mode={dialogMode}
+        initialData={dialogInitialData}
+        onSaved={handleCustomerCreated}
       />
     </div>
   )

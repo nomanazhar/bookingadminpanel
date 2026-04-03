@@ -16,7 +16,7 @@ export default async function CategoriesPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-start gap-6">
-        <h1 className="text-3xl font-bold font-heading mb-2">Categories</h1>
+        <h1 className="text-xl font-bold font-heading ">Categories</h1>
         <p className="text-muted-foreground">Manage service categories</p>
       </div>
       <ClientCategoriesSection initialCategories={categories} />

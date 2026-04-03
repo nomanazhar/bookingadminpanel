@@ -10,7 +10,10 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet'
+// role is fixed to 'customer' for this dialog; keep Select for gender only
 import {
   Select,
   SelectContent,
@@ -21,16 +24,24 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { X } from 'lucide-react'
 
+import type { Profile } from '@/types'
+
 interface CreateCustomerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCustomerCreated?: () => void
+  // callback after create OR edit
+  onSaved?: () => void
+  // when editing, pass initial data and user id
+  initialData?: Partial<Profile> | null
+  mode?: 'create' | 'edit'
 }
 
 export function CreateCustomerDialog({
   open,
   onOpenChange,
-  onCustomerCreated,
+  onSaved,
+  initialData = null,
+  mode = 'create',
 }: CreateCustomerDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -69,7 +80,23 @@ export function CreateCustomerDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      resetForm()
+      if (mode === 'edit' && initialData) {
+        setFormData((prev) => ({
+          ...prev,
+          first_name: initialData.first_name || '',
+          last_name: initialData.last_name || '',
+          email: initialData.email || '',
+          // do not prefill password
+          password: '',
+          phone: (initialData.phone as string) || '',
+          gender: (initialData.gender as string) || '',
+          address: (initialData.address as string) || '',
+          // enforce customer role for both create and edit flows
+          role: 'customer',
+        }))
+      } else {
+        resetForm()
+      }
     }
   }, [open])
 
@@ -97,11 +124,18 @@ export function CreateCustomerDialog({
       return 'Please enter a valid email address'
     }
 
-    if (!formData.password) {
-      return 'Password is required'
-    }
-    if (formData.password.length < 6) {
-      return 'Password must be at least 6 characters'
+    // For edit mode, password is optional. For create, require password.
+    if (mode === 'create') {
+      if (!formData.password) {
+        return 'Password is required'
+      }
+      if (formData.password.length < 6) {
+        return 'Password must be at least 6 characters'
+      }
+    } else {
+      if (formData.password && formData.password.length > 0 && formData.password.length < 6) {
+        return 'Password must be at least 6 characters'
+      }
     }
 
     return null
@@ -129,25 +163,44 @@ export function CreateCustomerDialog({
     setLoading(true)
 
     try {
-      await axios.post('/api/admin/users', {
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        phone: formData.phone.trim() || null,
-        gender: formData.gender || null,
-        address: formData.address.trim() || null,
-        role: formData.role,
-      })
+      if (mode === 'edit' && initialData?.id) {
+        const payload: any = {
+          email: formData.email.trim(),
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          phone: formData.phone.trim() || null,
+          gender: formData.gender || null,
+          address: formData.address.trim() || null,
+          // enforce customer role on update
+          role: 'customer',
+        }
+        // Note: password changes are not handled by the profiles PUT endpoint.
+        // If you need to change the auth password, implement a dedicated
+        // admin endpoint. For now, update profile fields only.
+        await axios.put(`/api/admin/users/${initialData.id}`, payload)
+        } else {
+        await axios.post('/api/admin/users', {
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          phone: formData.phone.trim() || null,
+          gender: formData.gender || null,
+          address: formData.address.trim() || null,
+          role: 'customer',
+        })
+      }
 
       toast({
         title: 'Success',
-        description: `Customer ${formData.first_name} ${formData.last_name} created successfully`,
+        description: mode === 'edit'
+          ? `User ${formData.first_name} ${formData.last_name} updated successfully`
+          : `Customer ${formData.first_name} ${formData.last_name} created successfully`,
       })
 
       // Call refresh callback before closing dialog
-      if (onCustomerCreated) {
-        await onCustomerCreated()
+      if (onSaved) {
+        await onSaved()
       }
 
       resetForm()
@@ -169,16 +222,19 @@ export function CreateCustomerDialog({
     }
   }
 
+  const headerTitle = mode === 'edit' ? 'Edit User' : 'Create New Customer'
+  const submitLabel = mode === 'edit' ? 'Save Changes' : 'Create Customer'
+
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto bg-white p-0">
-        <div className="bg-white p-6 space-y-6 min-h-screen">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold font-heading mb-2">Create New Customer</h1>
-            </div>
-          </div>
+      <SheetContent className="w-full sm:max-w-3xl lg:max-w-4xl overflow-y-auto bg-white p-0">
+          <div className="bg-white p-4 space-y-2 min-h-screen">
+            <SheetHeader>
+              <SheetTitle className="text-3xl font-bold font-heading mb-2">{headerTitle}</SheetTitle>
+              <SheetDescription>
+                {mode === 'edit' ? 'Update the user profile details' : 'Fill in the details for this new customer'}
+              </SheetDescription>
+            </SheetHeader>
 
           <Card>
             <CardHeader>
@@ -186,7 +242,7 @@ export function CreateCustomerDialog({
               <CardDescription>Fill in the details for this new customer</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Details Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground border-b pb-2">Personal Details</h3>
@@ -246,7 +302,7 @@ export function CreateCustomerDialog({
                     <Label htmlFor="gender">Gender</Label>
                     <Select
                       value={formData.gender || "not_specified"}
-                      onValueChange={(value) =>
+                      onValueChange={(value: string) =>
                         setFormData((prev) => ({
                           ...prev,
                           gender: value === "not_specified" ? "" : value,
@@ -291,10 +347,10 @@ export function CreateCustomerDialog({
                       type="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder="Enter secure password"
+                      placeholder={mode === 'edit' ? 'Leave blank to keep current password' : 'Enter secure password'}
                       disabled={loading || isSubmitting}
-                      required
-                      autoComplete="new-password"
+                      required={mode === 'create'}
+                      autoComplete={mode === 'create' ? 'new-password' : 'new-password'}
                       className="w-full"
                     />
                     <p className="text-xs text-muted-foreground">Minimum 6 characters required</p>
@@ -302,32 +358,7 @@ export function CreateCustomerDialog({
                 </div>
               </div>
 
-              {/* Role Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground border-b pb-2">Role</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="role">User Role</Label>
-                    <Select 
-                      value={formData.role} 
-                      onValueChange={(value: string) => {
-                        if (value === 'customer' || value === 'doctor' ) {
-                          setFormData((prev) => ({ ...prev, role: value }))
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="role" className="w-full bg-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white z-[100]">
-                        <SelectItem value="customer">Customer</SelectItem>
-                        <SelectItem value="doctor">Therapist</SelectItem>
-                     
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+              {/* Role is fixed to customer for this dialog; no UI control shown */}
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-4 pt-4 border-t">
@@ -340,7 +371,7 @@ export function CreateCustomerDialog({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading || isSubmitting || !formData.email}>
-                  {loading ? 'Creating...' : 'Create Customer'}
+                  {loading ? (mode === 'edit' ? 'Saving...' : 'Creating...') : submitLabel}
                 </Button>
               </div>
             </form>

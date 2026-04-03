@@ -16,7 +16,7 @@ export function DashboardHeader({ role }: DashboardHeaderProps) {
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-3xl font-bold font-heading">Dashboard</h1>
+        <h1 className="text-2xl font-bold font-heading">Dashboard</h1>
         <Button
           variant="outline"
           size="sm"

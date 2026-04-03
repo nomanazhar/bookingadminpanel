@@ -76,13 +76,10 @@ const sidebarLinks = [
   },
 ]
 
-function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void, isCollapsed?: boolean }) {
+function SidebarContent({ onLinkClick, isCollapsed, profile, allowedPagesProp }: { onLinkClick?: () => void, isCollapsed?: boolean, profile?: any, allowedPagesProp?: string[] | null }) {
   const pathname = usePathname()
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [bookingsOpen, setBookingsOpen] = useState(false)
-  const [allowedPages, setAllowedPages] = useState<string[] | null>(null)
-  const [role, setRole] = useState<string | null>(null)
-
   // Fetch doctors for bookings dropdown
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -101,27 +98,9 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
     fetchDoctors()
   }, [])
 
-  // Fetch current user role and allowed_admin_pages if doctor
-  useEffect(() => {
-    async function fetchRoleAndAllowedPages() {
-      try {
-        const res = await fetch("/api/auth/me")
-        if (res.ok) {
-          const data = await res.json()
-          setRole(data.role)
-          if (data.role === "doctor") {
-            setAllowedPages(Array.isArray(data.allowed_admin_pages) ? data.allowed_admin_pages : [])
-          } else {
-            setAllowedPages(null)
-          }
-        }
-      } catch {
-        setRole(null)
-        setAllowedPages(null)
-      }
-    }
-    fetchRoleAndAllowedPages()
-  }, [])
+  // Use server-provided profile/allowedPages when available (avoids duplicate /api/auth/me call)
+  const role = profile?.role ?? null
+  const allowedPages = profile?.role === 'doctor' ? (Array.isArray(allowedPagesProp) ? allowedPagesProp : null) : null
 
   // Check if current path is a bookings-related path
   const isBookingsActive = pathname?.startsWith("/admin-dashboard/orders")
@@ -291,7 +270,7 @@ function SidebarContent({ onLinkClick, isCollapsed }: { onLinkClick?: () => void
   )
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ profile, allowedPages }: { profile?: any; allowedPages?: string[] | null }) {
   const [desktopCollapsed, setDesktopCollapsed] = useState(false)
 
   return (
@@ -299,7 +278,7 @@ export function AdminSidebar() {
       "hidden md:flex flex-col border-r bg-background transition-all duration-300 relative",
       desktopCollapsed ? "w-16" : "w-48"
     )}>
-      <SidebarContent isCollapsed={desktopCollapsed} />
+      <SidebarContent isCollapsed={desktopCollapsed} profile={profile} allowedPagesProp={allowedPages} />
 
       {/* Toggle Button */}
       <Button
