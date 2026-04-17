@@ -1,5 +1,8 @@
 
 import SearchBookingClientSection from "./_client-search-booking-section";
+import Link from "next/dist/client/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default async function SearchBookingPage() {
   let doctors: { id: string; name: string }[] = [];
@@ -33,7 +36,12 @@ export default async function SearchBookingPage() {
   }
   return (
     <div className="p-6 space-y-4">
-      <div>
+      <div className="flex items-center justify-start gap-4">
+         <Link href="/admin-dashboard">
+                  <Button variant="primary" size="icon" className="h-6 w-10 ">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
         <h1 className="text-xl font-bold font-heading ">Search Bookings Slots</h1>
         <p className="text-muted-foreground">Find available slots for walk-in or instant bookings</p>
       </div>

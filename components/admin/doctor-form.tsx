@@ -213,11 +213,11 @@ export function DoctorForm({
       className={`rounded-lg border p-6 ${initialValues?.id ? "border-primary bg-primary/5" : "border-border bg-card"
         }`}
     >
-      <h3 className="text-lg font-semibold mb-4 text-foreground">
+      <h3 className="text-md font-semibold mb-4 text-foreground">
         {initialValues?.id ? "✏️ Edit Therapist" : "➕ Add New Therapist"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
        
 
         <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocations } from "../providers/locations";
 import axios from "axios";
 import Image from "next/image";
@@ -48,7 +48,30 @@ export function AddCategoryForm({
     setDisplayOrder(initialValues?.display_order ?? 0);
     setIsActive(initialValues?.is_active ?? true);
     setLocations(initialValues?.locations || []);
+    // Clear native file input when switching initial values
+    try {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch {}
   }, [initialValues]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setSlug("");
+    setSlugEdited(false);
+    setImageFile(null);
+    setImageUrl("");
+    setDisplayOrder(0);
+    setIsActive(true);
+    setLocations([]);
+    setUploading(false);
+    // clear native file input value
+    try {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch {}
+  };
 
   const slugify = (value: string) =>
     value
@@ -166,19 +189,13 @@ export function AddCategoryForm({
         });
         toast({ title: "Category created successfully!" });
 
-        // Reset form only on create
-        setName("");
-        setDescription("");
-        setSlug("");
-        setSlugEdited(false);
-        setImageFile(null);
-        setImageUrl("");
-        setDisplayOrder(0);
-        setIsActive(true);
-        setLocations([]);
+        // Reset form after successful create/update
+        resetForm();
       }
 
       onCategoryAdded?.();
+      // Close parent (modal) if provided so cleaned form is hidden
+      onCancel && onCancel();
     } catch (err: any) {
       let msg = "Unknown error";
       if (err.response?.data?.error) {
@@ -252,6 +269,7 @@ export function AddCategoryForm({
         <div>
           <label className="block mb-1 font-medium text-foreground">Image</label>
           <input
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={(e) => setImageFile(e.target.files?.[0] || null)}
@@ -338,7 +356,15 @@ export function AddCategoryForm({
           </Button>
 
           {initialValues?.id && onCancel && (
-            <Button type="button" variant="outline" size="lg" onClick={onCancel}>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                resetForm();
+                onCancel && onCancel();
+              }}
+            >
               Cancel
             </Button>
           )}

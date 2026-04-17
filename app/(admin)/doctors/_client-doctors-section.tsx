@@ -207,9 +207,7 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
             <tr>
                <th className="px-4 py-2 text-left uppercase">Avatar</th>
               <th className="px-4 py-2 text-left uppercase">Name</th>
-             
               <th className="px-4 py-2 text-left uppercase">Email</th>
-             
               <th className="px-4 py-2 text-left uppercase">Specialization</th>
               <th className="px-4 py-2 text-left uppercase">Bio</th>
               <th className="px-4 py-2 text-left uppercase">Locations</th>

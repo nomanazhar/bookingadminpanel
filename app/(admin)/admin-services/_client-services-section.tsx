@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import TableSearchBar from "@/components/admin/table-search-bar";
+import { Button } from "@/components/ui/button";
 import { ServiceForm } from "@/components/admin/service-form";
 import {
   DropdownMenu,
@@ -32,6 +33,7 @@ export default function ClientServicesSection({
   const [search, setSearch] = useState("");
   const [editService, setEditService] =
     useState<ServiceWithCategory | undefined>(undefined);
+  const [showForm, setShowForm] = useState(false);
   // Map of serviceId to subservices
   const [subservicesMap, setSubservicesMap] = useState<Record<string, Subservice[]>>({});
 
@@ -65,11 +67,13 @@ export default function ClientServicesSection({
   /* ------------------ HANDLERS ------------------ */
   const handleServiceSaved = () => {
     setEditService(undefined);
+    setShowForm(false);
     fetchServices();
   };
 
   const handleEdit = (service: ServiceWithCategory) => {
     setEditService(service);
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -87,6 +91,7 @@ export default function ClientServicesSection({
 
   const handleCancelEdit = () => {
     setEditService(undefined);
+    setShowForm(false);
   };
 
   /* ------------------ SEARCH FILTER ------------------ */
@@ -113,24 +118,47 @@ export default function ClientServicesSection({
   /* ------------------ RENDER ------------------ */
   return (
     <>
-      <div className="mb-2">
-        <ServiceForm
-          onServiceSaved={handleServiceSaved}
-          initialValues={editService}
-          categories={categories}
-          onCancel={handleCancelEdit}
-        />
+      <div className="mb-2 flex items-center gap-4">
+        <div className="flex-1">
+          <TableSearchBar
+            value={search}
+            onChange={setSearch}
+            onSearch={() => {}}
+            placeholder="Search services..."
+            className="border-2 rounded-xl"
+          />
+        </div>
+
+        <div>
+          <Button
+          variant="primary"
+            type="button"
+            onClick={() => {
+              if (showForm) {
+                setShowForm(false);
+                setEditService(undefined);
+              } else {
+                setEditService(undefined);
+                setShowForm(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          >
+            {showForm ? "Close" : " + Add Treatment"}
+          </Button>
+        </div>
       </div>
 
-      <div className="mb-2">
-        <TableSearchBar
-          value={search}
-          onChange={setSearch}
-          onSearch={() => {}}
-          placeholder="Search services..."
-           className="border-2 rounded-xl"
-        />
-      </div>
+      {showForm && (
+        <div className="mb-4">
+          <ServiceForm
+            onServiceSaved={handleServiceSaved}
+            initialValues={editService}
+            categories={categories}
+            onCancel={handleCancelEdit}
+          />
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full bg-card">

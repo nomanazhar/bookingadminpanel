@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 
 import TableSearchBar from "@/components/admin/table-search-bar";
+import { Button } from "@/components/ui/button";
 import { AddCategoryForm } from "@/components/admin/add-category-form";
 import {
   DropdownMenu,
@@ -26,10 +27,12 @@ export default function CategoriesTable({
   const [editCategory, setEditCategory] = useState<Category | undefined>(
     undefined
   );
+  const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCategoryAdded = async () => {
     setEditCategory(undefined);
+    setShowForm(false);
     setError(null);
 
     try {
@@ -47,6 +50,7 @@ export default function CategoriesTable({
 
   const handleEdit = (cat: Category) => {
     setEditCategory(cat);
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -77,6 +81,7 @@ export default function CategoriesTable({
 
   const handleCancelEdit = () => {
     setEditCategory(undefined);
+    setShowForm(false);
   };
 
   const filteredCategories = useMemo(() => {
@@ -100,23 +105,47 @@ export default function CategoriesTable({
 
   return (
     <>
-      <div className="mb-2">
-        <AddCategoryForm
-          onCategoryAdded={handleCategoryAdded}
-          initialValues={editCategory}
-          onCancel={handleCancelEdit}
-        />
+      <div className="mb-2 flex items-center gap-4">
+        <div className="flex-1">
+          <TableSearchBar
+            value={search}
+            onChange={setSearch}
+            onSearch={() => {}}
+            placeholder="Search categories..."
+            className="border-2 rounded-xl"
+          />
+        </div>
+
+        <div>
+          <Button
+          variant="primary"
+            type="button"
+            onClick={() => {
+              // Toggle form visibility. When opening for a new category, clear edit state.
+              if (showForm) {
+                setShowForm(false);
+                setEditCategory(undefined);
+              } else {
+                setEditCategory(undefined);
+                setShowForm(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+          >
+            {showForm ? "Close" : " + Add Category"}
+          </Button>
+        </div>
       </div>
 
-      <div className="mb-2">
-        <TableSearchBar
-          value={search}
-          onChange={setSearch}
-          onSearch={() => {}}
-          placeholder="Search categories..."
-          className="border-2 rounded-xl"
-        />
-      </div>
+      {showForm && (
+        <div className="mb-4">
+          <AddCategoryForm
+            onCategoryAdded={handleCategoryAdded}
+            initialValues={editCategory}
+            onCancel={handleCancelEdit}
+          />
+        </div>
+      )}
 
       {error && (
         <div className="text-red-500 mb-4">Error: {error}</div>

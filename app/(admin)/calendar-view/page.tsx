@@ -6,6 +6,9 @@ import { useCalendarData } from "@/hooks/useCalendarData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/dist/client/link";
+import { ArrowLeft } from "lucide-react";
+
 
 export default function CalendarViewPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -34,7 +37,12 @@ export default function CalendarViewPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4 gap-4">
-        <div>
+        <div className="flex items-center justify-start gap-4">
+           <Link href="/admin-dashboard">
+                  <Button variant="primary" size="icon" className="h-6 w-10 ">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
           <h1 className="text-2xl font-bold">Calendar View</h1>
           <p className="text-sm text-muted-foreground">Day view of bookings for all therapists</p>
         </div>
