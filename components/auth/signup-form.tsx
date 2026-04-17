@@ -24,8 +24,6 @@ export function SignUpForm() {
     phone: "",
     agreeToTerms: false,
   })
-  
-  const [signupMethod, setSignupMethod] = useState<'email' | 'phone'>('email')
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState("")
   const [otpLoading, setOtpLoading] = useState(false)
@@ -38,9 +36,7 @@ export function SignUpForm() {
     return e164Regex.test(phone)
   }
 
-  const handleEmailSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const handleEmailSignup = async () => {
     const firstName = formData.firstName.trim()
     const lastName = formData.lastName.trim()
     const email = formData.email.trim()
@@ -48,47 +44,29 @@ export function SignUpForm() {
     const phone = formData.phone.trim()
 
     if (!firstName || !lastName) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "First name and last name are required",
-      })
+      toast({ variant: "destructive", title: "Missing Information", description: "First and last name are required" })
       return
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
-      })
+      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address" })
       return
     }
 
     if (password.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters",
-      })
+      toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 6 characters" })
       return
     }
 
     if (!formData.agreeToTerms) {
-      toast({
-        variant: "destructive",
-        title: "Terms Required",
-        description: "Please agree to the Terms and Conditions",
-      })
+      toast({ variant: "destructive", title: "Terms Required", description: "Please agree to the Terms and Conditions" })
       return
     }
 
     setLoading(true)
-
     try {
       const supabase = createClient()
-
       const payload = {
         email,
         password,
@@ -103,42 +81,20 @@ export function SignUpForm() {
       }
 
       const { data, error } = await supabase.auth.signUp(payload)
-
       if (error) {
-        toast({ 
-          variant: "destructive", 
-          title: "Signup Failed", 
-          description: error.message 
-        })
+        toast({ variant: "destructive", title: "Signup Failed", description: error.message })
         return
       }
 
-      if (data.user) {
-        toast({ 
-          title: "Success", 
-          description: "Account created! Please check your email to verify your account." 
-        })
-        
-        // Check for pending booking
-        let hasPending = false
-        try {
-          hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
-        } catch {}
-
-        if (hasPending) {
-          try { localStorage.removeItem('prefillEmail') } catch {}
-          router.push('/confirm-booking')
-        } else {
-          router.push('/signin')
-        }
+      if (data?.user) {
+        toast({ title: "Success", description: "Account created! Please check your email to verify your account." })
+        try { localStorage.removeItem('prefillEmail') } catch {}
+        const hasPending = typeof window !== 'undefined' && !!localStorage.getItem('pendingBooking')
+        router.push(hasPending ? '/confirm-booking' : '/signin')
         router.refresh()
       }
     } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Unexpected Error",
-        description: "Something went wrong during signup",
-      })
+      toast({ variant: "destructive", title: "Unexpected Error", description: "Something went wrong during signup" })
     } finally {
       setLoading(false)
     }
@@ -150,6 +106,9 @@ export function SignUpForm() {
     const firstName = formData.firstName.trim()
     const lastName = formData.lastName.trim()
     const phone = formData.phone.trim()
+
+    // Ensure phone stays in state during the async call
+    setFormData((prev) => ({ ...prev, phone }))
 
     if (!firstName || !lastName) {
       setOtpError("First name and last name are required")
@@ -200,6 +159,8 @@ export function SignUpForm() {
         setOtpSent(false)
       } else {
         console.log("OTP sent successfully")
+        // preserve phone in form state (some auth flows may trigger re-renders)
+        setFormData((prev) => ({ ...prev, phone }))
         setOtpSent(true)
         setOtpError("")
         toast({ 
@@ -290,7 +251,7 @@ export function SignUpForm() {
       if (hasPending) {
         router.push('/confirm-booking')
       } else {
-        router.push('/siginin')
+        router.push('/signin')
       }
       router.refresh()
     } catch (err: any) {
@@ -301,41 +262,31 @@ export function SignUpForm() {
     }
   }
 
-  return (
-    <form onSubmit={handleEmailSignup} className="space-y-6">
-      {/* Signup method selector */}
-      <div className="flex space-x-2 mb-4">
-        <Button 
-          type="button" 
-          variant={signupMethod === 'email' ? 'default' : 'outline'} 
-          onClick={() => {
-            setSignupMethod('email')
-            setOtpSent(false)
-            setOtp("")
-            setOtpError("")
-          }} 
-          disabled={loading || otpLoading}
-          className="flex-1"
-        >
-          Email
-        </Button>
-        <Button 
-          type="button" 
-          variant={signupMethod === 'phone' ? 'default' : 'outline'} 
-          onClick={() => {
-            setSignupMethod('phone')
-            setOtpSent(false)
-            setOtp("")
-            setOtpError("")
-          }} 
-          disabled={loading || otpLoading}
-          className="flex-1"
-        >
-          Phone
-        </Button>
-      </div>
+  // Main submit handler: decide path based on provided fields and OTP state
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-      {/* Name fields */}
+    // If user provided email+password, prefer email signup
+    if (formData.email.trim() && formData.password.trim() && !otp) {
+      await handleEmailSignup()
+      return
+    }
+
+    // If OTP not sent yet, send it to the provided phone
+    if (!otpSent) {
+      await handleSendOtp()
+      return
+    }
+
+    // If OTP present, verify it
+    if (otp) {
+      await handleVerifyOtp()
+      return
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name *</Label>
@@ -361,154 +312,79 @@ export function SignUpForm() {
         </div>
       </div>
 
-      {/* Email signup fields */}
-      {signupMethod === 'email' && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              disabled={loading}
-            />
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="your@email.com"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          disabled={loading}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+923001234567"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              disabled={loading}
-            />
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone *</Label>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+923001234567"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          disabled={loading}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password *</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="At least 6 characters"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                disabled={loading}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="password">Password *</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="At least 6 characters"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            disabled={loading}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
 
-      {/* Phone signup fields */}
-      {signupMethod === 'phone' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone-signup">Phone (E.164 format) *</Label>
-            <Input
-              id="phone-signup"
-              type="tel"
-              placeholder="+923001234567"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-              disabled={otpLoading || otpSent}
-            />
-            <p className="text-xs text-muted-foreground">
-              Include country code (e.g., +92 for Pakistan)
-            </p>
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="otp">Enter 6-Digit Code</Label>
+        <Input
+          id="otp"
+          type="text"
+          maxLength={6}
+          placeholder="123456"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+          disabled={otpLoading}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email-optional">Email (Optional)</Label>
-            <Input
-              id="email-optional"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              disabled={otpLoading}
-            />
-          </div>
-
-          {!otpSent ? (
-            <Button 
-              type="button" 
-              className="w-full" 
-              onClick={handleSendOtp} 
-              disabled={otpLoading || otpRateLimit}
-            >
-              {otpLoading ? "Sending OTP..." : "Send OTP"}
-            </Button>
-          ) : (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="otp">Enter 6-Digit Code</Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  maxLength={6}
-                  placeholder="123456"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  disabled={otpLoading}
-                />
-              </div>
-              <Button 
-                type="button" 
-                className="w-full" 
-                onClick={handleVerifyOtp} 
-                disabled={otpLoading}
-              >
-                {otpLoading ? "Verifying..." : "Verify & Sign Up"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline"
-                className="w-full" 
-                onClick={() => {
-                  setOtpSent(false)
-                  setOtp("")
-                  setOtpError("")
-                }}
-                disabled={otpLoading}
-              >
-                Resend OTP
-              </Button>
-            </div>
-          )}
-
-          {otpError && (
-            <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">
-              {otpError}
-            </div>
-          )}
+      {otpError && (
+        <div className="text-destructive text-sm mt-2 p-3 bg-destructive/10 rounded-md">
+          {otpError}
         </div>
       )}
 
-      {/* Terms agreement */}
-      <div className="flex items-start space-x-2">
+      <div className="flex items-start space-x-2 text-sm">
         <Checkbox
           id="terms"
           checked={formData.agreeToTerms}
           onCheckedChange={(checked) => setFormData({ ...formData, agreeToTerms: checked as boolean })}
           disabled={loading || otpLoading}
         />
-        <label htmlFor="terms" className="text-sm leading-relaxed">
+        <label htmlFor="terms" className="text-sm leading-tight">
           I agree to the{" "}
           <Link href="/terms" className="text-primary underline">
             Terms & Conditions
@@ -520,20 +396,9 @@ export function SignUpForm() {
         </label>
       </div>
 
-      {/* Submit button (only for email signup) */}
-      {signupMethod === 'email' && (
-        <Button type="submit" disabled={loading} className="w-full" size="lg">
-          {loading ? "Creating account..." : "Sign Up"}
-        </Button>
-      )}
-
-      {/* Sign in link */}
-      {/* <div className="text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/sign-in" className="text-primary font-medium hover:underline">
-          Sign In
-        </Link>
-      </div> */}
+      <Button type="submit" disabled={loading || otpLoading || otpRateLimit} className="w-full" size="lg">
+        {loading || otpLoading ? (otpSent ? "Processing..." : "Processing...") : otpSent ? "Verify & Sign Up" : (formData.email.trim() && formData.password.trim() ? "Sign Up" : "Send OTP")}
+      </Button>
     </form>
   )
 }

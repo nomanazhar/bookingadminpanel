@@ -85,6 +85,10 @@ export default function CreateBookingPage() {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [customerType, setCustomerType] = useState("new");
+  // Admin pricing adjustments (direct numbers, not percentages). Use strings so inputs
+  // can be empty while typing (prevents persistent leading zero behavior).
+  const [extraAmount, setExtraAmount] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<string>("");
 
   // User search (existing / returning customer)
   const [userSearch, setUserSearch] = useState("");
@@ -300,6 +304,9 @@ export default function CreateBookingPage() {
         setBookingDate(order.booking_date || "");
         setBookingTime(order.booking_time?.slice(0, 5) || "");
         setNotes(order.notes || "");
+        // Prefill admin adjustments if present (use empty string when zero/undefined to keep inputs empty)
+        setExtraAmount(order.extra_amount != null ? String(order.extra_amount) : "");
+        setDiscountAmount(order.discount_amount != null ? String(order.discount_amount) : "");
       } catch (e: any) {
         toast({
           title: "Duplication Error",
@@ -393,6 +400,9 @@ export default function CreateBookingPage() {
   };
 
   const totalPrice = calculatePrice();
+  const parsedExtra = parseFloat(extraAmount || "0") || 0;
+  const parsedDiscount = parseFloat(discountAmount || "0") || 0;
+  const adjustedTotal = Math.max(0, totalPrice + parsedExtra - parsedDiscount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -441,6 +451,7 @@ export default function CreateBookingPage() {
       });
 
       const totalAmount = totalUnitPrice - (totalUnitPrice * aggregateDiscount / 100);
+      const finalAmount = Math.max(0, totalAmount + Number(extraAmount || 0) - Number(discountAmount || 0));
       const primaryServiceName = selectedServices.map(s => s.name).join(" + ");
 
       const payload = {
@@ -453,7 +464,9 @@ export default function CreateBookingPage() {
         sessions: parseInt(selectedSessions, 10),
         unit_price: totalUnitPrice,
         discount_percent: aggregateDiscount,
-        total_amount: totalAmount,
+        extra_amount: Number(extraAmount || 0),
+        discount_amount: Number(discountAmount || 0),
+        total_amount: finalAmount,
         booking_date: bookingDate,
         booking_time: bookingTime,
         address: address || null,
@@ -500,14 +513,13 @@ export default function CreateBookingPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold font-heading mb-2">Create New Booking</h1>
+          <h2 className="text-3xl font-bold font-heading ">Create New Booking</h2>
         </div>
       </div>
 
       {/* Form Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Booking Information</CardTitle>
           <CardDescription>Fill in the details to create a new booking</CardDescription>
         </CardHeader>
         <CardContent>
@@ -648,7 +660,7 @@ export default function CreateBookingPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 {/* Services - Multi-select */}
                 <div className="space-y-2 md:col-span-2 lg:col-span-1">
-                  <Label>Services <span className="text-destructive italic">(Select one or more)</span> </Label>
+                  <Label>Services <span className="text-destructive italic text-xs">(Select one or more)</span> </Label>
                   {loadingServices ? (
                     <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
                       Loading services...
@@ -699,7 +711,7 @@ export default function CreateBookingPage() {
                 <div>
                   {/* Doctor (Optional) */}
                   <div className="space-y-2">
-                    <Label htmlFor="doctor">Doctor <span className=" italic">(Optional)</span></Label>
+                    <Label htmlFor="doctor">Doctor</Label>
                     {loadingDoctors ? (
                       <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md">
                         Loading Therapists...
@@ -807,18 +819,51 @@ export default function CreateBookingPage() {
                     )}
                   </div>
                 </div>
+                
                 {/* Total Amount - full width */}
-                {selectedSessions && selectedServices.length > 0 && totalPrice > 0 && (
+                {selectedSessions && selectedServices.length > 0 && totalPrice >= 0 && (
                   <div className="md:col-span-3">
                     <div className="p-4 bg-muted rounded-md border">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-base font-medium">Selected Services:</span>
-                          <span className="text-sm">{selectedServices.map(s => s.name).join(", ")}</span>
                         </div>
+
                         <div className="flex items-center justify-between text-lg">
-                          <span className="font-medium">Total Amount:</span>
-                          <span className="text-2xl font-bold">£{totalPrice.toFixed(2)}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm">{selectedServices.map(s => s.name).join(", ")}</span>
+                          </div>
+
+                          <div className="flex gap-8 items-center">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm">Extra</label>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={extraAmount}
+                                onChange={(e) => setExtraAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                                placeholder="0"
+                                className="w-24 rounded-md border px-2 py-1 text-sm"
+                                aria-label="Extra amount"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm">Discount</label>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={discountAmount}
+                                onChange={(e) => setDiscountAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                                placeholder="0"
+                                className="w-24 rounded-md border px-2 py-1 text-sm"
+                                aria-label="Discount amount"
+                              />
+                            </div>
+
+                            <div className="text-sm font-medium">Total Amount:</div>
+                            <div className="text-2xl font-bold">{adjustedTotal.toFixed(2)}</div>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -27,9 +27,8 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-white text-black",
-        destructive:
-          "destructive group border-destructive bg-white text-red-900 shadow-lg",
+        default: "border text-black",
+        destructive: "destructive group border-destructive text-white shadow-lg",
       },
     },
     defaultVariants: {
@@ -43,11 +42,20 @@ const Toast = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
+  // Merge inline style to apply the requested background colors while
+  // keeping Tailwind classes for borders, text and shadow.
+  const mergedStyle = {
+    ...(props.style as React.CSSProperties),
+    backgroundColor: variant === "destructive" ? "#DC2626" : "#42E0CF",
+  }
+
+  const rootProps = { ...props, style: mergedStyle }
+
   return (
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
-      {...props}
+      {...rootProps}
     />
   )
 })

@@ -118,7 +118,8 @@ export function ServiceForm({
     setSlugEdited(!!initialValues?.slug);
     setDescription(initialValues?.description || "");
     setCategoryId(initialValues?.category_id || "");
-    // basePrice is always zero, do not set from initialValues
+    // Populate basePrice from initial values when editing, default to "0"
+    setBasePrice(initialValues?.base_price?.toString() || "0");
     setDuration(initialValues?.duration_minutes?.toString() || "");
     setIsPopular(!!initialValues?.is_popular);
     setIsActive(initialValues?.is_active ?? true);
@@ -249,6 +250,9 @@ export function ServiceForm({
 
       resetForm();
       onServiceSaved?.();
+      // If a parent provided an onCancel (e.g. to close a modal), call it
+      // so the cleaned form is hidden just like the Cancel button behavior.
+      onCancel && onCancel();
     } catch (err: any) {
       toast({
         title: initialValues?.id ? "Update failed" : "Create failed",
@@ -349,7 +353,8 @@ export function ServiceForm({
     setSlugEdited(false);
     setDescription("");
     setCategoryId("");
-    // basePrice is always zero, no setter needed
+    // Reset basePrice to default zero
+    setBasePrice("0");
     setDuration("");
     setIsPopular(false);
     setIsActive(true);
@@ -661,7 +666,14 @@ export function ServiceForm({
             </Button>
 
             {initialValues?.id && onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  resetForm();
+                  onCancel && onCancel();
+                }}
+              >
                 Cancel
               </Button>
             )}

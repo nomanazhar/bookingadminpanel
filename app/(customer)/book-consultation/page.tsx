@@ -81,8 +81,8 @@ export default async function BookConsultationPage() {
               <div className="flex gap-2 mt-4 md:mt-0">
                 <Link href="/">
                   <Button
-                    variant="ghost"
-                    className="border border-input bg-background hover:bg-muted"
+                    variant="primary"
+                    className="border border-input "
                   >
                     Book now
                   </Button>
