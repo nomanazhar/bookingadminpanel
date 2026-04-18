@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash } from "lucide-react"
+import ConfirmDialog from "@/components/ui/confirm-dialog"
 
 interface UsersTableProps {
   users: Profile[]
@@ -60,13 +61,26 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
       alert("Admin users cannot be deleted.")
       return
     }
-    if (!window.confirm("Are you sure you want to delete this user?")) return
-    // Call API to delete user in Supabase
+    setDeleteTargetId(userId)
+    setDeleteDialogOpen(true)
+  }
+
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingUserLoading, setDeletingUserLoading] = useState(false)
+
+  const confirmDeleteUser = async () => {
+    if (!deleteTargetId) return
+    setDeletingUserLoading(true)
     try {
-      await axios.delete(`/api/admin/users/${userId}`)
-      setUsers(users.filter(u => u.id !== userId))
+      await axios.delete(`/api/admin/users/${deleteTargetId}`)
+      setUsers(users.filter(u => u.id !== deleteTargetId))
     } catch {
       alert("Failed to delete user.")
+    } finally {
+      setDeletingUserLoading(false)
+      setDeleteDialogOpen(false)
+      setDeleteTargetId(null)
     }
   }
   if (!users || users.length === 0) {
@@ -76,6 +90,14 @@ function UsersTableComponent({ users: initialUsers, currentPage, totalCount, pag
   }
   return (
     <div>
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(v) => { if (!v) setDeleteDialogOpen(false) }}
+        onConfirm={confirmDeleteUser}
+        title="Delete user?"
+        description="Are you sure you want to delete this user?"
+        loading={deletingUserLoading}
+      />
       <TableSearchBar onSearch={setSearch} placeholder="Search users..." />
       <div className="rounded-md border">
         <Table>

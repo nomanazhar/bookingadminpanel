@@ -58,6 +58,8 @@ function OrdersTableComponent({
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [confirmingIds, setConfirmingIds] = useState<Set<string>>(new Set());
+  const [checkingInIds, setCheckingInIds] = useState<Set<string>>(new Set());
 
   const openSessionsModal = useCallback(async (order: OrderWithDetails) => {
     setSelectedOrder(order);
@@ -117,25 +119,59 @@ function OrdersTableComponent({
   const paginatedOrders = filteredOrders;
 
   const handleConfirm = async (orderId: string) => {
-    await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' });
-    router.refresh();
+    // mark as confirming to disable button and show loading
+    setConfirmingIds((prev) => {
+      const next = new Set(prev);
+      next.add(orderId);
+      return next;
+    });
+
+    try {
+      await axios.patch(`/api/orders/${orderId}`, { status: 'confirmed' });
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to confirm order:", err);
+    } finally {
+      setConfirmingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+    }
   };
 
   // Session check-in logic
   const handleSessionCheckIn = async (orderId: string, sessionId: string, attendedTime?: string) => {
-    await axios.patch(`/api/orders/${orderId}/sessions`, {
-      sessionId,
-      status: 'completed',
-      attended_date: new Date().toISOString().slice(0, 10),
-      ...(attendedTime && { attended_time: attendedTime }),
+    // mark this session as checking-in to prevent duplicate clicks
+    setCheckingInIds((prev) => {
+      const next = new Set(prev);
+      next.add(sessionId);
+      return next;
     });
-    // After check-in, check if all sessions are completed
-    const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
-    const allCompleted = sessions.every((s: any) => s.status === 'completed');
-    if (allCompleted) {
-      await axios.patch(`/api/orders/${orderId}`, { status: 'completed' });
+
+    try {
+      await axios.patch(`/api/orders/${orderId}/sessions`, {
+        sessionId,
+        status: 'completed',
+        attended_date: new Date().toISOString().slice(0, 10),
+        ...(attendedTime && { attended_time: attendedTime }),
+      });
+      // After check-in, check if all sessions are completed
+      const { data: sessions } = await axios.get(`/api/orders/${orderId}/sessions`);
+      const allCompleted = sessions.every((s: any) => s.status === 'completed');
+      if (allCompleted) {
+        await axios.patch(`/api/orders/${orderId}`, { status: 'completed' });
+      }
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to check-in session:", err);
+    } finally {
+      setCheckingInIds((prev) => {
+        const next = new Set(prev);
+        next.delete(sessionId);
+        return next;
+      });
     }
-    router.refresh();
   };
 
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
@@ -260,9 +296,9 @@ function OrdersTableComponent({
                         <Button
                           size="sm"
                           onClick={() => handleSessionCheckIn(order.id, nextSession.id, nextSession.scheduled_time ?? undefined)}
-                          disabled={order.status !== 'confirmed'}
+                          disabled={order.status !== 'confirmed' || checkingInIds.has(nextSession.id)}
                         >
-                          Check in
+                          {checkingInIds.has(nextSession.id) ? "Checking..." : "Check in"}
                         </Button>
                       ) : null}
                     </div>
@@ -308,10 +344,12 @@ function OrdersTableComponent({
                           Pending
                         </button>
                         <button
-                          className="px-2 py-1 rounded bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition"
+                          className="px-2 py-1 rounded bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition disabled:opacity-60"
                           onClick={() => handleConfirm(order.id)}
+                          disabled={confirmingIds.has(order.id)}
+                          aria-busy={confirmingIds.has(order.id)}
                         >
-                          Confirm
+                          {confirmingIds.has(order.id) ? "Confirming..." : "Confirm"}
                         </button>
                       </div>
                     );

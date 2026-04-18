@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 import type { Category, ServiceWithCategory } from "@/types";
 
@@ -78,16 +79,31 @@ export default function ClientServicesSection({
   };
 
   const handleDelete = async (service: ServiceWithCategory) => {
-    if (!window.confirm(`Delete service "${service.name}"?`)) return;
+    // open confirmation dialog
+    setDeletingService(service);
+  };
 
-    const res = await fetch(`/api/services/${service.id}`, {
-      method: "DELETE",
-    });
+  const [deletingService, setDeletingService] = useState<ServiceWithCategory | null>(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
 
-    if (res.ok) {
-      setServices((prev) => prev.filter((s) => s.id !== service.id));
+  const confirmDelete = async () => {
+    if (!deletingService) return;
+    setDeletingLoading(true);
+    try {
+      const res = await fetch(`/api/services/${deletingService.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setServices((prev) => prev.filter((s) => s.id !== deletingService.id));
+      }
+    } finally {
+      setDeletingLoading(false);
+      setDeletingService(null);
     }
   };
+
+  
 
   const handleCancelEdit = () => {
     setEditService(undefined);
@@ -118,6 +134,14 @@ export default function ClientServicesSection({
   /* ------------------ RENDER ------------------ */
   return (
     <>
+      <ConfirmDialog
+        open={!!deletingService}
+        onOpenChange={(v) => { if (!v) setDeletingService(null) }}
+        onConfirm={confirmDelete}
+        title={`Delete service "${deletingService?.name}"?`}
+        description="This action cannot be undone."
+        loading={deletingLoading}
+      />
       <div className="mb-2 flex items-center gap-4">
         <div className="flex-1">
           <TableSearchBar
@@ -211,7 +235,7 @@ export default function ClientServicesSection({
                     "-"
                   )}
                 </td>
-                <td className="px-4 py-2 text-sm">£{service.base_price}</td>
+                <td className="px-4 py-2 text-sm">{service.base_price}</td>
                 <td className="px-4 py-2 text-xs">
                   {service.description || "-"}
                 </td>

@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { Navbar } from "./navbar"
+import { AdminNavbar } from "./admin-navbar"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
 import type { Profile } from "@/types"
@@ -91,5 +92,11 @@ export default function NavbarWrapper() {
   }
 
   // Customer-facing navbar only
+  // If the current user is an admin and is visiting the profile page,
+  // render the admin navbar so the admin stays in the admin context.
+  if (profile?.role === 'admin' && pathname.startsWith('/profile')) {
+    return <AdminNavbar user={profile} />
+  }
+
   return <Navbar user={profile} />
 }

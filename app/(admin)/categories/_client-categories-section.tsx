@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 import type { Category } from "@/types";
 
@@ -29,6 +30,8 @@ export default function CategoriesTable({
   );
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
 
   const handleCategoryAdded = async () => {
     setEditCategory(undefined);
@@ -55,12 +58,17 @@ export default function CategoriesTable({
   };
 
   const handleDelete = async (cat: Category) => {
-    if (!window.confirm(`Delete category "${cat.name}"?`)) return;
+    setDeletingCategory(cat);
+  };
 
+     
+
+  const confirmDelete = async () => {
+    if (!deletingCategory) return;
+    setDeletingLoading(true);
     setError(null);
-
     try {
-      const res = await fetch(`/api/categories/${cat.id}`, {
+      const res = await fetch(`/api/categories/${deletingCategory.id}`, {
         method: "DELETE",
       });
 
@@ -70,12 +78,14 @@ export default function CategoriesTable({
         cache: "no-store",
       });
 
-      if (!uncached.ok)
-        throw new Error("Failed to fetch categories after delete");
+      if (!uncached.ok) throw new Error("Failed to fetch categories after delete");
 
       setCategories(await uncached.json());
     } catch (err: any) {
       setError(err?.message || "Unknown error deleting category");
+    } finally {
+      setDeletingLoading(false);
+      setDeletingCategory(null);
     }
   };
 
@@ -248,6 +258,14 @@ export default function CategoriesTable({
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={!!deletingCategory}
+        onOpenChange={(v) => { if (!v) setDeletingCategory(null) }}
+        onConfirm={confirmDelete}
+        title={`Delete category "${deletingCategory?.name}"?`}
+        description="This action cannot be undone."
+        loading={deletingLoading}
+      />
     </>
   );
 }

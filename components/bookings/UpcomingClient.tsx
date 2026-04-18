@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { parseBookingDateTime } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import RescheduleButton from './RescheduleButton'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 interface Props {
   booking_date: string
@@ -32,8 +33,13 @@ export default function UpcomingClient({ booking_date, booking_time, service, se
   }
 
   const handleCancel = async () => {
+    // open confirmation dialog
+    setShowCancelDialog(true);
+  };
+
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const confirmCancel = async () => {
     if (!orderId) return;
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setIsCancelling(true);
     try {
       const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
@@ -46,6 +52,7 @@ export default function UpcomingClient({ booking_date, booking_time, service, se
       alert('Failed to cancel booking.');
     } finally {
       setIsCancelling(false);
+      setShowCancelDialog(false);
     }
   };
 
@@ -59,6 +66,14 @@ export default function UpcomingClient({ booking_date, booking_time, service, se
 
   return (
     <div className='flex '>
+      <ConfirmDialog
+        open={showCancelDialog}
+        onOpenChange={(v) => { if (!v) setShowCancelDialog(false) }}
+        onConfirm={confirmCancel}
+        title="Cancel booking?"
+        description="Are you sure you want to cancel this booking?"
+        loading={isCancelling}
+      />
       <div className="flex-1 min-w-0">
         <div className="mb-2">
           <span className="inline-block bg-[#7B61FF] text-white text-xs font-semibold px-3 py-1 rounded-full mb-2 capitalize">Upcoming</span>

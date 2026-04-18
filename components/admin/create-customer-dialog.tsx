@@ -54,7 +54,7 @@ export function CreateCustomerDialog({
     phone: '',
     gender: '',
     address: '',
-    role: 'customer' as 'customer' | 'admin' | 'doctor',
+    role: '' as '' | 'customer' | 'admin' | 'doctor',
   })
 
   const resetForm = () => {
@@ -66,7 +66,7 @@ export function CreateCustomerDialog({
       phone: '',
       gender: '',
       address: '',
-      role: 'customer',
+      role: '',
     })
   }
 
@@ -91,8 +91,8 @@ export function CreateCustomerDialog({
           phone: (initialData.phone as string) || '',
           gender: (initialData.gender as string) || '',
           address: (initialData.address as string) || '',
-          // enforce customer role for both create and edit flows
-          role: 'customer',
+          // preserve existing role when editing; do not overwrite here
+          role: (initialData.role as any) || '',
         }))
       } else {
         resetForm()
@@ -171,8 +171,7 @@ export function CreateCustomerDialog({
           phone: formData.phone.trim() || null,
           gender: formData.gender || null,
           address: formData.address.trim() || null,
-          // enforce customer role on update
-          role: 'customer',
+          // do not include role on update unless explicitly changed
         }
         // Note: password changes are not handled by the profiles PUT endpoint.
         // If you need to change the auth password, implement a dedicated
@@ -187,7 +186,7 @@ export function CreateCustomerDialog({
           phone: formData.phone.trim() || null,
           gender: formData.gender || null,
           address: formData.address.trim() || null,
-          role: 'customer',
+            role: 'customer',
         })
       }
 

@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { Button } from "@/components/ui/button"
 import { RefreshCcw } from "lucide-react"
 import RescheduleSessionDialog from "./RescheduleSessionDialog"
+import ConfirmDialog from "@/components/ui/confirm-dialog"
 import { parseBookingDateTime } from '@/lib/utils'
 import type { OrderWithDetails } from '@/types'
 
@@ -29,6 +30,8 @@ export default function MyBookingsClient({ customerId }: Props) {
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [state, dispatch] = useReducer(tabReducer, { activeTab: "Upcoming" });
   const [cancellingId, setCancellingId] = React.useState<string | null>(null);
+  const [cancelTargetId, setCancelTargetId] = React.useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
 
   // SWR fetcher for bookings
   const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -111,6 +114,31 @@ export default function MyBookingsClient({ customerId }: Props) {
 
   return (
     <>
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        onOpenChange={(v) => { if (!v) setCancelDialogOpen(false) }}
+        onConfirm={async () => {
+          if (!cancelTargetId) return;
+          setCancellingId(cancelTargetId);
+          try {
+            const res = await fetch(`/api/orders/${cancelTargetId}`, { method: 'DELETE' });
+            if (res.ok) {
+              mutate();
+            } else {
+              alert('Failed to cancel booking.');
+            }
+          } catch {
+            alert('Failed to cancel booking.');
+          } finally {
+            setCancellingId(null);
+            setCancelDialogOpen(false);
+            setCancelTargetId(null);
+          }
+        }}
+        title="Cancel booking?"
+        description="Are you sure you want to cancel this booking?"
+        loading={!!cancellingId}
+      />
       {/* {isDev && (
         <div style={{ background: '#f5f5f5', color: '#222', padding: 12, marginBottom: 16, borderRadius: 8, fontSize: 12 }}>
           <strong>Debug Info (dev only):</strong>
@@ -200,22 +228,10 @@ export default function MyBookingsClient({ customerId }: Props) {
                           variant="ghost"
                           className="border border-input bg-background hover:bg-red-500 capitalize"
                           disabled={cancellingId === upcomingOrder.id}
-                          onClick={async () => {
+                          onClick={() => {
                             if (!upcomingOrder.id) return;
-                            if (!window.confirm('Are you sure you want to cancel this booking?')) return;
-                            setCancellingId(upcomingOrder.id);
-                            try {
-                              const res = await fetch(`/api/orders/${upcomingOrder.id}`, { method: 'DELETE' });
-                              if (res.ok) {
-                                mutate();
-                              } else {
-                                alert('Failed to cancel booking.');
-                              }
-                            } catch {
-                              alert('Failed to cancel booking.');
-                            } finally {
-                              setCancellingId(null);
-                            }
+                            setCancelTargetId(upcomingOrder.id);
+                            setCancelDialogOpen(true);
                           }}
                         >
                           {cancellingId === upcomingOrder.id ? 'Cancelling...' : 'Cancel'}

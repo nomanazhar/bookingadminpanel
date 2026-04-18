@@ -13,6 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { Plus } from "lucide-react";
 
 import type { Doctor } from "@/types";
@@ -100,22 +101,29 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   };
 
   const handleDelete = async (doctor: Doctor) => {
-    if (
-      !window.confirm(
-        `Delete doctor "${doctor.first_name} ${doctor.last_name}"?`
-      )
-    )
-      return;
+    setDeletingDoctor(doctor);
+  };
 
-    const res = await fetch(`/api/doctors/${doctor.id}`, {
-      method: "DELETE",
-    });
+  const [deletingDoctor, setDeletingDoctor] = useState<Doctor | null>(null);
+  const [deletingLoading, setDeletingLoading] = useState(false);
 
-    if (res.ok) {
-      setDoctors((prev) => prev.filter((d) => d.id !== doctor.id));
-    } else {
-      const error = await res.json();
-      alert(error?.error || "Failed to delete Therapist");
+  const confirmDelete = async () => {
+    if (!deletingDoctor) return;
+    setDeletingLoading(true);
+    try {
+      const res = await fetch(`/api/doctors/${deletingDoctor.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setDoctors((prev) => prev.filter((d) => d.id !== deletingDoctor.id));
+      } else {
+        const error = await res.json();
+        alert(error?.error || "Failed to delete Therapist");
+      }
+    } finally {
+      setDeletingLoading(false);
+      setDeletingDoctor(null);
     }
   };
 
@@ -172,6 +180,14 @@ export default function ClientDoctorsSection({ initialDoctors }: Props) {
   /* ------------------ RENDER ------------------ */
   return (
     <>
+      <ConfirmDialog
+        open={!!deletingDoctor}
+        onOpenChange={(v) => { if (!v) setDeletingDoctor(null) }}
+        onConfirm={confirmDelete}
+        title={`Delete doctor "${deletingDoctor?.first_name} ${deletingDoctor?.last_name}"?`}
+        description="This action cannot be undone."
+        loading={deletingLoading}
+      />
       <div className="flex items-center justify-between mb-2">
         <div className="mb-2 flex flex-col">
           <TableSearchBar

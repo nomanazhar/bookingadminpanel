@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, X, Trash2, Plus } from "lucide-react"
+import ConfirmDialog from "@/components/ui/confirm-dialog"
 
 interface Location {
   id: string
@@ -103,11 +104,15 @@ export default function LocationsManager({ open, onOpenChange }: LocationsManage
     }
   }
 
-  const handleDeleteLocation = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this location?")) return
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
+  const confirmDeleteLocation = async () => {
+    if (!deletingId) return
+    setDeleting(true)
     try {
-      const response = await fetch(`/api/admin/locations/${id}`, {
+      const response = await fetch(`/api/admin/locations/${deletingId}`, {
         method: "DELETE",
       })
 
@@ -116,20 +121,23 @@ export default function LocationsManager({ open, onOpenChange }: LocationsManage
         throw new Error(error.message || "Failed to delete location")
       }
 
-      setLocations(locations.filter((loc) => loc.id !== id))
+      setLocations((prev) => prev.filter((loc) => loc.id !== deletingId))
       toast({
         title: "Success",
         description: "Location deleted successfully",
       })
+      setDeleteDialogOpen(false)
+      setDeletingId(null)
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete location",
         variant: "destructive",
       })
+    } finally {
+      setDeleting(false)
     }
   }
-
   if (!open) return null
 
   return (
@@ -184,7 +192,10 @@ export default function LocationsManager({ open, onOpenChange }: LocationsManage
                       )}
                     </div>
                     <button
-                      onClick={() => handleDeleteLocation(location.id)}
+                      onClick={() => {
+                        setDeletingId(location.id)
+                        setDeleteDialogOpen(true)
+                      }}
                       className="p-2 hover:bg-red-100 text-red-600 rounded transition-colors"
                       title="Delete location"
                     >
@@ -288,6 +299,17 @@ export default function LocationsManager({ open, onOpenChange }: LocationsManage
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(v) => {
+          setDeleteDialogOpen(v)
+          if (!v) setDeletingId(null)
+        }}
+        title="Delete location"
+        description="Are you sure you want to delete this location? This action cannot be undone."
+        onConfirm={confirmDeleteLocation}
+        loading={deleting}
+      />
     </div>
   )
 }

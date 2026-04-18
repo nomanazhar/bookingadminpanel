@@ -47,6 +47,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
+  // Safety: do not allow role changes unless explicitly requested by the client
+  // and permitted via `allowRoleUpdate` flag. This prevents accidental client
+  // payloads from overwriting user roles. (Server-side auth checks may be
+  // added later to restrict role changes to super-admins.)
+  const allowRoleUpdate = body?.allowRoleUpdate === true || body?.allowRoleUpdate === 'true'
+  if (!allowRoleUpdate && 'role' in updates) {
+    delete updates.role
+  }
+  // Remove internal flag if present
+  if ('allowRoleUpdate' in updates) delete updates.allowRoleUpdate
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
